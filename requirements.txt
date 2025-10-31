@@ -1,0 +1,72 @@
+# 웹 프레임워크
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-multipart==0.0.6
+
+# 데이터베이스
+sqlalchemy==2.0.25
+alembic==1.13.1
+psycopg2-binary==2.9.9
+
+# 인증 및 보안
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.1.2
+pydantic[email]==2.5.3
+email-validator==2.1.0
+
+# 레디스
+redis==5.0.1
+
+# PDF 생성
+reportlab==4.0.9
+PyPDF2==3.0.1
+
+# 파일 처리
+aiofiles==23.2.1
+python-magic==0.4.27
+
+# 엑셀 내보내기
+openpyxl==3.1.2
+
+# HTTP 클라이언트 (토스 호출용)
+httpx==0.26.0
+requests==2.31.0
+
+# 환경 변수
+python-dotenv==1.0.0
+
+# 날짜 및 시간
+python-dateutil==2.8.2
+
+# 유효성 검사
+pydantic-settings==2.1.0
+
+# 챗봇용 LangChain
+langchain==0.1.4
+langchain-community==0.0.16
+langchain-openai==0.0.5
+openai==1.10.0
+tiktoken==0.5.2
+
+# 벡터 데이터베이스 (챗봇용)
+chromadb==0.4.22
+
+# CORS
+fastapi-cors==0.0.6
+
+# 로깅
+loguru==0.7.2
+
+# AWS S3 연동 (동영상 저장)
+boto3==1.34.34
+botocore==1.34.34
+
+# 프로덕션 서버
+gunicorn==21.2.0
+
+# 속도 제한
+slowapi==0.1.9
+
+# 업로드 이미지 처리
+Pillow==10.2.0
