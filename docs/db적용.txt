@@ -1,0 +1,204 @@
+LangChain v1.0.1의 최신 메모리 DB 저장 방법에 대한 문서를 찾아드리겠습니다.LangChain v1.0.1(최신) 기준에서 메모리를 DB에 저장하려면 **LangGraph의 persistence 기능**을 사용해야 합니다. 다음 문서들을 참고하시면 됩니다:
+
+## 📚 주요 문서
+
+### 1. **공식 Persistence 개념 가이드** (가장 중요)
+https://docs.langchain.com/oss/python/langgraph/persistence
+
+이 문서에서 LangGraph의 persistence 전체 구조를 설명합니다:
+- **Checkpointer**: Short-term memory (대화 히스토리)
+- **Store**: Long-term memory (여러 대화 간 공유되는 메모리)
+
+### 2. **Add Memory 튜토리얼**
+https://langchain-ai.github.io/langgraph/how-tos/memory/add-memory/
+
+실제 구현 방법을 단계별로 설명하는 실용 가이드입니다.
+
+### 3. **PostgresSaver API 레퍼런스**
+https://langchain-ai.github.io/langgraph/reference/checkpoints/
+
+PostgresSaver 클래스의 메서드와 사용법을 상세히 설명합니다.
+
+## 💡 핵심 개념
+
+LangChain v0.3부터는 기존의 `ConversationBufferMemory` 같은 메모리 클래스 대신 **LangGraph의 persistence**를 사용하도록 권장됩니다.
+
+### DB 백엔드 옵션
+
+```python
+# 1. 개발/테스트용: SQLite
+from langgraph.checkpoint.sqlite import SqliteSaver
+
+# 2. 프로덕션용: PostgreSQL (권장)
+from langgraph.checkpoint.postgres import PostgresSaver
+
+# 3. 메모리용: InMemorySaver (디버깅용)
+from langgraph.checkpoint.memory import InMemorySaver
+```
+
+## 🔧 PostgreSQL 사용 예시
+
+### 설치
+
+```bash
+pip install langgraph-checkpoint-postgres psycopg-binary
+```
+
+### 기본 사용법
+
+```python
+from langgraph.graph import StateGraph, MessagesState, START
+from langgraph.checkpoint.postgres import PostgresSaver
+from langchain.chat_models import init_chat_model
+
+# PostgreSQL 연결
+DB_URI = "postgresql://postgres:postgres@localhost:5432/postgres?sslmode=disable"
+
+# Checkpointer 생성
+with PostgresSaver.from_conn_string(DB_URI) as checkpointer:
+    # 최초 1회 테이블 생성
+    checkpointer.setup()
+    
+    # 모델 초기화
+    model = init_chat_model(model="anthropic:claude-3-5-haiku-latest")
+    
+    # 그래프 정의
+    def call_model(state: MessagesState):
+        response = model.invoke(state["messages"])
+        return {"messages": response}
+    
+    builder = StateGraph(MessagesState)
+    builder.add_node(call_model)
+    builder.add_edge(START, "call_model")
+    
+    # checkpointer와 함께 컴파일
+    graph = builder.compile(checkpointer=checkpointer)
+    
+    # thread_id로 대화 구분
+    config = {"configurable": {"thread_id": "user-123"}}
+    
+    # 대화 실행
+    for chunk in graph.stream(
+        {"messages": [{"role": "user", "content": "안녕!"}]},
+        config
+    ):
+        print(chunk)
+```
+
+### FastAPI와 함께 사용하는 방법
+
+```python
+from fastapi import FastAPI
+from contextlib import asynccontextmanager
+from langgraph.checkpoint.postgres import PostgresSaver
+from psycopg_pool import ConnectionPool
+
+# 전역 connection pool 생성 (중요!)
+pool = ConnectionPool(
+    conninfo="postgresql://postgres:postgres@localhost:5432/postgres",
+    min_size=1,
+    max_size=10
+)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 시작 시 체크포인터 설정
+    checkpointer = PostgresSaver(pool)
+    checkpointer.setup()
+    yield {"checkpointer": checkpointer}
+    # 종료 시 pool 닫기
+    pool.close()
+
+app = FastAPI(lifespan=lifespan)
+
+@app.post("/chat")
+async def chat(message: str, thread_id: str):
+    # 요청마다 동일한 checkpointer 사용
+    checkpointer = PostgresSaver(pool)
+    graph = builder.compile(checkpointer=checkpointer)
+    
+    config = {"configurable": {"thread_id": thread_id}}
+    result = await graph.ainvoke(
+        {"messages": [{"role": "user", "content": message}]},
+        config
+    )
+    return result
+```
+
+## 🗄️ Store를 사용한 Long-term Memory
+
+여러 대화 간 공유되는 정보를 저장하려면 Store를 사용합니다:
+
+```python
+from langgraph.checkpoint.postgres import PostgresSaver
+from langgraph.store.postgres import PostgresStore
+from langgraph.store.base import BaseStore
+from langchain_core.runnables import RunnableConfig
+
+DB_URI = "postgresql://postgres:postgres@localhost:5432/postgres?sslmode=disable"
+
+with (
+    PostgresStore.from_conn_string(DB_URI) as store,
+    PostgresSaver.from_conn_string(DB_URI) as checkpointer,
+):
+    # 최초 1회 설정
+    store.setup()
+    checkpointer.setup()
+    
+    def call_model(
+        state: MessagesState,
+        config: RunnableConfig,
+        *,
+        store: BaseStore,
+    ):
+        # 사용자 ID로 메모리 검색
+        user_id = config["configurable"]["user_id"]
+        namespace = ("memories", user_id)
+        
+        # 관련 메모리 검색
+        memories = store.search(
+            namespace,
+            query=str(state["messages"][-1].content)
+        )
+        
+        # 메모리를 시스템 메시지에 추가
+        info = "\n".join([d.value["data"] for d in memories])
+        system_msg = f"사용자 정보: {info}"
+        
+        # LLM 호출
+        response = model.invoke([system_msg] + state["messages"])
+        return {"messages": response}
+    
+    # 그래프 빌드
+    builder = StateGraph(MessagesState)
+    builder.add_node(call_model)
+    builder.add_edge(START, "call_model")
+    
+    # store와 checkpointer 모두 전달
+    graph = builder.compile(
+        checkpointer=checkpointer,
+        store=store
+    )
+    
+    # 사용
+    config = {
+        "configurable": {
+            "thread_id": "conversation-1",
+            "user_id": "user-123"
+        }
+    }
+    
+    result = graph.invoke(
+        {"messages": [{"role": "user", "content": "내 정보 기억해?"}]},
+        config
+    )
+```
+
+## 🎯 요약
+
+1. **기본 대화 메모리**: `PostgresSaver`로 checkpointer 생성
+2. **여러 대화 간 공유 메모리**: `PostgresStore` 추가 사용
+3. **FastAPI 통합**: Connection pool 사용 권장
+4. **최초 1회**: `.setup()` 메서드로 테이블 생성
+
+이 방식이 LangChain v1.0의 공식 메모리 저장 방법입니다!
