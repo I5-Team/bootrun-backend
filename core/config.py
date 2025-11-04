@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings
-
+from pydantic import Field
 
 class Settings(BaseSettings):
     """환경 변수로부터 가져온 애플리케이션 설정"""
@@ -57,8 +57,26 @@ class Settings(BaseSettings):
     # =====================================================
     jwt_secret_key: str = "your_super_secret_jwt_key_change_in_production"
     jwt_algorithm: str = "HS256"
-    jwt_access_token_expire_minutes: int = 30
+    jwt_access_token_expire_minutes: int = 60
     jwt_refresh_token_expire_days: int = 7
+
+    # --- [JWT 추가 토큰 만료 시간 설정] ---
+    # 환경 변수에서 값을 찾고, 없다면 default 값을 사용
+    jwt_email_verify_token_expire_minutes: int = Field(
+        default=1440,
+        env='JWT_EMAIL_VERIFY_TOKEN_EXPIRE_MINUTES'
+    )
+    jwt_reset_password_token_expire_minutes: int = Field(
+        default=30,
+        env='JWT_RESET_PASSWORD_TOKEN_EXPIRE_MINUTES'
+    )
+
+    # --- [Fernet 암호화 키 추가] ---
+    # 반드시 .env 파일에 존재해야 하는 값
+    fernet_key: str = Field(
+        ...,  # 값이 반드시 설정되어야 함을 나타냄
+        env='FERNET_KEY'
+    )
 
     class Config:
         """Pydantic 설정"""

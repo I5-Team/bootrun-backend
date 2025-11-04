@@ -214,7 +214,7 @@ def verify_email_verification_token(token: str) -> Optional[int]:
 
 def create_password_reset_token(user_id: int) -> str:
     """
-    비밀번호 재설정용 JWT 토큰 생성 (1시간 유효)
+    비밀번호 재설정용 JWT 토큰 생성 (30분 유효)
 
     Args:
         user_id: 사용자 ID
@@ -223,7 +223,9 @@ def create_password_reset_token(user_id: int) -> str:
         인코딩된 JWT 토큰 문자열
     """
     to_encode = {'sub': user_id}
-    expire = datetime.now(timezone.utc) + timedelta(hours=1)
+    expire = datetime.now(timezone.utc) + timedelta(
+        minutes=settings.jwt_reset_password_token_expire_minutes
+    )
 
     to_encode.update({
         'exp': expire,
