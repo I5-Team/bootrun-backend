@@ -7,7 +7,7 @@ from passlib.context import CryptContext
 from core.config import settings
 
 # bcrypt를 사용하는 비밀번호 해싱 컨텍스트
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 
 
 def hash_password(password: str) -> str:
@@ -42,7 +42,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     JWT 엑세스 토큰(Access Token) 생성
 
     Args:
-        data: 토큰 클레임(예: {"sub": user_id})이 포함된 딕셔너리
+        data: 토큰 클레임(예: {'sub': user_id})이 포함된 딕셔너리
         expires_delta: 선택적(Optional) 사용자 지정 만료 시간. 제공되지 않을 시,
                       설정(settings)의 JWT_ACCESS_TOKEN_EXPIRE_MINUTES 를 사용
 
@@ -59,7 +59,11 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
             minutes=settings.jwt_access_token_expire_minutes
         )
 
-    to_encode.update({"exp": expire})
+    # type 및 iss 클레임
+    to_encode.update({
+        'type': 'access',           # 엑세스 토큰 명시
+        'iss': 'bootrun-backend'    # 발급자 명시
+    })
 
     # 토큰 인코딩
     encoded_jwt = jwt.encode(
@@ -76,7 +80,7 @@ def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None) 
     JWT 갱신 토큰(Refresh Token) 생성
 
     Args:
-        data: 토큰 클레임(예: {"sub": user_id})이 포함된 딕셔너리
+        data: 토큰 클레임(예: {'sub': user_id})이 포함된 딕셔너리
         expires_delta: 선택적(Optional) 사용자 지정 만료 시간. 제공되지 않으면,
                        설정(settings)의 **JWT_REFRESH_TOKEN_EXPIRE_DAYS**를 사용
 
@@ -93,7 +97,13 @@ def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None) 
             days=settings.jwt_refresh_token_expire_days
         )
 
-    to_encode.update({"exp": expire})
+    to_encode.update({'exp': expire})
+
+    # type 및 iss 클레임
+    to_encode.update({
+        'type': 'refresh',           # refresh 토큰 명시
+        'iss': 'bootrun-backend'    # 발급자 명시
+    })
 
     # 토큰 인코딩
     encoded_jwt = jwt.encode(
@@ -105,12 +115,13 @@ def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None) 
     return encoded_jwt
 
 
-def decode_token(token: str) -> Optional[dict]:
+def decode_token(token: str, token_type: str) -> Optional[dict]:
     """
-    JWT 토큰을 디코딩하고 확인(verify)
+    JWT 토큰을 디코딩하고 확인(verify)하며, 토큰 타입을 검증
 
     Args:
         token: 디코딩할 JWT 토큰 문자열
+        token_type: 예상되는 토큰 타입 ('access' 또는 'refresh')
 
     Returns:
         유효한 경우 토큰 클레임이 포함된 딕셔너리, 유효하지 않은 경우 None
@@ -121,6 +132,20 @@ def decode_token(token: str) -> Optional[dict]:
             settings.jwt_secret_key,
             algorithms=[settings.jwt_algorithm],
         )
+
+        # 토큰 타입 클레임 검증
+        if payload.get('type') != token_type:
+            # 예상한 토큰 타입이 아니면 (예: 엑세스 토큰이 필요한데 갱신 토큰이 들어옴)
+            return None 
+
+        # 발급자(iss) 클레임 검증 (선택적)
+        if payload.get('iss') != 'bootrun-backend':
+            return None
+
+        # 기타 필수 클레임 확인 (예: sub 클레임)
+        if 'sub' not in payload:
+            return None
+
         return payload
     except JWTError:
         return None
