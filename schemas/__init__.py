@@ -1,9 +1,30 @@
 """
 BootRun Schemas Package
 모든 Pydantic 스키마를 중앙에서 관리
+
+순환 참조 방지를 위해 의존성 순서대로 import:
+1. common (독립적)
+2. user (common 의존)
+3. course (common 의존)
+4. enrollment (user, course 의존)
+5. mission (course 의존)
+6. payment (user, course 의존)
+7. certificate (user, course, enrollment 의존)
+8. admin (모든 모듈 의존)
 """
 
-# User schemas
+# ============= Common schemas (최우선) =============
+from .common import (
+    PaginationParams,
+    PaginatedResponse,
+    MessageResponse,
+    ErrorResponse,
+    DateRangeFilter,
+    FileUploadResponse,
+    ImageUploadResponse,
+)
+
+# ============= User schemas =============
 from .user import (
     UserCreate,
     UserLogin,
@@ -22,7 +43,7 @@ from .user import (
     SocialProvider,
 )
 
-# Course schemas
+# ============= Course schemas =============
 from .course import (
     CategoryResponse,
     CategoryCreate,
@@ -32,6 +53,7 @@ from .course import (
     CourseResponse,
     CourseDetailResponse,
     CourseListParams,
+    CoursePaginatedResponse,
     ChapterCreate,
     ChapterUpdate,
     ChapterResponse,
@@ -47,16 +69,18 @@ from .course import (
     CommentCreate,
     CommentUpdate,
     CommentResponse,
+    CommentSummary,
     CategoryType,
     Difficulty,
     VideoType,
 )
 
-# Enrollment schemas
+# ============= Enrollment schemas =============
 from .enrollment import (
     EnrollmentCreate,
     EnrollmentResponse,
     EnrollmentDetailResponse,
+    EnrollmentPaginatedResponse,
     MyEnrollmentListParams,
     ProgressCreate,
     ProgressUpdate,
@@ -68,7 +92,7 @@ from .enrollment import (
     LearningStats,
 )
 
-# Mission schemas
+# ============= Mission schemas =============
 from .mission import (
     MissionCreate,
     MissionUpdate,
@@ -85,11 +109,12 @@ from .mission import (
     QuestionType,
 )
 
-# Payment schemas
+# ============= Payment schemas =============
 from .payment import (
     PaymentCreate,
     PaymentResponse,
     PaymentDetailResponse,
+    PaymentPaginatedResponse,
     PaymentListParams,
     CouponCreate,
     CouponUpdate,
@@ -106,7 +131,7 @@ from .payment import (
     RefundStatus,
 )
 
-# Certificate schemas
+# ============= Certificate schemas =============
 from .certificate import (
     CertificateCreate,
     CertificateResponse,
@@ -121,7 +146,7 @@ from .certificate import (
     CompletionRequirement,
 )
 
-# Admin schemas
+# ============= Admin schemas (최후순위) =============
 from .admin import (
     DashboardStats,
     DailyStats,
@@ -130,6 +155,7 @@ from .admin import (
     CategoryStats,
     UserManagementListParams,
     UserManagementResponse,
+    UserManagementPaginatedResponse,
     UserDetailForAdmin,
     UserLearningRecord,
     UserAttendanceRecord,
@@ -137,28 +163,29 @@ from .admin import (
     UserLearningReport,
     CourseManagementListParams,
     CourseManagementResponse,
+    CourseManagementPaginatedResponse,
     PaymentManagementListParams,
     PaymentManagementResponse,
+    PaymentManagementPaginatedResponse,
     RefundManagementListParams,
     RefundManagementResponse,
+    RefundManagementPaginatedResponse,
     StatsQueryParams,
     CourseStatsQueryParams,
     SystemSettings,
     StatsPeriod,
 )
 
-# Common schemas
-from .common import (
-    PaginationParams,
-    PaginatedResponse,
-    MessageResponse,
-    ErrorResponse,
-    DateRangeFilter,
-    FileUploadResponse,
-    ImageUploadResponse,
-)
-
+# ============= Public API 명시 =============
 __all__ = [
+    # Common
+    "PaginationParams",
+    "PaginatedResponse",
+    "MessageResponse",
+    "ErrorResponse",
+    "DateRangeFilter",
+    "FileUploadResponse",
+    "ImageUploadResponse",
     # User
     "UserCreate",
     "UserLogin",
@@ -184,6 +211,7 @@ __all__ = [
     "CourseResponse",
     "CourseDetailResponse",
     "CourseListParams",
+    "CoursePaginatedResponse",
     "ChapterCreate",
     "ChapterUpdate",
     "ChapterResponse",
@@ -199,6 +227,7 @@ __all__ = [
     "CommentCreate",
     "CommentUpdate",
     "CommentResponse",
+    "CommentSummary",
     "CategoryType",
     "Difficulty",
     "VideoType",
@@ -206,6 +235,7 @@ __all__ = [
     "EnrollmentCreate",
     "EnrollmentResponse",
     "EnrollmentDetailResponse",
+    "EnrollmentPaginatedResponse",
     "MyEnrollmentListParams",
     "ProgressCreate",
     "ProgressUpdate",
@@ -233,6 +263,7 @@ __all__ = [
     "PaymentCreate",
     "PaymentResponse",
     "PaymentDetailResponse",
+    "PaymentPaginatedResponse",
     "PaymentListParams",
     "CouponCreate",
     "CouponUpdate",
@@ -267,6 +298,7 @@ __all__ = [
     "CategoryStats",
     "UserManagementListParams",
     "UserManagementResponse",
+    "UserManagementPaginatedResponse",
     "UserDetailForAdmin",
     "UserLearningRecord",
     "UserAttendanceRecord",
@@ -274,20 +306,15 @@ __all__ = [
     "UserLearningReport",
     "CourseManagementListParams",
     "CourseManagementResponse",
+    "CourseManagementPaginatedResponse",
     "PaymentManagementListParams",
     "PaymentManagementResponse",
+    "PaymentManagementPaginatedResponse",
     "RefundManagementListParams",
     "RefundManagementResponse",
+    "RefundManagementPaginatedResponse",
     "StatsQueryParams",
     "CourseStatsQueryParams",
     "SystemSettings",
     "StatsPeriod",
-    # Common
-    "PaginationParams",
-    "PaginatedResponse",
-    "MessageResponse",
-    "ErrorResponse",
-    "DateRangeFilter",
-    "FileUploadResponse",
-    "ImageUploadResponse",
 ]
