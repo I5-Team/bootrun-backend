@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr, field_validator, Field
 from typing import Optional
+from pydantic_core import ValidationInfo
 from datetime import datetime, date
 from enum import Enum
 import re
@@ -37,8 +38,7 @@ class UserCreate(BaseModel):
 
     @field_validator('password')
     @classmethod
-    def validate_password(cls, v):
-        # 8~16자의 영문 대/소문자, 숫자, 특수문자
+    def validate_password(cls, v: str) -> str:  # 타입 힌트 추가
         pattern = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,16}$'
         if not re.match(pattern, v):
             raise ValueError('비밀번호는 8~16자의 영문 대/소문자, 숫자, 특수문자를 포함해야 합니다')
@@ -46,7 +46,7 @@ class UserCreate(BaseModel):
 
     @field_validator('password_confirm')
     @classmethod
-    def passwords_match(cls, v, info):
+    def passwords_match(cls, v: str, info: ValidationInfo) -> str:  # ValidationInfo 타입 힌트
         if 'password' in info.data and v != info.data['password']:
             raise ValueError('비밀번호가 일치하지 않습니다')
         return v
@@ -87,7 +87,7 @@ class UserUpdate(BaseModel):
 
     @field_validator('password')
     @classmethod
-    def validate_password(cls, v):
+    def validate_password(cls, v: Optional[str]) -> Optional[str]:  # Optional 처리
         if v is None:
             return v
         pattern = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,16}$'
@@ -151,12 +151,11 @@ class PasswordResetConfirm(BaseModel):
 
     @field_validator('new_password')
     @classmethod
-    def validate_password(cls, v):
+    def validate_password(cls, v: str) -> str:
         pattern = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,16}$'
         if not re.match(pattern, v):
             raise ValueError('비밀번호는 8~16자의 영문 대/소문자, 숫자, 특수문자를 포함해야 합니다')
         return v
-
 
 # 회원 탈퇴
 class UserDeleteRequest(BaseModel):
@@ -165,7 +164,7 @@ class UserDeleteRequest(BaseModel):
 
     @field_validator('confirm_text')
     @classmethod
-    def validate_confirm(cls, v):
+    def validate_confirm(cls, v: str) -> str:
         if v != "회원탈퇴":
             raise ValueError("'회원탈퇴'를 정확히 입력해주세요")
         return v

@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field, field_validator
+from pydantic_core import ValidationInfo 
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 from enum import Enum
@@ -22,20 +23,19 @@ class MissionCreate(BaseModel):
     description: str
     mission_type: MissionType
     question_type: QuestionType
-    question_data: Dict[str, Any]  # JSON 형태의 문제 데이터
-    answer_data: Dict[str, Any]  # JSON 형태의 정답 데이터
+    question_data: Dict[str, Any]
+    answer_data: Dict[str, Any]
     max_score: int = Field(default=100, ge=0)
     passing_score: int = Field(default=60, ge=0, le=100)
     max_attempts: int = Field(default=3, ge=1)
     
     @field_validator('passing_score')
     @classmethod
-    def validate_passing_score(cls, v, info):
+    def validate_passing_score(cls, v: int, info: ValidationInfo) -> int:  # 타입 힌트 추가
         max_score = info.data.get('max_score', 100)
         if v > max_score:
             raise ValueError('통과 점수는 최대 점수를 초과할 수 없습니다')
         return v
-
 
 class MissionUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=1, max_length=200)

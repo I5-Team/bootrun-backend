@@ -152,3 +152,12 @@ class LearningStats(BaseModel):
     total_study_time: int  # 총 학습 시간
     study_streak: int  # 연속 학습 일수
     last_study_date: Optional[datetime]
+
+
+class EnrollmentPaginatedResponse(BaseModel):
+    """수강 등록 목록 페이지네이션 응답"""
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+    items: List[EnrollmentResponse]

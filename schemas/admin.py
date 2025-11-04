@@ -266,3 +266,38 @@ class SystemSettings(BaseModel):
     refund_period_days: int = 7
     refund_progress_limit: float = 10.0
     passing_score_rate: float = 60.0
+
+
+# admin.py 맨 아래
+
+class UserManagementPaginatedResponse(BaseModel):
+    """사용자 관리 목록 페이지네이션"""
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+    items: List[UserManagementResponse]
+
+class CourseManagementPaginatedResponse(BaseModel):
+    """강의 관리 목록 페이지네이션"""
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+    items: List[CourseManagementResponse]
+
+class PaymentManagementPaginatedResponse(BaseModel):
+    """결제 관리 목록 페이지네이션"""
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+    items: List[PaymentManagementResponse]
+
+class RefundManagementPaginatedResponse(BaseModel):
+    """환불 관리 목록 페이지네이션"""
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+    items: List[RefundManagementResponse]

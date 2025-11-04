@@ -1,8 +1,16 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import Optional
 from datetime import datetime
 from enum import Enum
 
+"""
+Payment Schemas
+
+금액 처리 정책:
+- 모든 금액 필드(amount, discount_amount, final_amount)는 정수형(int)으로 원(KRW) 단위를 사용합니다.
+- 소수점 계산이 필요 없는 한국 원화 기준이므로 정수형으로 충분합니다.
+
+"""
 
 # Enums
 class PaymentMethod(str, Enum):
@@ -36,9 +44,9 @@ class PaymentResponse(BaseModel):
     user_id: int
     course_id: int
     course_title: str
-    amount: int
-    discount_amount: int = 0
-    final_amount: int
+    amount: int  # 원(KRW) 단위, 소수점 없음
+    discount_amount: int = 0  # 원(KRW) 단위
+    final_amount: int  # 원(KRW) 단위
     payment_method: PaymentMethod
     status: PaymentStatus
     transaction_id: str
@@ -48,6 +56,8 @@ class PaymentResponse(BaseModel):
     
     class Config:
         from_attributes = True
+        # 금액은 정수형 원(KRW) 단위로 저장됩니다.
+        # 예: 50000 = 50,000원
 
 
 class PaymentDetailResponse(BaseModel):
@@ -91,22 +101,19 @@ class CouponCreate(BaseModel):
     code: str = Field(..., min_length=3, max_length=50)
     name: str = Field(..., min_length=1, max_length=100)
     description: str
-    discount_rate: Optional[int] = Field(None, ge=0, le=100)
-    discount_amount: Optional[int] = Field(None, ge=0)
+    discount_rate: Optional[int] = Field(None, ge=0, le=100, description="할인율 (%, 정수)")
+    discount_amount: Optional[int] = Field(None, ge=0, description="할인 금액 (원, 정수)")
     valid_from: datetime
     valid_until: datetime
     max_usage: int = Field(default=0, ge=0)
     
-    @field_validator('discount_rate', 'discount_amount')
-    @classmethod
-    def validate_discount(cls, v, info):
-        # discount_rate와 discount_amount 중 하나는 반드시 있어야 함
-        if info.field_name == 'discount_amount':
-            discount_rate = info.data.get('discount_rate')
-            if v is None and discount_rate is None:
-                raise ValueError('할인율 또는 할인 금액 중 하나는 필수입니다')
-        return v
-
+    @model_validator(mode='after')
+    def validate_discount(self) -> 'CouponCreate':
+        """할인율 또는 할인 금액 중 하나는 필수"""
+        if self.discount_rate is None and self.discount_amount is None:
+            raise ValueError('할인율 또는 할인 금액 중 하나는 필수입니다')
+        return self
+    
 
 class CouponUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
@@ -195,3 +202,12 @@ class RefundCheckResponse(BaseModel):
     can_refund: bool
     message: str
     payment_info: Optional[dict] = None
+
+
+class PaymentPaginatedResponse(BaseModel):
+    """결제 목록 페이지네이션 응답"""
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+    items: List[PaymentResponse]

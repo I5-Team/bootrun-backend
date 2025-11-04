@@ -53,8 +53,7 @@ class CertificateVerifyRequest(BaseModel):
     
     @field_validator('certificate_number')
     @classmethod
-    def validate_certificate_number(cls, v):
-        # 예: WNIV-2025-000001 형식
+    def validate_certificate_number(cls, v: str) -> str:  # 타입 힌트 추가
         pattern = r'^WNIV-\d{4}-\d{6}$'
         if not re.match(pattern, v):
             raise ValueError('올바른 수료증 번호 형식이 아닙니다 (예: WNIV-2025-000001)')

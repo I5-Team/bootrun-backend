@@ -282,6 +282,18 @@ class CommentCreate(BaseModel):
 class CommentUpdate(BaseModel):
     content: str = Field(..., min_length=1)
 
+class CommentSummary(BaseModel):
+    id: int
+    user_id: int
+    user_name: str
+    user_role: str
+    content: str
+    is_instructor_answer: bool = False
+    created_at: datetime
+    reply_count: int = 0  # 대대댓글 개수만 표시
+    
+    class Config:
+        from_attributes = True
 
 class CommentResponse(BaseModel):
     id: int
@@ -294,7 +306,24 @@ class CommentResponse(BaseModel):
     is_instructor_answer: bool = False
     created_at: datetime
     updated_at: datetime
-    replies: List['CommentResponse'] = []
+    replies: List[CommentSummary] = []  
+    reply_count: int = 0  # 전체 대댓글 수
     
     class Config:
         from_attributes = True
+
+# ============= Forward References 업데이트 =============
+# 순환 참조 문제 해결을 위해 모델 재빌드
+CourseDetailResponse.model_rebuild()
+ChapterWithLectures.model_rebuild()
+QuestionDetailResponse.model_rebuild()
+CommentResponse.model_rebuild()
+
+# ============= 페이지네이션 응답 =============
+class CoursePaginatedResponse(BaseModel):
+    """강의 목록 페이지네이션 응답"""
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+    items: List[CourseResponse]

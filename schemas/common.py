@@ -1,15 +1,13 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List, Any, Generic, TypeVar
-from datetime import datetime
+from datetime import datetime, timezone  
 
 T = TypeVar('T')
-
 
 # 페이지네이션
 class PaginationParams(BaseModel):
     page: int = Field(default=1, ge=1)
     page_size: int = Field(default=20, ge=1, le=100)
-
 
 class PaginatedResponse(BaseModel, Generic[T]):
     total: int
@@ -18,17 +16,14 @@ class PaginatedResponse(BaseModel, Generic[T]):
     total_pages: int
     items: List[T]
 
-
 # 공통 응답
 class MessageResponse(BaseModel):
     message: str
     detail: Optional[str] = None
 
-
 class ErrorResponse(BaseModel):
     error: str
     detail: Optional[str] = None
-
 
 # 날짜 필터
 class DateRangeFilter(BaseModel):
@@ -41,8 +36,7 @@ class FileUploadResponse(BaseModel):
     file_name: str
     file_size: int  # bytes
     content_type: str
-    uploaded_at: datetime = Field(default_factory=datetime.now)
-
+    uploaded_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))  
 
 class ImageUploadResponse(BaseModel):
     image_url: str
@@ -50,4 +44,4 @@ class ImageUploadResponse(BaseModel):
     width: Optional[int] = None
     height: Optional[int] = None
     file_size: int
-    uploaded_at: datetime = Field(default_factory=datetime.now)
+    uploaded_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))  
