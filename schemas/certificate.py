@@ -6,13 +6,18 @@ import re
 
 # ============= 수료증 =============
 class CertificateCreate(BaseModel):
-    enrollment_id: int = Field(..., gt=0)
+    enrollment_id: int = Field(
+        ..., 
+        gt=1,
+        description="수료증을 발급할 수강 등록 ID", 
+        example=1
+    )
 
 
 class CertificateResponse(BaseModel):
     id: int
     user_id: int
-    user_name: str
+    user_nickname: str
     course_id: int
     course_title: str
     certificate_number: str
@@ -38,7 +43,12 @@ class CertificateListResponse(BaseModel):
 
 
 class CertificateGenerationRequest(BaseModel):
-    certificate_id: int = Field(..., gt=0)
+    certificate_id: int = Field(
+        ..., 
+        gt=1,
+        description="PDF를 생성할 수료증 ID", 
+        example=1
+    )
 
 
 class CertificateGenerationResponse(BaseModel):
@@ -49,11 +59,17 @@ class CertificateGenerationResponse(BaseModel):
 
 # ============= 수료증 진위 확인 =============
 class CertificateVerifyRequest(BaseModel):
-    certificate_number: str = Field(..., min_length=10, max_length=100)
+    certificate_number: str = Field(
+        ..., 
+        min_length=10, 
+        max_length=100,
+        description="수료증 번호 (형식: WNIV-YYYY-NNNNNN)", 
+        example="WNIV-2025-000001"
+    )
     
     @field_validator('certificate_number')
     @classmethod
-    def validate_certificate_number(cls, v: str) -> str:  # 타입 힌트 추가
+    def validate_certificate_number(cls, v):
         pattern = r'^WNIV-\d{4}-\d{6}$'
         if not re.match(pattern, v):
             raise ValueError('올바른 수료증 번호 형식이 아닙니다 (예: WNIV-2025-000001)')
@@ -68,7 +84,7 @@ class CertificateVerifyResponse(BaseModel):
 
 class CertificateVerifyDetail(BaseModel):
     certificate_number: str
-    user_name: str
+    user_nickname: str
     course_title: str
     category_name: str
     issued_at: datetime
@@ -79,7 +95,12 @@ class CertificateVerifyDetail(BaseModel):
 
 # ============= 수료 조건 체크 =============
 class CompletionCheckRequest(BaseModel):
-    enrollment_id: int = Field(..., gt=0)
+    enrollment_id: int = Field(
+        ..., 
+        gt=1,
+        description="수료 조건을 확인할 수강 등록 ID", 
+        example=1
+    )
 
 
 class CompletionCheckResponse(BaseModel):

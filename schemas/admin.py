@@ -66,11 +66,31 @@ class CategoryStats(BaseModel):
 
 # ============= 사용자 관리 =============
 class UserManagementListParams(BaseModel):
-    role: Optional[str] = None
-    is_active: Optional[bool] = None
-    keyword: Optional[str] = None
-    start_date: Optional[datetime] = None
-    end_date: Optional[datetime] = None
+    role: Optional[str] = Field(
+        None,
+        description="역할로 필터링 (student, admin)", 
+        example="student"
+    )
+    is_active: Optional[bool] = Field(
+        None,
+        description="활성화 상태로 필터링", 
+        example=True
+    )
+    keyword: Optional[str] = Field(
+        None,
+        description="검색 키워드 (이름, 이메일)", 
+        example="홍길동"
+    )
+    start_date: Optional[datetime] = Field(
+        None,
+        description="가입 시작일", 
+        example="2025-01-01T00:00:00"
+    )
+    end_date: Optional[datetime] = Field(
+        None,
+        description="가입 종료일", 
+        example="2025-12-31T23:59:59"
+    )
     page: int = Field(default=1, ge=1)
     page_size: int = Field(default=20, ge=1, le=100)
 
@@ -78,7 +98,7 @@ class UserManagementListParams(BaseModel):
 class UserManagementResponse(BaseModel):
     id: int
     email: str
-    name: str
+    nickname: str
     role: str
     is_active: bool
     total_enrollments: int
@@ -94,7 +114,7 @@ class UserManagementResponse(BaseModel):
 class UserDetailForAdmin(BaseModel):
     id: int
     email: str
-    name: str
+    nickname: str
     gender: str
     birth_date: date
     role: str
@@ -115,7 +135,7 @@ class UserDetailForAdmin(BaseModel):
     # 활동 정보
     total_questions: int
     total_comments: int
-    enrollments: List[dict] = []
+    enrollments: List[Dict[str, Any]] = []
     
     class Config:
         from_attributes = True
@@ -124,7 +144,7 @@ class UserDetailForAdmin(BaseModel):
 # ============= 사용자별 학습 기록 (선택) =============
 class UserLearningRecord(BaseModel):
     user_id: int
-    user_name: str
+    user_nickname: str
     date: date
     study_time: int  # 분 단위
     watched_lectures: int
@@ -153,7 +173,7 @@ class UserProgressDetail(BaseModel):
 
 class UserLearningReport(BaseModel):
     user_id: int
-    user_name: str
+    user_nickname: str
     report_period: str  # 예: "2025-01"
     total_study_time: int
     attendance_rate: float
@@ -164,10 +184,26 @@ class UserLearningReport(BaseModel):
 
 # ============= 강의 관리 =============
 class CourseManagementListParams(BaseModel):
-    category_id: Optional[int] = None
-    difficulty: Optional[str] = None
-    is_published: Optional[bool] = None
-    keyword: Optional[str] = None
+    category_id: Optional[int] = Field(
+        None,
+        description="카테고리 ID로 필터링", 
+        example=1
+    )
+    difficulty: Optional[str] = Field(
+        None,
+        description="난이도로 필터링", 
+        example="beginner"
+    )
+    is_published: Optional[bool] = Field(
+        None,
+        description="공개 상태로 필터링", 
+        example=True
+    )
+    keyword: Optional[str] = Field(
+        None,
+        description="검색 키워드 (강의명, 강사명)", 
+        example="FastAPI"
+    )
     page: int = Field(default=1, ge=1)
     page_size: int = Field(default=20, ge=1, le=100)
 
@@ -186,14 +222,72 @@ class CourseManagementResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+class CourseAnalyticsResponse(BaseModel):
+    course_id: int
+    course_title: str
+    
+    # 수강생 통계
+    total_enrollments: int
+    active_enrollments: int
+    completed_enrollments: int
+    
+    # 진도 통계
+    avg_progress_rate: float
+    completion_rate: float  # 수료율 (%)
+    
+    # 학습 시간 통계
+    total_study_time: int  # 전체 학생 합계 (분)
+    avg_study_time: float  # 학생당 평균 (분)
+    
+    # 미션 통계
+    total_missions: int
+    avg_mission_pass_rate: float  # 평균 미션 통과율
+    
+    # 매출 통계
+    total_revenue: int
+    refund_count: int
+    refund_amount: int
+    net_revenue: int
+    
+    # Q&A 통계
+    total_questions: int
+    answered_questions: int
+    answer_rate: float
+    
+    # 기간별 통계 (선택)
+    daily_stats: Optional[List[Dict[str, Any]]] = None
+    
+    class Config:
+        from_attributes = True
+
 
 # ============= 결제 관리 =============
 class PaymentManagementListParams(BaseModel):
-    status: Optional[str] = None
-    payment_method: Optional[str] = None
-    start_date: Optional[datetime] = None
-    end_date: Optional[datetime] = None
-    keyword: Optional[str] = None
+    status: Optional[str] = Field(
+        None,
+        description="결제 상태로 필터링", 
+        example="completed"
+    )
+    payment_method: Optional[str] = Field(
+        None,
+        description="결제 방식으로 필터링", 
+        example="card"
+    )
+    start_date: Optional[datetime] = Field(
+        None,
+        description="결제 시작일", 
+        example="2025-01-01T00:00:00"
+    )
+    end_date: Optional[datetime] = Field(
+        None,
+        description="결제 종료일", 
+        example="2025-12-31T23:59:59"
+    )
+    keyword: Optional[str] = Field(
+        None,
+        description="검색 키워드 (사용자명, 강의명)", 
+        example="홍길동"
+    )
     page: int = Field(default=1, ge=1)
     page_size: int = Field(default=20, ge=1, le=100)
 
@@ -202,7 +296,7 @@ class PaymentManagementResponse(BaseModel):
     id: int
     transaction_id: str
     user_id: int
-    user_name: str
+    user_nickname: str
     user_email: str
     course_id: int
     course_title: str
@@ -220,10 +314,26 @@ class PaymentManagementResponse(BaseModel):
 
 # ============= 환불 관리 =============
 class RefundManagementListParams(BaseModel):
-    status: Optional[str] = None
-    start_date: Optional[datetime] = None
-    end_date: Optional[datetime] = None
-    keyword: Optional[str] = None
+    status: Optional[str] = Field(
+        None,
+        description="환불 상태로 필터링", 
+        example="pending"
+    )
+    start_date: Optional[datetime] = Field(
+        None,
+        description="요청 시작일", 
+        example="2025-01-01T00:00:00"
+    )
+    end_date: Optional[datetime] = Field(
+        None,
+        description="요청 종료일", 
+        example="2025-12-31T23:59:59"
+    )
+    keyword: Optional[str] = Field(
+        None,
+        description="검색 키워드", 
+        example="홍길동"
+    )
     page: int = Field(default=1, ge=1)
     page_size: int = Field(default=20, ge=1, le=100)
 
@@ -233,7 +343,7 @@ class RefundManagementResponse(BaseModel):
     payment_id: int
     transaction_id: str
     user_id: int
-    user_name: str
+    user_nickname: str
     course_title: str
     amount: int
     reason: str
@@ -247,15 +357,39 @@ class RefundManagementResponse(BaseModel):
 
 # ============= 통계 조회 파라미터 =============
 class StatsQueryParams(BaseModel):
-    period: StatsPeriod = StatsPeriod.DAY
-    start_date: Optional[date] = None
-    end_date: Optional[date] = None
+    period: StatsPeriod = Field(
+        default=StatsPeriod.DAY,
+        description="통계 기간 (day, week, month, year)", 
+        example="day"
+    )
+    start_date: Optional[date] = Field(
+        None,
+        description="시작 날짜", 
+        example="2025-01-01"
+    )
+    end_date: Optional[date] = Field(
+        None,
+        description="종료 날짜", 
+        example="2025-12-31"
+    )
 
 
 class CourseStatsQueryParams(BaseModel):
-    category_id: Optional[int] = None
-    start_date: Optional[date] = None
-    end_date: Optional[date] = None
+    category_id: Optional[int] = Field(
+        None,
+        description="카테고리 ID로 필터링", 
+        example=1
+    )
+    start_date: Optional[date] = Field(
+        None,
+        description="시작 날짜", 
+        example="2025-01-01"
+    )
+    end_date: Optional[date] = Field(
+        None,
+        description="종료 날짜", 
+        example="2025-12-31"
+    )
 
 
 # ============= 시스템 설정 =============
@@ -266,9 +400,6 @@ class SystemSettings(BaseModel):
     refund_period_days: int = 7
     refund_progress_limit: float = 10.0
     passing_score_rate: float = 60.0
-
-
-# admin.py 맨 아래
 
 class UserManagementPaginatedResponse(BaseModel):
     """사용자 관리 목록 페이지네이션"""

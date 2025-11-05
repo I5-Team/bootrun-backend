@@ -1,12 +1,17 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import List, Optional
 from datetime import datetime
 from enum import Enum
 
 
 # ============= 수강 등록 =============
 class EnrollmentCreate(BaseModel):
-    course_id: int = Field(..., gt=0)
+    course_id: int = Field(
+        ..., 
+        gt=1,
+        description="수강 신청할 강의 ID", 
+        example=1
+    )
 
 
 class EnrollmentResponse(BaseModel):
@@ -30,9 +35,21 @@ class EnrollmentResponse(BaseModel):
 
 
 class MyEnrollmentListParams(BaseModel):
-    category_id: Optional[int] = None
-    difficulty: Optional[str] = None
-    is_active: Optional[bool] = True
+    category_id: Optional[int] = Field(
+        None,
+        description="카테고리 ID로 필터링", 
+        example=1
+    )
+    difficulty: Optional[str] = Field(
+        None,
+        description="난이도로 필터링 (beginner, intermediate, advanced)", 
+        example="beginner"
+    )
+    is_active: Optional[bool] = Field(
+        True,
+        description="활성화 상태로 필터링", 
+        example=True
+    )
     page: int = Field(default=1, ge=1)
     page_size: int = Field(default=20, ge=1, le=100)
 
@@ -66,16 +83,49 @@ class EnrollmentDetailResponse(BaseModel):
 
 # ============= 학습 진행 =============
 class ProgressCreate(BaseModel):
-    lecture_id: int = Field(..., gt=0)
-    watched_seconds: int = Field(..., ge=0)
-    last_position: int = Field(..., ge=0)
-    is_completed: bool = False
+    lecture_id: int = Field(
+        ..., 
+        gt=1,
+        description="시청 중인 강의 ID", 
+        example=1
+    )
+    watched_seconds: int = Field(
+        ..., 
+        ge=0,
+        description="총 시청 시간 (초)", 
+        example=300
+    )
+    last_position: int = Field(
+        ..., 
+        ge=0,
+        description="마지막 시청 위치 (초)", 
+        example=295
+    )
+    is_completed: bool = Field(
+        default=False,
+        description="강의 완료 여부", 
+        example=False
+    )
 
 
 class ProgressUpdate(BaseModel):
-    watched_seconds: int = Field(..., ge=0)
-    last_position: int = Field(..., ge=0)
-    is_completed: bool = False
+    watched_seconds: int = Field(
+        ..., 
+        ge=0,
+        description="총 시청 시간 (초)", 
+        example=450
+    )
+    last_position: int = Field(
+        ..., 
+        ge=0,
+        description="마지막 시청 위치 (초)", 
+        example=445
+    )
+    is_completed: bool = Field(
+        default=False,
+        description="강의 완료 여부", 
+        example=True
+    )
 
 
 class ProgressResponse(BaseModel):

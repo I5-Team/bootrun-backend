@@ -37,7 +37,6 @@ from .user import (
     SocialLoginRequest,
     PasswordResetRequest,
     PasswordResetConfirm,
-    UserDeleteRequest,
     UserRole,
     Gender,
     SocialProvider,
@@ -45,9 +44,6 @@ from .user import (
 
 # ============= Course schemas =============
 from .course import (
-    CategoryResponse,
-    CategoryCreate,
-    CategoryUpdate,
     CourseCreate,
     CourseUpdate,
     CourseResponse,
@@ -102,8 +98,6 @@ from .mission import (
     MissionSubmissionResponse,
     MissionSubmissionHistory,
     UserMissionProgress,
-    CodeExecutionRequest,
-    CodeExecutionResponse,
     MissionStats,
     MissionType,
     QuestionType,
@@ -124,7 +118,6 @@ from .payment import (
     RefundCreate,
     RefundUpdate,
     RefundResponse,
-    RefundListParams,
     RefundCheckResponse,
     PaymentMethod,
     PaymentStatus,
@@ -174,6 +167,7 @@ from .admin import (
     CourseStatsQueryParams,
     SystemSettings,
     StatsPeriod,
+    CourseAnalyticsResponse,
 )
 
 # ============= Public API 명시 =============
@@ -254,8 +248,6 @@ __all__ = [
     "MissionSubmissionResponse",
     "MissionSubmissionHistory",
     "UserMissionProgress",
-    "CodeExecutionRequest",
-    "CodeExecutionResponse",
     "MissionStats",
     "MissionType",
     "QuestionType",
@@ -273,7 +265,6 @@ __all__ = [
     "RefundCreate",
     "RefundUpdate",
     "RefundResponse",
-    "RefundListParams",
     "RefundCheckResponse",
     "PaymentMethod",
     "PaymentStatus",
@@ -317,4 +308,5 @@ __all__ = [
     "CourseStatsQueryParams",
     "SystemSettings",
     "StatsPeriod",
+    "CourseAnalyticsResponse",
 ]

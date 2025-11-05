@@ -1,5 +1,4 @@
 from pydantic import BaseModel, Field, field_validator
-from pydantic_core import ValidationInfo 
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 from enum import Enum
@@ -18,24 +17,66 @@ class QuestionType(str, Enum):
 
 # ============= 미션 =============
 class MissionCreate(BaseModel):
-    course_id: int = Field(..., gt=0)
-    title: str = Field(..., min_length=1, max_length=200)
-    description: str
-    mission_type: MissionType
-    question_type: QuestionType
-    question_data: Dict[str, Any]
-    answer_data: Dict[str, Any]
-    max_score: int = Field(default=100, ge=0)
-    passing_score: int = Field(default=60, ge=0, le=100)
-    max_attempts: int = Field(default=3, ge=1)
+    title: str = Field(
+        ..., 
+        min_length=1, 
+        max_length=200,
+        description="미션 제목", 
+        example="중간 평가 - Python 기초"
+    )
+    description: str = Field(
+        ...,
+        description="미션 설명", 
+        example="Python 기초 문법을 평가하는 중간 미션입니다."
+    )
+    mission_type: MissionType = Field(
+        ...,
+        description="미션 유형 (midterm: 중간, final: 기말)", 
+        example="midterm"
+    )
+    question_type: QuestionType = Field(
+        ...,
+        description="문제 유형 (multiple_choice: 객관식, code: 코드제출)", 
+        example="multiple_choice"
+    )
+    question_data: Dict[str, Any] = Field(
+        ...,
+        description="문제 데이터 (JSON 형식)", 
+        example={
+            "questions": [
+                {
+                    "question": "Python에서 리스트를 나타내는 기호는?",
+                    "options": ["[]", "{}", "()", "<>"],
+                    "answer_index": 0
+                }
+            ]
+        }
+    )
+    answer_data: Dict[str, Any] = Field(
+        ...,
+        description="정답 데이터 (JSON 형식)", 
+        example={"answers": [0]}
+    )
+    max_score: int = Field(
+        default=100, 
+        ge=0,
+        description="최대 점수", 
+        example=100
+    )
+    passing_score: int = Field(
+        default=60, 
+        ge=0, 
+        le=100,
+        description="통과 기준 점수", 
+        example=60
+    )
+    max_attempts: int = Field(
+        default=3, 
+        ge=1,
+        description="최대 제출 횟수", 
+        example=3
+    )
     
-    @field_validator('passing_score')
-    @classmethod
-    def validate_passing_score(cls, v: int, info: ValidationInfo) -> int:  # 타입 힌트 추가
-        max_score = info.data.get('max_score', 100)
-        if v > max_score:
-            raise ValueError('통과 점수는 최대 점수를 초과할 수 없습니다')
-        return v
 
 class MissionUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=1, max_length=200)
@@ -92,8 +133,17 @@ class MissionWithUserStatus(BaseModel):
 
 # ============= 미션 제출 =============
 class MissionSubmissionCreate(BaseModel):
-    mission_id: int = Field(..., gt=0)
-    answer: Dict[str, Any]  # JSON 형태의 답안
+    mission_id: int = Field(
+        ..., 
+        gt=1,
+        description="제출할 미션 ID", 
+        example=1
+    )
+    answer: Dict[str, Any] = Field(
+        ...,
+        description="제출 답안 (JSON 형태)", 
+        example={"answers": [0, 2, 1, 3, 0]}
+    )
 
 
 class MissionSubmissionResponse(BaseModel):
@@ -138,20 +188,6 @@ class UserMissionProgress(BaseModel):
     best_score: Optional[int]
     is_passed: bool
     submissions: List[MissionSubmissionHistory] = []
-
-
-# ============= 코드 실행 (코드 제출형) =============
-class CodeExecutionRequest(BaseModel):
-    mission_id: int = Field(..., gt=0)
-    code: str = Field(..., min_length=1)
-
-
-class CodeExecutionResponse(BaseModel):
-    success: bool
-    output: Optional[str]
-    error: Optional[str]
-    execution_time: Optional[float]  # 실행 시간 (ms)
-    test_results: Optional[List[Dict[str, Any]]] = None
 
 
 # ============= 미션 통계 =============
