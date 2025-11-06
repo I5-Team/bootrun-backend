@@ -2,3 +2,8 @@ bootrun/ # 가상환경 제외
 __pycache__/
 .env
 *.pyc
+
+venv/
+.vscode/
+.idea/
+.DS_Store
