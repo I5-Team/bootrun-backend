@@ -60,6 +60,9 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
             minutes=settings.jwt_access_token_expire_minutes
         )
 
+    # exp 클레임
+    to_encode.update({'exp': expire})
+
     # type 및 iss 클레임
     to_encode.update({
         'type': 'access',           # 엑세스 토큰 명시
