@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings
+from pydantic import Field
 
 
 class Settings(BaseSettings):
@@ -37,6 +38,21 @@ class Settings(BaseSettings):
         )
 
     # =====================================================
+    # Redis 캐시(주석 처리됨)
+    # =====================================================
+    # redis_host: str = "localhost"
+    # redis_port: int = 6379
+    # redis_db: int = 0
+    # redis_password: str = "your_redis_password"
+    # redis_timeout: int = 5
+    #
+    # @property
+    # def redis_url(self) -> str:
+    #     """Redis 연결 URL 구성"""
+    #     return (
+    #         f"redis://:{self.redis_password}@{self.redis_host}:"
+    #         f"{self.redis_port}/{self.redis_db}"
+    #     )
     # Redis 캐시
     # =====================================================
     redis_host: str = "localhost"
@@ -61,6 +77,23 @@ class Settings(BaseSettings):
     jwt_access_token_expire_minutes: int = 60
     jwt_refresh_token_expire_days: int = 7
 
+    # --- [JWT 추가 토큰 만료 시간 설정] ---
+    # 환경 변수에서 값을 찾고, 없다면 default 값을 사용
+    jwt_email_verify_token_expire_minutes: int = Field(
+        default=1440,
+        env='JWT_EMAIL_VERIFY_TOKEN_EXPIRE_MINUTES'
+    )
+    jwt_reset_password_token_expire_minutes: int = Field(
+        default=30,
+        env='JWT_RESET_PASSWORD_TOKEN_EXPIRE_MINUTES'
+    )
+
+    # --- [Fernet 암호화 키 추가] ---
+    # 반드시 .env 파일에 존재해야 하는 값
+    fernet_key: str = Field(
+        ...,  # 값이 반드시 설정되어야 함을 나타냄
+        env='FERNET_KEY'
+    )
     # =====================================================
     # OpenAI / LangChain 챗봇 설정
     # =====================================================
