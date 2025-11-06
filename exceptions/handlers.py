@@ -118,8 +118,7 @@ async def validation_exception_handler(
     """
     Pydantic 유효성 검증 예외 처리 핸들러
     
-    요청 본문, 쿼리 파라미터, 경로 파라미터 등의 
-    유효성 검증 실패를 처리합니다.
+    요청 본문, 쿼리 파라미터, 경로 파라미터 등의 유효성 검증 실패를 처리합니다.
     
     Args:
         request: FastAPI Request 객체
