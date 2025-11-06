@@ -3,7 +3,7 @@ Missions, MissionSubmissions 테이블 모델
 """
 
 from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, Enum as SQLEnum
-from sqlalchemy.dialects.mysql import JSON
+from sqlalchemy import JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
@@ -73,7 +73,7 @@ class MissionSubmission(Base):
     answer = Column(JSON, nullable=False, comment="제출 답안 (JSON 형태)")
     score = Column(Integer, nullable=False, comment="획득 점수")
     is_passed = Column(Boolean, nullable=False, default=False, comment="통과 여부")
-    feedback = Column(Text, nullable=False, comment="피드백")
+    feedback = Column(Text, nullable=True, comment="피드백")
     execution_result = Column(JSON, nullable=True, comment="실행 결과 (코드 제출형, JSON 형태)")
     attempt_number = Column(Integer, nullable=False, default=1, comment="시도 횟수")
     
