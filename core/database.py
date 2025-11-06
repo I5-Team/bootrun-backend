@@ -187,7 +187,7 @@ def check_db_connection() -> bool:
     """
     데이터베이스 연결 상태 확인
     
-    헬스체크 엔드포인트에서 사용할 수 있습니다.
+    헬스체크 엔드포인트에서 사용할수 있습니다.
     
     Returns:
         bool: 연결 성공 시 True, 실패 시 False
