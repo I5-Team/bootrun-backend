@@ -215,12 +215,12 @@ def register_exception_handlers(app: Any) -> None:
     FastAPI 앱에 모든 예외 핸들러를 등록합니다.
     
     main.py에서 다음과 같이 사용:
-    ```python
+    
     from core.exceptions.handlers import register_exception_handlers
     
     app = FastAPI()
     register_exception_handlers(app)
-    ```
+    
     
     Args:
         app: FastAPI 애플리케이션 인스턴스
@@ -266,14 +266,13 @@ def error_response(
     에러 응답을 생성하는 헬퍼 함수
     
     라우터에서 직접 사용할 수 있습니다:
-    ```python
+  
     if not user:
         return error_response(
             'USER_NOT_FOUND',
             '사용자를 찾을 수 없습니다',
             404
         )
-    ```
     
     Args:
         error_code: 에러 코드 (자동으로 UPPER_SNAKE_CASE 변환)
