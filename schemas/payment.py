@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, field_validator, model_validator
-from typing import List, Optional, Any
+from typing import List, Optional
 from datetime import datetime
 from enum import Enum
 
@@ -28,7 +28,7 @@ class RefundStatus(str, Enum):
 class PaymentCreate(BaseModel):
     course_id: int = Field(
         ..., 
-        gt=1,
+        ge=1,
         description="결제할 강의 ID", 
         example=1
     )
@@ -134,7 +134,7 @@ class PaymentConfirmRequest(BaseModel):
 class CouponCreate(BaseModel):
     course_id: Optional[int] = Field(
         None, 
-        gt=1,
+        ge=1,
         description="쿠폰이 적용될 강의 ID (NULL이면 전체 강의)", 
         example=1
     )
@@ -239,7 +239,7 @@ class CouponValidationRequest(BaseModel):
     )
     course_id: int = Field(
         ..., 
-        gt=1,
+        ge=1,
         description="적용할 강의 ID", 
         example=1
     )
@@ -255,7 +255,7 @@ class CouponValidationResponse(BaseModel):
 class CouponListParams(BaseModel):
     course_id: Optional[int] = Field(
         None, 
-        gt=0, 
+        ge=0, 
         description="강의 ID 필터"
     )
     is_active: Optional[bool] = Field(
@@ -273,7 +273,7 @@ class CouponListParams(BaseModel):
 class RefundCreate(BaseModel):
     payment_id: int = Field(
         ..., 
-        gt=1,
+        ge=1,
         description="환불할 결제 ID", 
         example=1
     )

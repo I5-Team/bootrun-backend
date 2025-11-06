@@ -135,7 +135,7 @@ class MissionWithUserStatus(BaseModel):
 class MissionSubmissionCreate(BaseModel):
     mission_id: int = Field(
         ..., 
-        gt=1,
+        ge=1,
         description="제출할 미션 ID", 
         example=1
     )

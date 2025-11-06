@@ -1,14 +1,13 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional
 from datetime import datetime
-from enum import Enum
 
 
 # ============= 수강 등록 =============
 class EnrollmentCreate(BaseModel):
     course_id: int = Field(
         ..., 
-        gt=1,
+        ge=1,
         description="수강 신청할 강의 ID", 
         example=1
     )
@@ -85,7 +84,7 @@ class EnrollmentDetailResponse(BaseModel):
 class ProgressCreate(BaseModel):
     lecture_id: int = Field(
         ..., 
-        gt=1,
+        ge=1,
         description="시청 중인 강의 ID", 
         example=1
     )

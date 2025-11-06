@@ -8,7 +8,7 @@ import re
 class CertificateCreate(BaseModel):
     enrollment_id: int = Field(
         ..., 
-        gt=1,
+        ge=1,
         description="수료증을 발급할 수강 등록 ID", 
         example=1
     )
@@ -45,7 +45,7 @@ class CertificateListResponse(BaseModel):
 class CertificateGenerationRequest(BaseModel):
     certificate_id: int = Field(
         ..., 
-        gt=1,
+        ge=1,
         description="PDF를 생성할 수료증 ID", 
         example=1
     )
@@ -97,7 +97,7 @@ class CertificateVerifyDetail(BaseModel):
 class CompletionCheckRequest(BaseModel):
     enrollment_id: int = Field(
         ..., 
-        gt=1,
+        ge=1,
         description="수료 조건을 확인할 수강 등록 ID", 
         example=1
     )
