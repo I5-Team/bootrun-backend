@@ -95,8 +95,7 @@ async def get_chapters(
 async def get_chapter(
     course_id: int,
     chapter_id: int,
-    db: AsyncSession = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional)
+    db: AsyncSession = Depends(get_db)
 ):
     """특정 챕터의 상세 정보 조회"""
     service = CourseService(db)
