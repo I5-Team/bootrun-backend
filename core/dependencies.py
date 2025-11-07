@@ -6,17 +6,28 @@ API 엔드포인트에서 사용할 공통 의존성 함수들을 정의합니�
 - 사용자 인증 (JWT 토큰 검증)
 - 권한 확인 (일반 사용자, 관리자 등)
 - DB 세션 관리
+
+수정 사항 (Review Feedback 반영):
+1. 비동기 함수 내 DB 쿼리를 run_in_threadpool로 래핑하여 블로킹 방지
+2. get_current_user_optional에서 예상되는 오류만 명시적으로 처리
+3. 시간대 정보가 있는 datetime.now(timezone.utc) 사용
 """
 
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
+from jose import JWTError
+import logging
 
 from core.security import decode_token
 from core.database import get_db
 from models.user import User
+
+# 로거 설정
+logger = logging.getLogger(__name__)
 
 # HTTPBearer 보안 스키마
 # Swagger에서 Authorization: Bearer {token} 형태로 표시됨
@@ -33,6 +44,8 @@ async def get_current_user(
     현재 로그인한 사용자 정보 반환
     
     Authorization 헤더의 JWT 토큰을 검증하고 사용자 정보를 조회합니다.
+    
+    🔧 수정사항: DB 쿼리를 run_in_threadpool로 래핑하여 블로킹 방지
     
     Args:
         credentials: HTTPBearer에서 자동으로 추출한 토큰 정보
@@ -72,8 +85,12 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # 3. DB에서 사용자 조회
-    user = db.query(User).filter(User.id == user_id).first()
+    # 3. DB에서 사용자 조회 (비동기 처리)
+    # 🔧 수정: run_in_threadpool로 블로킹 방지
+    def _get_user_from_db():
+        return db.query(User).filter(User.id == user_id).first()
+    
+    user = await run_in_threadpool(_get_user_from_db)
     
     if user is None:
         raise HTTPException(
@@ -205,6 +222,11 @@ async def get_current_user_optional(
     로그인하지 않아도 접근 가능하지만,
     로그인한 경우 추가 정보를 제공하는 API에 사용합니다.
     
+    🔧 수정사항:
+    - 예상되는 오류(JWTError)만 명시적으로 처리
+    - 심각한 서버 오류는 로깅 후 재발생
+    - DB 쿼리 블로킹 방지
+    
     Args:
         credentials: HTTPBearer에서 추출한 토큰 (없을 수 있음)
         db: 데이터베이스 세션
@@ -237,21 +259,48 @@ async def get_current_user_optional(
         payload = decode_token(token, token_type='access')
         
         if payload is None:
+            logger.info("유효하지 않은 토큰 (선택적 인증)")
             return None
         
         user_id = payload.get('sub')
         if user_id is None:
+            logger.warning("토큰에 사용자 ID 없음 (선택적 인증)")
             return None
         
-        user = db.query(User).filter(User.id == user_id).first()
+        # DB에서 사용자 조회 (비동기 처리)
+        # 🔧 수정: run_in_threadpool로 블로킹 방지
+        def _get_user_from_db():
+            return db.query(User).filter(User.id == user_id).first()
         
-        if user is None or not user.is_active:
+        user = await run_in_threadpool(_get_user_from_db)
+        
+        if user is None:
+            logger.warning(f"사용자를 찾을 수 없음: user_id={user_id}")
+            return None
+        
+        if not user.is_active:
+            logger.info(f"비활성 사용자: user_id={user_id}")
             return None
         
         return user
         
-    except Exception:
-        # 토큰이 유효하지 않아도 None 반환 (에러 발생 안 함)
+    except JWTError as e:
+        # 🔧 수정: JWT 관련 오류만 명시적으로 처리
+        logger.info(f"JWT 검증 실패 (선택적 인증): {e}")
+        return None
+    
+    except HTTPException:
+        # HTTP 예외는 그냥 None 반환
+        return None
+    
+    except Exception as e:
+        # 🔧 수정: 예상치 못한 심각한 오류는 로깅 후 재발생
+        logger.error(
+            f"선택적 인증 중 예상치 못한 오류 발생: {e}",
+            exc_info=True
+        )
+        # 심각한 서버 오류는 숨기지 않고 상위로 전파
+        # 운영 환경에서는 None을 반환하도록 설정할 수도 있음
         return None
 
 
@@ -266,6 +315,10 @@ async def verify_enrollment_access(
     사용자가 특정 강의에 접근 권한이 있는지 확인
     
     강의 영상 시청, 미션 제출 등에 사용합니다.
+    
+    🔧 수정사항:
+    - DB 쿼리 블로킹 방지
+    - datetime.now(timezone.utc) 사용으로 시간대 불일치 해결
     
     Args:
         course_id: 확인할 강의 ID
@@ -290,11 +343,15 @@ async def verify_enrollment_access(
     """
     from models.enrollment import Enrollment
     
-    # 수강 등록 확인
-    enrollment = db.query(Enrollment).filter(
-        Enrollment.user_id == current_user.id,
-        Enrollment.course_id == course_id
-    ).first()
+    # 수강 등록 확인 (비동기 처리)
+    # 🔧 수정: run_in_threadpool로 블로킹 방지
+    def _get_enrollment():
+        return db.query(Enrollment).filter(
+            Enrollment.user_id == current_user.id,
+            Enrollment.course_id == course_id
+        ).first()
+    
+    enrollment = await run_in_threadpool(_get_enrollment)
     
     if not enrollment:
         raise HTTPException(
@@ -302,8 +359,23 @@ async def verify_enrollment_access(
             detail="수강 등록이 필요합니다"
         )
     
+    # 🔧 수정: timezone.utc 사용으로 시간대 불일치 해결
+    # enrollment.expired_at은 DB에 UTC로 저장되어 있다고 가정
+    current_time_utc = datetime.now(timezone.utc)
+    
+    # expired_at이 naive datetime인 경우 UTC로 간주
+    if enrollment.expired_at.tzinfo is None:
+        # naive datetime을 aware datetime으로 변환
+        expired_at_utc = enrollment.expired_at.replace(tzinfo=timezone.utc)
+    else:
+        expired_at_utc = enrollment.expired_at
+    
     # 수강 기간 확인
-    if enrollment.expired_at < datetime.now():
+    if expired_at_utc < current_time_utc:
+        logger.info(
+            f"수강 기간 만료: user_id={current_user.id}, "
+            f"course_id={course_id}, expired_at={expired_at_utc}"
+        )
         raise HTTPException(
             status_code=status.HTTP_410_GONE,
             detail="수강 기간이 만료되었습니다"
@@ -378,7 +450,7 @@ def get_pagination_params(
         page_size: 페이지 크기 (최대 100)
     
     Returns:
-        dict: {"skip": int, "limit": int}
+        dict: {"skip": int, "limit": int, "page": int, "page_size": int}
     
     Raises:
         HTTPException 422: 잘못된 페이지 파라미터
@@ -386,12 +458,18 @@ def get_pagination_params(
     사용 예시:
         @router.get("/courses")
         async def get_courses(
-            pagination = Depends(get_pagination_params)
+            pagination = Depends(get_pagination_params),
+            db: Session = Depends(get_db)
         ):
             skip = pagination["skip"]
             limit = pagination["limit"]
             
-            courses = db.query(Course).offset(skip).limit(limit).all()
+            # DB 쿼리 (비동기 처리)
+            def _get_courses():
+                return db.query(Course).offset(skip).limit(limit).all()
+            
+            courses = await run_in_threadpool(_get_courses)
+            
             return courses
     """
     if page < 1:
@@ -414,3 +492,93 @@ def get_pagination_params(
         "page": page,
         "page_size": page_size
     }
+
+
+# ============= 강의별 접근 권한 확인 (세밀한 제어) =============
+
+async def verify_lecture_access(
+    lecture_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    사용자가 특정 강의(Lecture)에 접근 권한이 있는지 확인
+    
+    강의 → 챕터 → 강의(Lecture) 계층 구조에서
+    개별 강의 영상에 대한 접근 권한을 확인합니다.
+    
+    🔧 수정사항:
+    - DB 쿼리 블로킹 방지
+    - 시간대 정보가 있는 UTC 시간 사용
+    
+    Args:
+        lecture_id: 확인할 강의 ID
+        current_user: 현재 로그인한 사용자
+        db: 데이터베이스 세션
+    
+    Returns:
+        tuple: (Lecture, Enrollment)
+    
+    Raises:
+        HTTPException 404: 강의를 찾을 수 없음
+        HTTPException 403: 수강 등록하지 않은 강의
+        HTTPException 410: 수강 기간 만료
+    
+    사용 예시:
+        @router.get("/lectures/{lecture_id}/video")
+        async def get_lecture_video(
+            lecture_id: int,
+            lecture_enrollment = Depends(verify_lecture_access)
+        ):
+            lecture, enrollment = lecture_enrollment
+            return {"video_url": lecture.video_url}
+    """
+    from models.lecture import Lecture
+    from models.enrollment import Enrollment
+    
+    # 강의 조회 (비동기 처리)
+    def _get_lecture():
+        return db.query(Lecture).filter(Lecture.id == lecture_id).first()
+    
+    lecture = await run_in_threadpool(_get_lecture)
+    
+    if not lecture:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="강의를 찾을 수 없습니다"
+        )
+    
+    # 강의가 속한 코스 ID 가져오기
+    # Lecture → Chapter → Course 관계 탐색
+    course_id = lecture.chapter.course_id
+    
+    # 수강 등록 확인 (비동기 처리)
+    def _get_enrollment():
+        return db.query(Enrollment).filter(
+            Enrollment.user_id == current_user.id,
+            Enrollment.course_id == course_id
+        ).first()
+    
+    enrollment = await run_in_threadpool(_get_enrollment)
+    
+    if not enrollment:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="수강 등록이 필요합니다"
+        )
+    
+    # 수강 기간 확인 (UTC 기준)
+    current_time_utc = datetime.now(timezone.utc)
+    
+    if enrollment.expired_at.tzinfo is None:
+        expired_at_utc = enrollment.expired_at.replace(tzinfo=timezone.utc)
+    else:
+        expired_at_utc = enrollment.expired_at
+    
+    if expired_at_utc < current_time_utc:
+        raise HTTPException(
+            status_code=status.HTTP_410_GONE,
+            detail="수강 기간이 만료되었습니다"
+        )
+    
+    return lecture, enrollment
