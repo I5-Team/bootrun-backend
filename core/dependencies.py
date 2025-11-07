@@ -582,3 +582,6 @@ async def verify_lecture_access(
         )
     
     return lecture, enrollment
+
+
+# TODO: Check DB session closing logic (PR 임시 생성용)
