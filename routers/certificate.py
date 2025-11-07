@@ -3,7 +3,7 @@
 수료증 발급, 조회, PDF 생성, 진위 확인 등을 처리합니다.
 """
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, status, Depends
 from typing import List
 from schemas.certificate import (
     CertificateCreate, CertificateResponse, CertificateListResponse,
@@ -17,6 +17,8 @@ from exceptions import (
     AUTH_RESPONSES,
     READ_RESPONSES,
 )
+from dependencies import get_current_user, get_current_admin
+from models.user import User
 
 router = APIRouter(prefix="/certificates", tags=["수료증"])
 
@@ -32,7 +34,10 @@ router = APIRouter(prefix="/certificates", tags=["수료증"])
         **CERTIFICATE_ISSUE_RESPONSES
     }
 )
-async def issue_certificate(data: CertificateCreate):
+async def issue_certificate(
+    data: CertificateCreate,
+    current_user: User = Depends(get_current_user)
+):
     """
     # 수료증 발급 API
     
@@ -53,6 +58,7 @@ async def issue_certificate(data: CertificateCreate):
     - 수강 기간 내
     
     ## 참고
+    - 인증 필요 (본인의 수강 등록만 가능)
     - 수료증 번호는 자동 생성됩니다 (WNIV-YYYY-NNNNNN)
     - PDF는 별도 API로 생성합니다
     """
@@ -69,7 +75,7 @@ async def issue_certificate(data: CertificateCreate):
         **AUTH_RESPONSES
     }
 )
-async def get_my_certificates():
+async def get_my_certificates(current_user: User = Depends(get_current_user)):
     """
     # 내 수료증 목록 API
     
@@ -84,6 +90,9 @@ async def get_my_certificates():
     - 강의 정보
     - 발급일
     - PDF 다운로드 URL
+    
+    ## 참고
+    - 인증 필요 (본인의 수료증만 조회)
     """
     pass
 
@@ -99,7 +108,10 @@ async def get_my_certificates():
         **READ_RESPONSES
     }
 )
-async def get_certificate(certificate_id: int):
+async def get_certificate(
+    certificate_id: int,
+    current_user: User = Depends(get_current_user)
+):
     """
     # 수료증 상세 조회 API
     
@@ -113,6 +125,9 @@ async def get_certificate(certificate_id: int):
     - 401: 인증되지 않은 사용자
     - 403: 다른 사용자의 수료증은 조회 불가
     - 404: 수료증을 찾을 수 없음
+    
+    ## 참고
+    - 인증 필요 (본인의 수료증 또는 관리자만 조회)
     """
     pass
 
@@ -127,7 +142,10 @@ async def get_certificate(certificate_id: int):
         **CERTIFICATE_GENERATE_RESPONSES
     }
 )
-async def generate_certificate_pdf(certificate_id: int):
+async def generate_certificate_pdf(
+    certificate_id: int,
+    current_user: User = Depends(get_current_user)
+):
     """
     # 수료증 PDF 생성 API
     
@@ -148,6 +166,9 @@ async def generate_certificate_pdf(certificate_id: int):
     - 수료일
     - 수료증 번호
     - 서명 및 직인
+    
+    ## 참고
+    - 인증 필요 (본인의 수료증만 생성 가능)
     """
     pass
 
@@ -163,7 +184,10 @@ async def generate_certificate_pdf(certificate_id: int):
         **READ_RESPONSES
     }
 )
-async def delete_certificate(certificate_id: int):
+async def delete_certificate(
+    certificate_id: int,
+    admin: User = Depends(get_current_admin)
+):
     """
     # 수료증 삭제 API
     
@@ -177,6 +201,9 @@ async def delete_certificate(certificate_id: int):
     - 401: 인증되지 않은 사용자
     - 403: 관리자만 삭제 가능
     - 404: 수료증을 찾을 수 없음
+    
+    ## 참고
+    - 관리자 권한 필요
     """
     pass
 
@@ -191,7 +218,10 @@ async def delete_certificate(certificate_id: int):
         **AUTH_RESPONSES
     }
 )
-async def check_completion_eligibility(data: CompletionCheckRequest):
+async def check_completion_eligibility(
+    data: CompletionCheckRequest,
+    current_user: User = Depends(get_current_user)
+):
     """
     # 수료 조건 확인 API
     
@@ -214,6 +244,9 @@ async def check_completion_eligibility(data: CompletionCheckRequest):
         - missions_completed: 미션 완료 여부
         - midterm_passed: 중간 미션 통과 여부
         - final_passed: 기말 미션 통과 여부
+    
+    ## 참고
+    - 인증 필요 (본인의 수강 등록만 확인 가능)
     """
     pass
 
@@ -251,7 +284,8 @@ async def verify_certificate(data: CertificateVerifyRequest):
         - 발급일
     
     ## 참고
-    - 이 API는 인증이 필요하지 않습니다 (공개 API)
+    - 인증 불필요 (공개 API)
+    - 이 API는 인증이 필요하지 않습니다
     - 기업 등에서 수료증 진위 확인에 사용됩니다
     """
     pass

@@ -19,6 +19,8 @@ from exceptions import (
     READ_RESPONSES,
     MODIFY_RESPONSES,
 )
+from dependencies import get_current_user
+from models.user import User
 
 router = APIRouter(prefix="/enrollments", tags=["수강 등록 및 학습 진행"])
 
@@ -34,24 +36,14 @@ router = APIRouter(prefix="/enrollments", tags=["수강 등록 및 학습 진행
         **ENROLLMENT_CREATE_RESPONSES
     }
 )
-async def create_enrollment(data: EnrollmentCreate):
+async def create_enrollment(
+    data: EnrollmentCreate,
+    current_user: User = Depends(get_current_user)
+):
     """
-    # 수강 등록 API
+    # 수강 등록 API - 인증 필요
     
     결제 완료 후 강의를 수강 등록합니다.
-    
-    ## 요청 본문
-    - **course_id**: 등록할 강의 ID
-    
-    ## 응답
-    - 201: 수강 등록 성공
-    - 400: 이미 등록한 강의
-    - 401: 인증되지 않은 사용자
-    - 404: 강의를 찾을 수 없음
-    
-    ## 참고
-    - 수강 기간은 등록일로부터 2년입니다
-    - 같은 강의를 중복 등록할 수 없습니다
     """
     pass
 
@@ -66,31 +58,14 @@ async def create_enrollment(data: EnrollmentCreate):
         **AUTH_RESPONSES
     }
 )
-async def get_my_enrollments(params: MyEnrollmentListParams = Depends()):
+async def get_my_enrollments(
+    params: MyEnrollmentListParams = Depends(),
+    current_user: User = Depends(get_current_user)
+):
     """
-    # 내 수강 목록 조회 API
+    # 내 수강 목록 조회 API - 인증 필요
     
     수강 중인 강의 목록을 조회합니다.
-    
-    ## 쿼리 파라미터
-    - **category_id**: 카테고리 필터 (선택)
-    - **difficulty**: 난이도 필터 (선택)
-    - **is_active**: 활성 상태 필터 (기본값: true)
-        - true: 수강 기간 내 강의만
-        - false: 만료된 강의만
-        - 미입력: 모든 강의
-    - **page**: 페이지 번호 (기본값: 1)
-    - **page_size**: 페이지 크기 (기본값: 20, 최대: 100)
-    
-    ## 응답
-    - 200: 수강 목록 조회 성공
-    - 401: 인증되지 않은 사용자
-    
-    ## 반환 정보
-    - 강의 기본 정보
-    - 진행률
-    - 수강 기간 (등록일, 만료일, 남은 일수)
-    - 완료/전체 강의 수
     """
     pass
 
@@ -106,26 +81,15 @@ async def get_my_enrollments(params: MyEnrollmentListParams = Depends()):
         **READ_RESPONSES
     }
 )
-async def get_enrollment(enrollment_id: int):
+async def get_enrollment(
+    enrollment_id: int,
+    current_user: User = Depends(get_current_user)
+):
     """
-    # 수강 상세 조회 API
+    # 수강 상세 조회 API - 인증 필요
     
     수강 등록의 상세 정보를 조회합니다.
-    
-    ## 경로 파라미터
-    - **enrollment_id**: 수강 등록 ID
-    
-    ## 응답
-    - 200: 수강 정보 조회 성공
-    - 401: 인증되지 않은 사용자
-    - 403: 다른 사용자의 수강 정보는 조회 불가
-    - 404: 수강 정보를 찾을 수 없음
-    
-    ## 반환 정보
-    - 강의 상세 정보
-    - 진행률 및 학습 시간
-    - 미션 진행 현황
-    - 수강 기간 정보
+    본인의 수강 등록만 조회 가능합니다.
     """
     pass
 
@@ -152,24 +116,14 @@ async def get_enrollment(enrollment_id: int):
         **READ_RESPONSES
     }
 )
-async def cancel_enrollment(enrollment_id: int):
+async def cancel_enrollment(
+    enrollment_id: int,
+    current_user: User = Depends(get_current_user)
+):
     """
-    # 수강 취소 API
+    # 수강 취소 API - 인증 필요
     
-    수강 등록을 취소하고 환불을 신청합니다.
-    
-    ## 경로 파라미터
-    - **enrollment_id**: 수강 등록 ID
-    
-    ## 응답
-    - 200: 수강 취소 성공
-    - 400: 환불 가능 기간 초과 또는 진도율 10% 이상
-    - 401: 인증되지 않은 사용자
-    - 404: 수강 정보를 찾을 수 없음
-    
-    ## 참고
-    - 환불 가능 조건: 구매일 7일 이내 + 진도율 10% 미만
-    - 취소 시 자동으로 환불이 신청됩니다
+    본인의 수강 등록만 취소 가능합니다.
     """
     pass
 
@@ -185,23 +139,14 @@ async def cancel_enrollment(enrollment_id: int):
         **PROGRESS_UPDATE_RESPONSES
     }
 )
-async def create_progress(data: ProgressCreate):
+async def create_progress(
+    data: ProgressCreate,
+    current_user: User = Depends(get_current_user)
+):
     """
-    # 학습 진행 생성 API
+    # 학습 진행 생성 API - 인증 필요
     
     강의 영상 시청을 시작할 때 호출합니다.
-    
-    ## 요청 본문
-    - **lecture_id**: 강의 영상 ID
-    - **watched_seconds**: 시청 시간 (초)
-    - **last_position**: 마지막 시청 위치 (초)
-    - **is_completed**: 완료 여부 (기본값: false)
-    
-    ## 응답
-    - 201: 학습 진행 생성 성공
-    - 401: 인증되지 않은 사용자
-    - 403: 수강 등록되지 않은 강의
-    - 404: 강의 영상을 찾을 수 없음
     """
     pass
 
@@ -216,29 +161,15 @@ async def create_progress(data: ProgressCreate):
         **PROGRESS_UPDATE_RESPONSES
     }
 )
-async def update_progress(lecture_id: int, data: ProgressUpdate):
+async def update_progress(
+    lecture_id: int,
+    data: ProgressUpdate,
+    current_user: User = Depends(get_current_user)
+):
     """
-    # 학습 진행 업데이트 API
+    # 학습 진행 업데이트 API - 인증 필요
     
     강의 영상 시청 중 주기적으로 호출하여 진행 상태를 저장합니다.
-    
-    ## 경로 파라미터
-    - **lecture_id**: 강의 영상 ID
-    
-    ## 요청 본문
-    - **watched_seconds**: 총 시청 시간 (초)
-    - **last_position**: 마지막 시청 위치 (초)
-    - **is_completed**: 완료 여부
-    
-    ## 응답
-    - 200: 학습 진행 업데이트 성공
-    - 401: 인증되지 않은 사용자
-    - 403: 수강 등록되지 않은 강의
-    - 404: 강의 영상 또는 진행 기록을 찾을 수 없음
-    
-    ## 참고
-    - 10초마다 호출을 권장합니다
-    - 영상의 90% 이상 시청 시 자동으로 완료 처리됩니다
     """
     pass
 
@@ -253,26 +184,14 @@ async def update_progress(lecture_id: int, data: ProgressUpdate):
         **ENROLLMENT_ACCESS_RESPONSES
     }
 )
-async def get_course_progress(course_id: int):
+async def get_course_progress(
+    course_id: int,
+    current_user: User = Depends(get_current_user)
+):
     """
-    # 강의별 학습 진행 조회 API
+    # 강의별 학습 진행 조회 API - 인증 필요
     
     강의의 전체 학습 진행 상황을 챕터별로 조회합니다.
-    
-    ## 경로 파라미터
-    - **course_id**: 강의 ID
-    
-    ## 응답
-    - 200: 학습 진행 조회 성공
-    - 401: 인증되지 않은 사용자
-    - 403: 수강 등록되지 않은 강의
-    - 404: 강의를 찾을 수 없음
-    
-    ## 반환 정보
-    - 전체 진행률
-    - 챕터별 진행 상황
-    - 각 강의 영상의 시청 정보
-    - 총 학습 시간
     """
     pass
 
@@ -287,30 +206,14 @@ async def get_course_progress(course_id: int):
         **ENROLLMENT_ACCESS_RESPONSES
     }
 )
-async def get_lecture_progress(lecture_id: int):
+async def get_lecture_progress(
+    lecture_id: int,
+    current_user: User = Depends(get_current_user)
+):
     """
-    # 강의 영상별 진행 조회 API
+    # 강의 영상별 진행 조회 API - 인증 필요
     
     강의 영상의 시청 기록을 조회합니다.
-    
-    ## 경로 파라미터
-    - **lecture_id**: 강의 영상 ID
-    
-    ## 응답
-    - 200: 진행 정보 조회 성공
-    - 401: 인증되지 않은 사용자
-    - 403: 수강 등록되지 않은 강의
-    - 404: 강의 영상을 찾을 수 없음
-    
-    ## 반환 정보
-    - 시청 시간
-    - 마지막 시청 위치 (이어보기용)
-    - 완료 여부
-    - 완료율
-    
-    ## 사용 사례
-    - 영상 플레이어 로드 시 마지막 위치로 이동
-    - 진행률 표시
     """
     pass
 
@@ -325,26 +228,11 @@ async def get_lecture_progress(lecture_id: int):
         **AUTH_RESPONSES
     }
 )
-async def get_student_dashboard():
+async def get_student_dashboard(current_user: User = Depends(get_current_user)):
     """
-    # 학습자 대시보드 API
+    # 학습자 대시보드 API - 인증 필요
     
     학습자의 전체 학습 현황을 한눈에 볼 수 있습니다.
-    
-    ## 응답
-    - 200: 대시보드 조회 성공
-    - 401: 인증되지 않은 사용자
-    
-    ## 반환 정보
-    - 전체 수강 통계: 총 수강 수, 활성 수강 수, 완료 수
-    - 총 학습 시간
-    - 평균 진행률
-    - 최근 활동 내역
-    - 만료 임박 강의 목록
-    
-    ## 사용 사례
-    - 마이페이지 메인 화면
-    - 학습 현황 요약 표시
     """
     pass
 
@@ -359,26 +247,10 @@ async def get_student_dashboard():
         **AUTH_RESPONSES
     }
 )
-async def get_learning_stats():
+async def get_learning_stats(current_user: User = Depends(get_current_user)):
     """
-    # 학습 통계 API
+    # 학습 통계 API - 인증 필요
     
     시간별 학습 통계를 조회합니다.
-    
-    ## 응답
-    - 200: 통계 조회 성공
-    - 401: 인증되지 않은 사용자
-    
-    ## 반환 정보
-    - **today_study_time**: 오늘 학습 시간 (분)
-    - **week_study_time**: 이번 주 학습 시간 (분)
-    - **month_study_time**: 이번 달 학습 시간 (분)
-    - **total_study_time**: 총 학습 시간 (분)
-    - **study_streak**: 연속 학습 일수
-    - **last_study_date**: 마지막 학습일
-    
-    ## 사용 사례
-    - 학습 동기 부여
-    - 학습 패턴 분석
     """
     pass

@@ -3,7 +3,7 @@
 회원가입, 로그인, 소셜 로그인, 이메일 인증, 비밀번호 재설정 등을 처리합니다.
 """
 
-from fastapi import APIRouter, Header, status
+from fastapi import APIRouter, Header, status, Depends
 from schemas.user import (
     UserCreate, UserLogin, UserResponse, TokenResponse,
     EmailVerificationRequest, EmailVerificationConfirm,
@@ -17,6 +17,8 @@ from exceptions import (
     PASSWORD_RESET_RESPONSES,
     AUTH_RESPONSES,
 )
+from dependencies import get_current_user
+from models.user import User
 
 router = APIRouter(prefix="/auth", tags=["인증"])
 
@@ -51,6 +53,9 @@ async def register(data: UserCreate):
     - 201: 회원가입 성공, 생성된 사용자 정보 반환
     - 400: 이미 존재하는 이메일
     - 422: 입력값 유효성 검사 실패
+    
+    ## 참고
+    - 인증 불필요 (공개 API)
     """
     pass
 
@@ -81,6 +86,7 @@ async def login(data: UserLogin):
     - 422: 입력값 유효성 검사 실패
     
     ## 참고
+    - 인증 불필요 (공개 API)
     - 발급된 토큰은 Authorization 헤더에 'Bearer {token}' 형식으로 포함하여 사용
     """
     pass
@@ -96,7 +102,7 @@ async def login(data: UserLogin):
         **AUTH_RESPONSES
     }
 )
-async def logout():
+async def logout(current_user: User = Depends(get_current_user)):
     """
     # 로그아웃 API
     
@@ -107,6 +113,7 @@ async def logout():
     - 401: 인증되지 않은 사용자
     
     ## 참고
+    - 인증 필요
     - 클라이언트에서 저장된 토큰을 삭제해야 합니다
     """
     pass
@@ -147,6 +154,9 @@ async def refresh_token(
     ## 응답
     - 200: 새로운 액세스 토큰 발급
     - 401: 리프레시 토큰 만료 또는 유효하지 않음
+    
+    ## 참고
+    - 리프레시 토큰 자체에 대한 검증만 필요 (별도 의존성)
     """
     pass
 
@@ -176,6 +186,7 @@ async def request_email_verification(data: EmailVerificationRequest):
     - 422: 입력값 유효성 검사 실패
     
     ## 참고
+    - 인증 불필요 (공개 API)
     - 인증 코드는 5분간 유효합니다
     """
     pass
@@ -205,6 +216,9 @@ async def confirm_email_verification(data: EmailVerificationConfirm):
     - 200: 이메일 인증 완료
     - 400: 인증 코드가 올바르지 않거나 만료됨
     - 422: 입력값 유효성 검사 실패
+    
+    ## 참고
+    - 인증 불필요 (공개 API)
     """
     pass
 
@@ -235,6 +249,9 @@ async def google_login(data: SocialLoginRequest):
     - 200: 로그인 성공
     - 401: Google 토큰 검증 실패
     - 422: 입력값 유효성 검사 실패
+    
+    ## 참고
+    - 인증 불필요 (공개 API)
     """
     pass
 
@@ -265,6 +282,9 @@ async def github_login(data: SocialLoginRequest):
     - 200: 로그인 성공
     - 401: Github 토큰 검증 실패
     - 422: 입력값 유효성 검사 실패
+    
+    ## 참고
+    - 인증 불필요 (공개 API)
     """
     pass
 
@@ -294,6 +314,7 @@ async def request_password_reset(data: PasswordResetRequest):
     - 422: 입력값 유효성 검사 실패
     
     ## 참고
+    - 인증 불필요 (공개 API)
     - 재설정 토큰은 1시간 동안 유효합니다
     """
     pass
@@ -325,6 +346,9 @@ async def confirm_password_reset(data: PasswordResetConfirm):
     - 200: 비밀번호 재설정 완료
     - 400: 토큰이 유효하지 않거나 만료됨
     - 422: 입력값 유효성 검사 실패
+    
+    ## 참고
+    - 인증 불필요 (공개 API)
     """
     pass
 
@@ -339,7 +363,7 @@ async def confirm_password_reset(data: PasswordResetConfirm):
         **AUTH_RESPONSES
     }
 )
-async def verify_token():
+async def verify_token(current_user: User = Depends(get_current_user)):
     """
     # 토큰 검증 API
     
@@ -350,6 +374,7 @@ async def verify_token():
     - 401: 토큰이 유효하지 않거나 만료됨
     
     ## 참고
+    - 인증 필요
     - 이 API는 프론트엔드에서 페이지 로드 시 로그인 상태를 확인하는 데 사용됩니다
     """
     pass

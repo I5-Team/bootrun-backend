@@ -4,7 +4,7 @@
 """
 
 from fastapi import APIRouter, Depends, status
-from typing import List
+from typing import List, Optional
 from schemas.common import MessageResponse, PaginatedResponse
 from schemas.course import (
     CourseResponse, CourseDetailResponse,
@@ -17,6 +17,8 @@ from exceptions import (
     COURSE_LIST_RESPONSES,
     COURSE_DETAIL_RESPONSES,
 )
+from dependencies import get_current_user_optional, get_current_user
+from models.user import User
 
 router = APIRouter(prefix="/courses", tags=["강의"])
 
@@ -51,6 +53,9 @@ async def get_course_metadata():
     ## 사용 사례
     - 강의 목록 페이지의 필터 UI 구성
     - 검색 필터 옵션 제공
+    
+    ## 참고
+    - 인증 불필요 (공개 API)
     """
     pass
 
@@ -93,6 +98,9 @@ async def get_courses(params: CourseListParams = Depends()):
     - 프론트엔드 초급 강의: `?category_type=frontend&difficulty=beginner`
     - 무료 강의: `?price_type=free`
     - 키워드 검색: `?keyword=React`
+    
+    ## 참고
+    - 인증 불필요 (공개 API)
     """
     pass
 
@@ -107,7 +115,10 @@ async def get_courses(params: CourseListParams = Depends()):
         **COURSE_DETAIL_RESPONSES
     }
 )
-async def get_course(course_id: int):
+async def get_course(
+    course_id: int,
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
     """
     # 강의 상세 조회 API
     
@@ -127,6 +138,7 @@ async def get_course(course_id: int):
     - FAQ: 자주 묻는 질문
     
     ## 참고
+    - 선택적 인증 (로그인 안 해도 조회 가능)
     - 로그인한 사용자의 경우 수강 여부와 진행률 정보가 포함됩니다
     - 비공개 강의는 관리자만 조회 가능합니다
     """
@@ -143,7 +155,10 @@ async def get_course(course_id: int):
         **COURSE_DETAIL_RESPONSES
     }
 )
-async def get_chapters(course_id: int):
+async def get_chapters(
+    course_id: int,
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
     """
     # 챕터 목록 조회 API
     
@@ -160,6 +175,9 @@ async def get_chapters(course_id: int):
     - 챕터 정보: 제목, 설명, 순서, 총 시간
     - 강의 영상 목록: 각 챕터에 포함된 강의 영상 정보
     - 학습 진행 상태 (로그인 시): 완료 여부, 마지막 시청 위치 등
+    
+    ## 참고
+    - 선택적 인증 (로그인 안 해도 조회 가능)
     """
     pass
 
@@ -195,7 +213,11 @@ async def get_chapters(course_id: int):
         }
     }
 )
-async def get_chapter(course_id: int, chapter_id: int):
+async def get_chapter(
+    course_id: int,
+    chapter_id: int,
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
     """
     # 챕터 상세 조회 API
     
@@ -213,6 +235,9 @@ async def get_chapter(course_id: int, chapter_id: int):
     - 챕터 기본 정보
     - 챕터에 포함된 모든 강의 영상
     - 각 강의의 학습 진행 상태 (로그인 시)
+    
+    ## 참고
+    - 선택적 인증 (로그인 안 해도 조회 가능)
     """
     pass
 
@@ -248,7 +273,11 @@ async def get_chapter(course_id: int, chapter_id: int):
         }
     }
 )
-async def get_lectures(course_id: int, chapter_id: int):
+async def get_lectures(
+    course_id: int,
+    chapter_id: int,
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
     """
     # 강의 영상 목록 조회 API
     
@@ -266,6 +295,9 @@ async def get_lectures(course_id: int, chapter_id: int):
     - 강의 영상 기본 정보: 제목, 설명, 재생 시간 등
     - 동영상 정보: URL, 타입 (VOD/유튜브)
     - 학습 진행 정보 (로그인 시): 완료 여부, 시청 시간, 마지막 위치
+    
+    ## 참고
+    - 선택적 인증 (로그인 안 해도 조회 가능)
     """
     pass
 
@@ -329,7 +361,12 @@ async def get_lectures(course_id: int, chapter_id: int):
         }
     }
 )
-async def get_lecture(course_id: int, chapter_id: int, lecture_id: int):
+async def get_lecture(
+    course_id: int,
+    chapter_id: int,
+    lecture_id: int,
+    current_user: User = Depends(get_current_user)
+):
     """
     # 강의 영상 상세 조회 API
     
@@ -342,6 +379,7 @@ async def get_lecture(course_id: int, chapter_id: int, lecture_id: int):
     
     ## 응답
     - 200: 강의 영상 정보 조회 성공
+    - 401: 인증되지 않은 사용자
     - 403: 수강 권한 없음
     - 404: 강의, 챕터 또는 강의 영상을 찾을 수 없음
     - 410: 수강 기간 만료
@@ -352,6 +390,7 @@ async def get_lecture(course_id: int, chapter_id: int, lecture_id: int):
     - 학습 진행 정보: 완료 여부, 시청 시간, 마지막 시청 위치
     
     ## 참고
+    - 인증 필요 (로그인 필수)
     - 수강 등록된 사용자만 접근 가능합니다
     - 수강 기간이 만료된 경우 접근이 제한됩니다
     """

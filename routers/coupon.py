@@ -13,6 +13,8 @@ from exceptions import (
     AUTH_RESPONSES,
     READ_RESPONSES,
 )
+from dependencies import get_current_user
+from models.user import User
 
 router = APIRouter(prefix="/coupons", tags=["쿠폰"])
 
@@ -50,6 +52,9 @@ async def get_coupons(params: CouponListParams = Depends()):
     - 유효 기간
     - 사용 현황 (사용 횟수/최대 사용 횟수)
     - 사용 가능 여부
+    
+    ## 참고
+    - 인증 불필요 (공개 API)
     """
     pass
 
@@ -82,6 +87,9 @@ async def get_coupon(coupon_id: int):
     - 적용 가능한 강의
     - 할인 정보
     - 사용 조건
+    
+    ## 참고
+    - 인증 불필요 (공개 API)
     """
     pass
 
@@ -96,7 +104,10 @@ async def get_coupon(coupon_id: int):
         **COUPON_VALIDATE_RESPONSES
     }
 )
-async def validate_coupon(data: CouponValidationRequest):
+async def validate_coupon(
+    data: CouponValidationRequest,
+    current_user: User = Depends(get_current_user)
+):
     """
     # 쿠폰 유효성 검증 API
     
@@ -109,6 +120,7 @@ async def validate_coupon(data: CouponValidationRequest):
     ## 응답
     - 200: 쿠폰 유효, 할인 금액 반환
     - 400: 쿠폰이 유효하지 않음
+    - 401: 인증되지 않은 사용자
     - 404: 쿠폰을 찾을 수 없음
     
     ## 반환 정보
@@ -127,6 +139,7 @@ async def validate_coupon(data: CouponValidationRequest):
     - 사용자별 사용 이력
     
     ## 참고
+    - 인증 필요 (로그인한 사용자만 검증 가능)
     - 하나의 쿠폰은 사용자당 1회만 사용 가능합니다
     - 전체 강의 쿠폰(course_id=NULL)은 모든 강의에 적용 가능합니다
     """
@@ -143,7 +156,7 @@ async def validate_coupon(data: CouponValidationRequest):
         **AUTH_RESPONSES
     }
 )
-async def get_my_coupons():
+async def get_my_coupons(current_user: User = Depends(get_current_user)):
     """
     # 내 쿠폰 목록 API
     
@@ -158,6 +171,7 @@ async def get_my_coupons():
     - 이미 사용한 쿠폰은 제외됩니다
     
     ## 참고
+    - 인증 필요
     - 유효 기간 내의 쿠폰만 반환됩니다
     - 사용 가능한 쿠폰만 반환됩니다
     """
