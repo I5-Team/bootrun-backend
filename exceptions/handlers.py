@@ -2,19 +2,14 @@
 Exception Handlers
 전역 예외 처리 핸들러 및 로깅
 
-이 모듈은 다음을 처리합니다:
-1. 커스텀 예외 (BaseAPIException)
-2. FastAPI HTTP 예외 (HTTPException)
-3. Pydantic 유효성 검증 예외 (RequestValidationError)
-4. 일반 예외 (Exception)
 """
 
 import os
 import logging
 import traceback
-from typing import Union, Any
+from typing import Union
 
-from fastapi import Request, status
+from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError, HTTPException
 from pydantic import ValidationError
@@ -32,7 +27,7 @@ IS_DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
 # ============= 1. 커스텀 예외 핸들러 =============
 
 async def custom_exception_handler(
-    request: Request, 
+    request: Request,
     exc: BaseAPIException
 ) -> JSONResponse:
     """
@@ -71,7 +66,7 @@ async def custom_exception_handler(
 # ============= 2. HTTP 예외 핸들러 =============
 
 async def http_exception_handler(
-    request: Request, 
+    request: Request,
     exc: HTTPException
 ) -> JSONResponse:
     """
@@ -88,7 +83,7 @@ async def http_exception_handler(
     """
     # 에러 로깅
     log_level = (
-        logging.WARNING if exc.status_code < 500 
+        logging.WARNING if exc.status_code < 500
         else logging.ERROR
     )
     logger.log(
@@ -112,7 +107,7 @@ async def http_exception_handler(
 # ============= 3. 유효성 검증 예외 핸들러 =============
 
 async def validation_exception_handler(
-    request: Request, 
+    request: Request,
     exc: Union[RequestValidationError, ValidationError]
 ) -> JSONResponse:
     """
@@ -159,14 +154,14 @@ async def validation_exception_handler(
 # ============= 4. 일반 예외 핸들러 (Catch-all) =============
 
 async def general_exception_handler(
-    request: Request, 
+    request: Request,
     exc: Exception
 ) -> JSONResponse:
     """
     예상치 못한 일반 예외 처리 핸들러
     
     위의 핸들러들로 처리되지 않은 모든 예외를 처리합니다.
-    개발 환경에서는 상세한 에러 정보를 포함하고, 
+    개발 환경에서는 상세한 에러 정보를 포함하고,
     운영 환경에서는 숨깁니다.
     
     Args:
@@ -187,7 +182,7 @@ async def general_exception_handler(
     )
     
     # 기본 응답 내용
-    response_content: dict[str, Any] = {
+    response_content: dict = {
         'error': 'INTERNAL_SERVER_ERROR',
         'detail': '서버 오류가 발생했습니다. 관리자에게 문의하세요.',
         'path': str(request.url.path),
@@ -209,17 +204,15 @@ async def general_exception_handler(
 
 # ============= 핸들러 등록 함수 =============
 
-def register_exception_handlers(app: Any) -> None:
+def register_exception_handlers(app: FastAPI) -> None:
     """
     FastAPI 앱에 모든 예외 핸들러를 등록합니다.
     
-    main.py에서 다음과 같이 사용:
-    
-    from core.exceptions.handlers import register_exception_handlers
-    
-    app = FastAPI()
-    register_exception_handlers(app)
-    
+    사용법:
+        from core.exceptions.handlers import register_exception_handlers
+        
+        app = FastAPI()
+        register_exception_handlers(app)
     
     Args:
         app: FastAPI 애플리케이션 인스턴스
@@ -251,40 +244,3 @@ def register_exception_handlers(app: Any) -> None:
     logger.info(
         f'모든 예외 핸들러가 등록되었습니다 (IS_DEBUG={IS_DEBUG})'
     )
-
-
-# ============= 에러 응답 헬퍼 함수 =============
-
-def error_response(
-    error_code: str,
-    detail: str,
-    status_code: int = status.HTTP_400_BAD_REQUEST,
-    **kwargs: Any
-) -> JSONResponse:
-    """
-    에러 응답을 생성하는 헬퍼 함수
-    
-    라우터에서 직접 사용할 수 있습니다:
-  
-    if not user:
-        return error_response(
-            'USER_NOT_FOUND',
-            '사용자를 찾을 수 없습니다',
-            404
-        )
-    
-    Args:
-        error_code: 에러 코드 (자동으로 UPPER_SNAKE_CASE 변환)
-        detail: 에러 상세 메시지
-        status_code: HTTP 상태 코드 (기본값: 400)
-        **kwargs: 추가 필드
-    
-    Returns:
-        JSONResponse: 에러 응답
-    """
-    content = {
-        'error': error_code.upper(),  # UPPER_SNAKE_CASE 강제
-        'detail': detail,
-        **kwargs
-    }
-    return JSONResponse(status_code=status_code, content=content)
