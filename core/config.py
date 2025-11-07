@@ -30,29 +30,14 @@ class Settings(BaseSettings):
 
     @property
     def database_url(self) -> str:
-        """PostgreSQL 연결 URL 구성"""
+        """비동기 PostgreSQL URL (asyncpg)"""
         return (
-            f"postgresql+psycopg2://{self.database_user}:"
+            f"postgresql+asyncpg://{self.database_user}:"
             f"{self.database_password}@{self.database_host}:"
             f"{self.database_port}/{self.database_name}"
         )
 
     # =====================================================
-    # Redis 캐시(주석 처리됨)
-    # =====================================================
-    # redis_host: str = "localhost"
-    # redis_port: int = 6379
-    # redis_db: int = 0
-    # redis_password: str = "your_redis_password"
-    # redis_timeout: int = 5
-    #
-    # @property
-    # def redis_url(self) -> str:
-    #     """Redis 연결 URL 구성"""
-    #     return (
-    #         f"redis://:{self.redis_password}@{self.redis_host}:"
-    #         f"{self.redis_port}/{self.redis_db}"
-    #     )
     # Redis 캐시
     # =====================================================
     redis_host: str = "localhost"
