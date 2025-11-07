@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.pool import AsyncAdaptedQueuePool
-from sqlalchemy import event, text
+from sqlalchemy import text
 import redis.asyncio as redis
 from redis.asyncio import Redis
 import logging
