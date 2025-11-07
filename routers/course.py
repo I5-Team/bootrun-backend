@@ -48,7 +48,14 @@ async def get_courses(
     """강의 목록 조회 (필터링, 검색, 페이지네이션)"""
     service = CourseService(db)
     user_id = current_user.id if current_user else None
-    return await service.get_courses(params, user_id)
+    result = await service.get_courses(params, user_id)
+    return PaginatedResponse[CourseResponse](
+        total=result.total,
+        page=result.page,
+        page_size=result.page_size,
+        total_pages=result.total_pages,
+        items=result.items
+    )
 
 
 @router.get(
