@@ -3,9 +3,9 @@
 강의 목록 조회, 상세 조회, 챕터/강의 영상 조회 등을 처리합니다.
 """
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends
 from typing import List, Optional
-from schemas.common import MessageResponse, PaginatedResponse
+from schemas.common import PaginatedResponse
 from schemas.course import (
     CourseResponse, CourseDetailResponse,
     CourseListParams, 
@@ -13,7 +13,6 @@ from schemas.course import (
     LectureResponse, CourseMetadataResponse
 )
 from exceptions.responses import (
-    READ_RESPONSES,
     COURSE_LIST_RESPONSES,
     COURSE_DETAIL_RESPONSES,
     CHAPTER_DETAIL_RESPONSES,      
