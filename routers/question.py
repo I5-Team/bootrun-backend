@@ -3,22 +3,32 @@
 질문 작성, 답변 작성, 질문/답변 수정 및 삭제 등을 처리합니다.
 """
 
-from fastapi import APIRouter, Depends, status
-from typing import List
+from fastapi import APIRouter, Depends, status, Path, Query
+from sqlalchemy.orm import Session
+
 from schemas.course import (
     QuestionCreate, QuestionUpdate, QuestionResponse,
     QuestionDetailResponse, QuestionListParams,
     CommentCreate, CommentUpdate, CommentResponse
 )
 from schemas.common import MessageResponse, PaginatedResponse
-from exceptions import (
+from exceptions.responses import (
     QNA_CREATE_RESPONSES,
     QNA_UPDATE_RESPONSES,
     COMMENT_CREATE_RESPONSES,
-    AUTH_RESPONSES,
-    READ_RESPONSES,
-    MODIFY_RESPONSES,
+    COMMON_401,
+    COMMON_403,
+    COMMON_404,
+    COMMON_422,
 )
+from core.dependencies import (
+    get_current_user,
+    get_current_admin,
+    get_current_instructor,
+    verify_resource_owner
+)
+from core.database import get_db
+from models.user import User
 
 router = APIRouter(prefix="/questions", tags=["학습 Q&A"])
 
@@ -30,10 +40,13 @@ router = APIRouter(prefix="/questions", tags=["학습 Q&A"])
     description="학습 Q&A 게시판의 질문 목록을 조회합니다.",
     responses={
         200: {"description": "질문 목록 조회 성공"},
-        **READ_RESPONSES
+        422: COMMON_422
     }
 )
-async def get_questions(params: QuestionListParams = Depends()):
+async def get_questions(
+    params: QuestionListParams = Depends(),
+    db: Session = Depends(get_db)
+):
     """
     # 질문 목록 조회 API
     
@@ -60,6 +73,7 @@ async def get_questions(params: QuestionListParams = Depends()):
     - 답변 완료 여부
     - 답변 개수
     """
+    # TODO: 서비스 로직 구현
     pass
 
 
@@ -70,10 +84,13 @@ async def get_questions(params: QuestionListParams = Depends()):
     description="특정 질문의 상세 정보와 답변을 조회합니다.",
     responses={
         200: {"description": "질문 상세 조회 성공"},
-        **READ_RESPONSES
+        404: COMMON_404
     }
 )
-async def get_question(question_id: int):
+async def get_question(
+    question_id: int = Path(..., gt=0, description="질문 ID"),
+    db: Session = Depends(get_db)
+):
     """
     # 질문 상세 조회 API
     
@@ -91,6 +108,8 @@ async def get_question(question_id: int):
     - 모든 답변 및 대댓글
     - 강사 답변 여부 표시
     """
+    # TODO: 서비스 로직 구현
+    # 조회수 증가 로직 포함
     pass
 
 
@@ -105,7 +124,11 @@ async def get_question(question_id: int):
         **QNA_CREATE_RESPONSES
     }
 )
-async def create_question(data: QuestionCreate):
+async def create_question(
+    data: QuestionCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
     # 질문 작성 API
     
@@ -125,6 +148,8 @@ async def create_question(data: QuestionCreate):
     ## 참고
     - 수강 등록된 강의에만 질문을 작성할 수 있습니다
     """
+    # TODO: 서비스 로직 구현
+    # 수강 등록 확인 로직 포함
     pass
 
 
@@ -138,7 +163,12 @@ async def create_question(data: QuestionCreate):
         **QNA_UPDATE_RESPONSES
     }
 )
-async def update_question(question_id: int, data: QuestionUpdate):
+async def update_question(
+    question_id: int = Path(..., gt=0, description="질문 ID"),
+    data: QuestionUpdate = ...,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
     # 질문 수정 API
     
@@ -160,6 +190,8 @@ async def update_question(question_id: int, data: QuestionUpdate):
     ## 참고
     - 제공된 필드만 업데이트됩니다
     """
+    # TODO: 서비스 로직 구현
+    # verify_resource_owner 사용하여 소유권 확인
     pass
 
 
@@ -170,10 +202,16 @@ async def update_question(question_id: int, data: QuestionUpdate):
     description="작성한 질문을 삭제합니다. (소프트 삭제)",
     responses={
         200: {"description": "질문 삭제 성공"},
-        **QNA_UPDATE_RESPONSES
+        401: COMMON_401,
+        403: COMMON_403,
+        404: COMMON_404
     }
 )
-async def delete_question(question_id: int):
+async def delete_question(
+    question_id: int = Path(..., gt=0, description="질문 ID"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
     # 질문 삭제 API
     
@@ -193,6 +231,8 @@ async def delete_question(question_id: int):
     - 삭제된 질문은 목록 및 상세에서 보이지 않습니다
     - 관리자는 모든 질문을 삭제할 수 있습니다
     """
+    # TODO: 서비스 로직 구현
+    # verify_resource_owner 사용하여 소유권 확인 (관리자는 예외)
     pass
 
 
@@ -207,7 +247,12 @@ async def delete_question(question_id: int):
         **COMMENT_CREATE_RESPONSES
     }
 )
-async def create_comment(question_id: int, data: CommentCreate):
+async def create_comment(
+    question_id: int = Path(..., gt=0, description="질문 ID"),
+    data: CommentCreate = ...,
+    instructor: User = Depends(get_current_instructor),
+    db: Session = Depends(get_db)
+):
     """
     # 답변 작성 API
     
@@ -232,6 +277,7 @@ async def create_comment(question_id: int, data: CommentCreate):
     - parent_id를 지정하면 대댓글로 작성됩니다
     - 강사/관리자 답변은 is_instructor_answer로 표시됩니다
     """
+    # TODO: 서비스 로직 구현
     pass
 
 
@@ -242,10 +288,18 @@ async def create_comment(question_id: int, data: CommentCreate):
     description="작성한 답변을 수정합니다.",
     responses={
         200: {"description": "답변 수정 성공"},
-        **MODIFY_RESPONSES
+        401: COMMON_401,
+        403: COMMON_403,
+        404: COMMON_404
     }
 )
-async def update_comment(question_id: int, comment_id: int, data: CommentUpdate):
+async def update_comment(
+    question_id: int = Path(..., gt=0, description="질문 ID"),
+    comment_id: int = Path(..., gt=0, description="답변 ID"),
+    data: CommentUpdate = ...,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
     # 답변 수정 API
     
@@ -264,6 +318,8 @@ async def update_comment(question_id: int, comment_id: int, data: CommentUpdate)
     - 403: 본인이 작성한 답변만 수정 가능
     - 404: 질문 또는 답변을 찾을 수 없음
     """
+    # TODO: 서비스 로직 구현
+    # verify_resource_owner 사용하여 소유권 확인
     pass
 
 
@@ -274,10 +330,17 @@ async def update_comment(question_id: int, comment_id: int, data: CommentUpdate)
     description="작성한 답변을 삭제합니다. (소프트 삭제)",
     responses={
         200: {"description": "답변 삭제 성공"},
-        **MODIFY_RESPONSES
+        401: COMMON_401,
+        403: COMMON_403,
+        404: COMMON_404
     }
 )
-async def delete_comment(question_id: int, comment_id: int):
+async def delete_comment(
+    question_id: int = Path(..., gt=0, description="질문 ID"),
+    comment_id: int = Path(..., gt=0, description="답변 ID"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
     # 답변 삭제 API
     
@@ -298,6 +361,8 @@ async def delete_comment(question_id: int, comment_id: int):
     - 삭제된 답변은 보이지 않습니다
     - 답변 삭제 시 해당 답변의 대댓글도 함께 숨겨집니다
     """
+    # TODO: 서비스 로직 구현
+    # verify_resource_owner 사용하여 소유권 확인 (관리자는 예외)
     pass
 
 
@@ -308,10 +373,15 @@ async def delete_comment(question_id: int, comment_id: int):
     description="현재 사용자가 작성한 질문 목록을 조회합니다.",
     responses={
         200: {"description": "내 질문 목록 조회 성공"},
-        **AUTH_RESPONSES
+        401: COMMON_401
     }
 )
-async def get_my_questions(page: int = 1, page_size: int = 20):
+async def get_my_questions(
+    page: int = Query(1, ge=1, description="페이지 번호"),
+    page_size: int = Query(20, ge=1, le=100, description="페이지 크기"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
     # 내가 작성한 질문 조회 API
     
@@ -325,20 +395,26 @@ async def get_my_questions(page: int = 1, page_size: int = 20):
     - 200: 질문 목록 조회 성공
     - 401: 인증되지 않은 사용자
     """
+    # TODO: 서비스 로직 구현
     pass
 
 
 @router.get(
     "/my/comments",
-    response_model=List[CommentResponse],
+    response_model=list[CommentResponse],
     summary="내가 작성한 답변",
     description="현재 사용자가 작성한 답변 목록을 조회합니다.",
     responses={
         200: {"description": "내 답변 목록 조회 성공"},
-        **AUTH_RESPONSES
+        401: COMMON_401
     }
 )
-async def get_my_comments(page: int = 1, page_size: int = 20):
+async def get_my_comments(
+    page: int = Query(1, ge=1, description="페이지 번호"),
+    page_size: int = Query(20, ge=1, le=100, description="페이지 크기"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
     # 내가 작성한 답변 조회 API
     
@@ -356,4 +432,5 @@ async def get_my_comments(page: int = 1, page_size: int = 20):
     - 관리자 또는 강사만 답변을 작성할 수 있으므로, 
       일반 사용자는 빈 목록이 반환됩니다
     """
+    # TODO: 서비스 로직 구현
     pass

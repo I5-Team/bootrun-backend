@@ -3,19 +3,24 @@
 프로필 조회/수정, 비밀번호 변경, 이메일 변경, 회원 탈퇴 등을 처리합니다.
 """
 
-from fastapi import APIRouter, UploadFile, File, Query, status
+from fastapi import APIRouter, UploadFile, File, Query, status, Depends, Path, Body
+from sqlalchemy.orm import Session
+
 from schemas.user import (
     UserResponse, UserUpdate, PasswordChangeRequest,
     EmailChangeRequest, EmailChangeConfirm,
     ActivityResponse, NotificationResponse
 )
 from schemas.common import MessageResponse, ProfileImageUploadResponse, PaginatedResponse
-from exceptions import (
+from exceptions.responses import (
     USER_UPDATE_RESPONSES,
-    AUTH_RESPONSES,
-    READ_RESPONSES,
-    MODIFY_RESPONSES,
+    COMMON_401,
+    COMMON_404,
+    COMMON_422,
 )
+from core.dependencies import get_current_user, get_current_active_user
+from core.database import get_db
+from models.user import User
 
 router = APIRouter(prefix="/users", tags=["사용자"])
 
@@ -27,10 +32,13 @@ router = APIRouter(prefix="/users", tags=["사용자"])
     description="현재 로그인한 사용자의 프로필 정보를 조회합니다.",
     responses={
         200: {"description": "사용자 정보 조회 성공"},
-        **AUTH_RESPONSES
+        401: COMMON_401
     }
 )
-async def get_my_profile():
+async def get_my_profile(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
     # 내 프로필 조회 API
     
@@ -45,6 +53,7 @@ async def get_my_profile():
     - 계정 정보: 역할, 활성화 상태, 가입일, 마지막 로그인
     - 학습 정보: 총 학습 시간, 수강 기간 만료일
     """
+    # TODO: 서비스 로직 구현
     pass
 
 
@@ -55,10 +64,13 @@ async def get_my_profile():
     description="특정 사용자의 프로필 정보를 조회합니다.",
     responses={
         200: {"description": "사용자 정보 조회 성공"},
-        **READ_RESPONSES
+        404: COMMON_404
     }
 )
-async def get_user_profile(user_id: int):
+async def get_user_profile(
+    user_id: int = Path(..., gt=0, description="사용자 ID"),
+    db: Session = Depends(get_db)
+):
     """
     # 사용자 프로필 조회 API
     
@@ -74,6 +86,7 @@ async def get_user_profile(user_id: int):
     ## 참고
     - 비공개 정보(이메일 등)는 반환되지 않을 수 있습니다
     """
+    # TODO: 서비스 로직 구현
     pass
 
 
@@ -87,7 +100,11 @@ async def get_user_profile(user_id: int):
         **USER_UPDATE_RESPONSES
     }
 )
-async def update_my_profile(data: UserUpdate):
+async def update_my_profile(
+    data: UserUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
     # 프로필 수정 API
     
@@ -110,6 +127,7 @@ async def update_my_profile(data: UserUpdate):
     - 제공된 필드만 업데이트됩니다 (부분 수정 지원)
     - 비밀번호 변경 시 password와 password_confirm 모두 필요
     """
+    # TODO: 서비스 로직 구현
     pass
 
 
@@ -121,7 +139,7 @@ async def update_my_profile(data: UserUpdate):
     description="프로필 이미지를 업로드하고 URL을 반환합니다.",
     responses={
         201: {"description": "이미지 업로드 성공"},
-        **AUTH_RESPONSES,
+        401: COMMON_401,
         413: {
             "description": "파일 크기가 너무 큼",
             "content": {
@@ -135,7 +153,11 @@ async def update_my_profile(data: UserUpdate):
         }
     }
 )
-async def upload_profile_image(file: UploadFile = File(..., description="프로필 이미지 파일")):
+async def upload_profile_image(
+    file: UploadFile = File(..., description="프로필 이미지 파일"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
     # 프로필 이미지 업로드 API
     
@@ -155,6 +177,11 @@ async def upload_profile_image(file: UploadFile = File(..., description="프로�
     - 최대 파일 크기: 5MB
     - 이미지는 자동으로 리사이징됩니다 (최대 800x800)
     """
+    # TODO: 서비스 로직 구현
+    # 1. 파일 형식 검증
+    # 2. 파일 크기 검증
+    # 3. S3 업로드
+    # 4. DB 업데이트
     pass
 
 
@@ -165,10 +192,13 @@ async def upload_profile_image(file: UploadFile = File(..., description="프로�
     description="현재 설정된 프로필 이미지를 삭제하고 기본 이미지로 변경합니다.",
     responses={
         200: {"description": "이미지 삭제 성공"},
-        **AUTH_RESPONSES
+        401: COMMON_401
     }
 )
-async def delete_profile_image():
+async def delete_profile_image(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
     # 프로필 이미지 삭제 API
     
@@ -178,6 +208,9 @@ async def delete_profile_image():
     - 200: 이미지 삭제 성공
     - 401: 인증되지 않은 사용자
     """
+    # TODO: 서비스 로직 구현
+    # 1. S3에서 이미지 삭제
+    # 2. DB에서 profile_image를 NULL로 설정
     pass
 
 
@@ -188,7 +221,7 @@ async def delete_profile_image():
     description="현재 비밀번호를 확인하고 새 비밀번호로 변경합니다.",
     responses={
         200: {"description": "비밀번호 변경 완료"},
-        **AUTH_RESPONSES,
+        401: COMMON_401,
         400: {
             "description": "현재 비밀번호가 일치하지 않음",
             "content": {
@@ -202,7 +235,11 @@ async def delete_profile_image():
         }
     }
 )
-async def change_password(data: PasswordChangeRequest):
+async def change_password(
+    data: PasswordChangeRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
     # 비밀번호 변경 API
     
@@ -222,6 +259,11 @@ async def change_password(data: PasswordChangeRequest):
     ## 참고
     - 변경 후 모든 기기에서 재로그인이 필요합니다
     """
+    # TODO: 서비스 로직 구현
+    # 1. 현재 비밀번호 검증
+    # 2. 새 비밀번호 해시화
+    # 3. DB 업데이트
+    # 4. 모든 세션 무효화
     pass
 
 
@@ -232,10 +274,14 @@ async def change_password(data: PasswordChangeRequest):
     description="새 이메일 주소로 인증 코드를 발송합니다.",
     responses={
         200: {"description": "인증 코드 발송 성공"},
-        **AUTH_RESPONSES
+        401: COMMON_401
     }
 )
-async def request_email_change(data: EmailChangeRequest):
+async def request_email_change(
+    data: EmailChangeRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
     # 이메일 변경 요청 API
     
@@ -250,6 +296,10 @@ async def request_email_change(data: EmailChangeRequest):
     - 409: 이미 사용 중인 이메일
     - 422: 입력값 유효성 검사 실패
     """
+    # TODO: 서비스 로직 구현
+    # 1. 새 이메일 중복 확인
+    # 2. 인증 코드 생성 및 Redis에 저장
+    # 3. 이메일 발송
     pass
 
 
@@ -260,10 +310,14 @@ async def request_email_change(data: EmailChangeRequest):
     description="인증 코드를 확인하고 이메일을 변경합니다.",
     responses={
         200: {"description": "이메일 변경 완료"},
-        **AUTH_RESPONSES
+        401: COMMON_401
     }
 )
-async def confirm_email_change(data: EmailChangeConfirm):
+async def confirm_email_change(
+    data: EmailChangeConfirm,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
     # 이메일 변경 확인 API
     
@@ -279,6 +333,10 @@ async def confirm_email_change(data: EmailChangeConfirm):
     - 401: 인증되지 않은 사용자
     - 422: 입력값 유효성 검사 실패
     """
+    # TODO: 서비스 로직 구현
+    # 1. Redis에서 인증 코드 확인
+    # 2. DB에서 이메일 업데이트
+    # 3. Redis에서 인증 코드 삭제
     pass
 
 
@@ -289,7 +347,7 @@ async def confirm_email_change(data: EmailChangeConfirm):
     description="현재 사용자 계정을 삭제합니다. 이 작업은 되돌릴 수 없습니다.",
     responses={
         200: {"description": "회원 탈퇴 완료"},
-        **AUTH_RESPONSES,
+        401: COMMON_401,
         400: {
             "description": "회원 탈퇴 조건 불충족",
             "content": {
@@ -305,7 +363,9 @@ async def confirm_email_change(data: EmailChangeConfirm):
 )
 async def delete_account(
     password: str = Query(..., description="비밀번호 확인"),
-    confirm_deletion: bool = Query(..., description="탈퇴 확인 (true만 허용)")
+    confirm_deletion: bool = Query(..., description="탈퇴 확인 (true만 허용)"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     """
     # 회원 탈퇴 API
@@ -326,6 +386,11 @@ async def delete_account(
     - 모든 학습 기록과 결제 내역이 삭제됩니다
     - 진행 중인 강의가 있으면 탈퇴할 수 없습니다
     """
+    # TODO: 서비스 로직 구현
+    # 1. 비밀번호 검증
+    # 2. confirm_deletion이 True인지 확인
+    # 3. 진행 중인 강의 확인
+    # 4. 소프트 삭제 (is_active = False, deleted_at 설정)
     pass
 
 
@@ -336,13 +401,15 @@ async def delete_account(
     description="사용자의 최근 활동 내역을 조회합니다.",
     responses={
         200: {"description": "활동 내역 조회 성공"},
-        **AUTH_RESPONSES
+        401: COMMON_401
     }
 )
 async def get_my_activities(
     activity_type: str = Query(None, description="활동 유형 필터 (question/comment/enrollment/payment)"),
     page: int = Query(1, ge=1, description="페이지 번호"),
-    page_size: int = Query(20, ge=1, le=100, description="페이지 크기")
+    page_size: int = Query(20, ge=1, le=100, description="페이지 크기"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     """
     # 활동 내역 조회 API
@@ -365,6 +432,7 @@ async def get_my_activities(
     ## 활동 유형
     - 질문 작성, 답변 작성, 강의 수강 등록, 결제 등
     """
+    # TODO: 서비스 로직 구현
     pass
 
 
@@ -375,13 +443,15 @@ async def get_my_activities(
     description="사용자의 알림 목록을 조회합니다.",
     responses={
         200: {"description": "알림 목록 조회 성공"},
-        **AUTH_RESPONSES
+        401: COMMON_401
     }
 )
 async def get_my_notifications(
     is_read: bool = Query(None, description="읽음 여부 필터"),
     page: int = Query(1, ge=1, description="페이지 번호"),
-    page_size: int = Query(20, ge=1, le=100, description="페이지 크기")
+    page_size: int = Query(20, ge=1, le=100, description="페이지 크기"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     """
     # 알림 목록 조회 API
@@ -403,6 +473,7 @@ async def get_my_notifications(
     ## 알림 유형
     - 수강 기간 만료 임박, 미션 마감 임박, 질문 답변 등록 등
     """
+    # TODO: 서비스 로직 구현
     pass
 
 
@@ -413,11 +484,15 @@ async def get_my_notifications(
     description="특정 알림을 읽음 상태로 변경합니다.",
     responses={
         200: {"description": "알림 읽음 처리 완료"},
-        **AUTH_RESPONSES,
-        **READ_RESPONSES
+        401: COMMON_401,
+        404: COMMON_404
     }
 )
-async def mark_notification_as_read(notification_id: int):
+async def mark_notification_as_read(
+    notification_id: int = Path(..., gt=0, description="알림 ID"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
     # 알림 읽음 처리 API
     
@@ -431,6 +506,9 @@ async def mark_notification_as_read(notification_id: int):
     - 401: 인증되지 않은 사용자
     - 404: 알림을 찾을 수 없음
     """
+    # TODO: 서비스 로직 구현
+    # 1. 알림 조회 및 소유권 확인
+    # 2. is_read = True로 업데이트
     pass
 
 
@@ -441,10 +519,13 @@ async def mark_notification_as_read(notification_id: int):
     description="모든 알림을 읽음 상태로 변경합니다.",
     responses={
         200: {"description": "모든 알림 읽음 처리 완료"},
-        **AUTH_RESPONSES
+        401: COMMON_401
     }
 )
-async def mark_all_notifications_as_read():
+async def mark_all_notifications_as_read(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
     # 모든 알림 읽음 처리 API
     
@@ -454,6 +535,8 @@ async def mark_all_notifications_as_read():
     - 200: 모든 알림 읽음 처리 완료
     - 401: 인증되지 않은 사용자
     """
+    # TODO: 서비스 로직 구현
+    # 사용자의 모든 알림을 is_read = True로 업데이트
     pass
 
 
@@ -488,7 +571,11 @@ async def mark_all_notifications_as_read():
         }
     }
 )
-async def restore_account(email: str, password: str):
+async def restore_account(
+    email: str = Body(..., description="이메일 주소"),
+    password: str = Body(..., description="비밀번호"),
+    db: Session = Depends(get_db)
+):
     """
     # 계정 복구 API
     
@@ -507,4 +594,9 @@ async def restore_account(email: str, password: str):
     - 탈퇴 후 30일 이내만 복구 가능합니다
     - 복구 후 모든 데이터가 복원됩니다
     """
+    # TODO: 서비스 로직 구현
+    # 1. 이메일로 사용자 조회 (is_active = False인 사용자)
+    # 2. 비밀번호 검증
+    # 3. deleted_at 확인 (30일 이내인지)
+    # 4. is_active = True로 업데이트, deleted_at = None
     pass

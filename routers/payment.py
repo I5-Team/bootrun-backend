@@ -3,8 +3,9 @@
 결제 생성, 확인, 환불 요청 등을 처리합니다.
 """
 
-from fastapi import APIRouter, Depends, status
-from typing import List
+from fastapi import APIRouter, Depends, status, Path
+from sqlalchemy.orm import Session
+
 from schemas.payment import (
     # Payment schemas
     PaymentCreate, PaymentResponse, PaymentDetailResponse,
@@ -13,13 +14,18 @@ from schemas.payment import (
     RefundCreate, RefundResponse, RefundCheckResponse
 )
 from schemas.common import MessageResponse
-from exceptions import (
+from exceptions.responses import (
     PAYMENT_CREATE_RESPONSES,
     PAYMENT_CONFIRM_RESPONSES,
     REFUND_CREATE_RESPONSES,
-    AUTH_RESPONSES,
-    READ_RESPONSES,
+    COMMON_401,
+    COMMON_404,
+    COMMON_403,
+    COMMON_400,
 )
+from core.dependencies import get_current_user, get_current_active_user
+from core.database import get_db
+from models.user import User
 
 router = APIRouter(prefix="/payments", tags=["결제 및 환불"])
 
@@ -37,7 +43,11 @@ router = APIRouter(prefix="/payments", tags=["결제 및 환불"])
         **PAYMENT_CREATE_RESPONSES
     }
 )
-async def create_payment(data: PaymentCreate):
+async def create_payment(
+    data: PaymentCreate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
     """
     # 결제 생성 API
     
@@ -68,6 +78,7 @@ async def create_payment(data: PaymentCreate):
     - 실제 결제는 PG사에서 처리됩니다
     - 결제 완료 후 confirm API를 호출해야 합니다
     """
+    # TODO: 서비스 로직 구현
     pass
 
 
@@ -78,10 +89,14 @@ async def create_payment(data: PaymentCreate):
     description="사용자의 결제 내역을 조회합니다.",
     responses={
         200: {"description": "결제 목록 조회 성공"},
-        **AUTH_RESPONSES
+        401: COMMON_401
     }
 )
-async def get_payments(params: PaymentListParams = Depends()):
+async def get_payments(
+    params: PaymentListParams = Depends(),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
     # 결제 목록 조회 API
     
@@ -104,6 +119,7 @@ async def get_payments(params: PaymentListParams = Depends()):
     - 결제 내역 목록
     - 각 결제의 상태, 금액, 날짜 등
     """
+    # TODO: 서비스 로직 구현
     pass
 
 
@@ -114,11 +130,16 @@ async def get_payments(params: PaymentListParams = Depends()):
     description="특정 결제의 상세 정보를 조회합니다.",
     responses={
         200: {"description": "결제 상세 조회 성공"},
-        **AUTH_RESPONSES,
-        **READ_RESPONSES
+        401: COMMON_401,
+        403: COMMON_403,
+        404: COMMON_404
     }
 )
-async def get_payment(payment_id: int):
+async def get_payment(
+    payment_id: int = Path(..., gt=0, description="결제 ID"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
     # 결제 상세 조회 API
     
@@ -139,6 +160,7 @@ async def get_payment(payment_id: int):
     - 환불 가능 여부 및 사유
     - 영수증 URL
     """
+    # TODO: 서비스 로직 구현
     pass
 
 
@@ -152,7 +174,12 @@ async def get_payment(payment_id: int):
         **PAYMENT_CONFIRM_RESPONSES
     }
 )
-async def confirm_payment(payment_id: int, data: PaymentConfirmRequest):
+async def confirm_payment(
+    payment_id: int = Path(..., gt=0, description="결제 ID"),
+    data: PaymentConfirmRequest = ...,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
     # 결제 확인 API
     
@@ -180,6 +207,7 @@ async def confirm_payment(payment_id: int, data: PaymentConfirmRequest):
     - 이 API는 PG사 결제 완료 후 콜백에서 호출됩니다
     - 결제가 확인되면 자동으로 수강 등록이 생성됩니다
     """
+    # TODO: 서비스 로직 구현
     pass
 
 
@@ -190,22 +218,16 @@ async def confirm_payment(payment_id: int, data: PaymentConfirmRequest):
     description="결제를 취소합니다. 완료되지 않은 결제만 취소 가능합니다.",
     responses={
         200: {"description": "결제 취소 완료"},
-        **AUTH_RESPONSES,
-        400: {
-            "description": "결제 취소 불가",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "error": "CANCEL_NOT_ALLOWED",
-                        "detail": "이미 완료된 결제는 취소할 수 없습니다"
-                    }
-                }
-            }
-        },
-        **READ_RESPONSES
+        400: COMMON_400,
+        401: COMMON_401,
+        404: COMMON_404
     }
 )
-async def cancel_payment(payment_id: int):
+async def cancel_payment(
+    payment_id: int = Path(..., gt=0, description="결제 ID"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
     # 결제 취소 API
     
@@ -224,6 +246,7 @@ async def cancel_payment(payment_id: int):
     - pending 상태의 결제만 취소 가능합니다
     - 완료된 결제는 환불 API를 사용해야 합니다
     """
+    # TODO: 서비스 로직 구현
     pass
 
 
@@ -234,11 +257,15 @@ async def cancel_payment(payment_id: int):
     description="결제의 환불 가능 여부와 사유를 확인합니다.",
     responses={
         200: {"description": "환불 가능 여부 확인 완료"},
-        **AUTH_RESPONSES,
-        **READ_RESPONSES
+        401: COMMON_401,
+        404: COMMON_404
     }
 )
-async def check_refund_eligibility(payment_id: int):
+async def check_refund_eligibility(
+    payment_id: int = Path(..., gt=0, description="결제 ID"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
     # 환불 가능 여부 확인 API
     
@@ -262,6 +289,7 @@ async def check_refund_eligibility(payment_id: int):
     - 강의 진도율 10% 미만
     - 결제 상태가 'completed'
     """
+    # TODO: 서비스 로직 구현
     pass
 
 
@@ -278,7 +306,11 @@ async def check_refund_eligibility(payment_id: int):
         **REFUND_CREATE_RESPONSES
     }
 )
-async def create_refund(data: RefundCreate):
+async def create_refund(
+    data: RefundCreate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
     """
     # 환불 요청 API
     
@@ -304,6 +336,7 @@ async def create_refund(data: RefundCreate):
     3. 관리자 승인 대기
     4. 승인 시 자동 환불 처리
     """
+    # TODO: 서비스 로직 구현
     pass
 
 
@@ -314,10 +347,13 @@ async def create_refund(data: RefundCreate):
     description="사용자의 환불 요청 내역을 조회합니다.",
     responses={
         200: {"description": "환불 목록 조회 성공"},
-        **AUTH_RESPONSES
+        401: COMMON_401
     }
 )
-async def get_my_refunds():
+async def get_my_refunds(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
     # 내 환불 요청 목록 API
     
@@ -332,6 +368,7 @@ async def get_my_refunds():
     - 각 요청의 상태 (pending/approved/rejected)
     - 환불 사유 및 관리자 메모
     """
+    # TODO: 서비스 로직 구현
     pass
 
 
@@ -342,11 +379,16 @@ async def get_my_refunds():
     description="특정 환불 요청의 상세 정보를 조회합니다.",
     responses={
         200: {"description": "환불 상세 조회 성공"},
-        **AUTH_RESPONSES,
-        **READ_RESPONSES
+        401: COMMON_401,
+        403: COMMON_403,
+        404: COMMON_404
     }
 )
-async def get_refund(refund_id: int):
+async def get_refund(
+    refund_id: int = Path(..., gt=0, description="환불 ID"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
     # 환불 상세 조회 API
     
@@ -367,6 +409,7 @@ async def get_refund(refund_id: int):
     - 환불 상태 및 처리 일시
     - 관리자 메모
     """
+    # TODO: 서비스 로직 구현
     pass
 
 
@@ -377,22 +420,16 @@ async def get_refund(refund_id: int):
     description="대기 중인 환불 요청을 취소합니다.",
     responses={
         200: {"description": "환불 요청 취소 완료"},
-        **AUTH_RESPONSES,
-        400: {
-            "description": "환불 요청 취소 불가",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "error": "CANCEL_NOT_ALLOWED",
-                        "detail": "이미 처리된 환불 요청은 취소할 수 없습니다"
-                    }
-                }
-            }
-        },
-        **READ_RESPONSES
+        400: COMMON_400,
+        401: COMMON_401,
+        404: COMMON_404
     }
 )
-async def cancel_refund(refund_id: int):
+async def cancel_refund(
+    refund_id: int = Path(..., gt=0, description="환불 ID"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
     # 환불 요청 취소 API
     
@@ -411,4 +448,5 @@ async def cancel_refund(refund_id: int):
     - pending 상태의 환불 요청만 취소 가능합니다
     - 승인 또는 거절된 환불은 취소할 수 없습니다
     """
+    # TODO: 서비스 로직 구현
     pass
