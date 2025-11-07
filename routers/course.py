@@ -16,6 +16,9 @@ from exceptions import (
     READ_RESPONSES,
     COURSE_LIST_RESPONSES,
     COURSE_DETAIL_RESPONSES,
+    CHAPTER_DETAIL_RESPONSES,      # 추가
+    LECTURE_LIST_RESPONSES,          # 추가
+    LECTURE_DETAIL_RESPONSES,        # 추가
 )
 from dependencies import get_current_user_optional, get_current_user
 from models.user import User
@@ -152,7 +155,7 @@ async def get_course(
     description="특정 강의의 전체 챕터 목록을 조회합니다.",
     responses={
         200: {"description": "챕터 목록 조회 성공"},
-        **COURSE_DETAIL_RESPONSES
+        **CHAPTER_DETAIL_RESPONSES
     }
 )
 async def get_chapters(
@@ -249,7 +252,7 @@ async def get_chapter(
     description="특정 챕터의 강의 영상 목록을 조회합니다.",
     responses={
         200: {"description": "강의 영상 목록 조회 성공"},
-        **COURSE_DETAIL_RESPONSES,
+        **LECTURE_LIST_RESPONSES,
         404: {
             "description": "강의 또는 챕터를 찾을 수 없음",
             "content": {
@@ -309,7 +312,7 @@ async def get_lectures(
     description="특정 강의 영상의 상세 정보를 조회합니다.",
     responses={
         200: {"description": "강의 영상 상세 조회 성공"},
-        **COURSE_DETAIL_RESPONSES,
+        **LECTURE_DETAIL_RESPONSES,
         403: {
             "description": "수강 권한 없음",
             "content": {

@@ -14,6 +14,7 @@ from schemas.enrollment import (
 from exceptions import (
     ENROLLMENT_CREATE_RESPONSES,
     ENROLLMENT_ACCESS_RESPONSES,
+    ENROLLMENT_CANCEL_RESPONSES,
     PROGRESS_UPDATE_RESPONSES,
     AUTH_RESPONSES,
     READ_RESPONSES,
@@ -101,7 +102,7 @@ async def get_enrollment(
     description="수강 등록을 취소합니다. 환불 가능 기간 내에만 취소할 수 있습니다.",
     responses={
         200: {"description": "수강 취소 성공"},
-        **AUTH_RESPONSES,
+        **ENROLLMENT_CANCEL_RESPONSES,
         400: {
             "description": "수강 취소 불가",
             "content": {
