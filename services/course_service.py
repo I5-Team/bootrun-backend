@@ -48,7 +48,7 @@ class CourseService:
                 Enrollment.course_id,
                 func.count(Enrollment.id).label('enrollment_count')
             )
-            .where(Enrollment.is_active == True)
+            .where(Enrollment.is_active)
             .group_by(Enrollment.course_id)
             .subquery()
         )
