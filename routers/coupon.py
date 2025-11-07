@@ -8,12 +8,12 @@ from schemas.payment import (
     CouponResponse, CouponListParams,
     CouponValidationRequest, CouponValidationResponse
 )
-from exceptions import (
+from exceptions.responses import (
     COUPON_VALIDATE_RESPONSES,
     AUTH_RESPONSES,
     READ_RESPONSES,
 )
-from dependencies import get_current_user
+from core.dependencies import get_current_user
 from models.user import User
 
 router = APIRouter(prefix="/coupons", tags=["쿠폰"])

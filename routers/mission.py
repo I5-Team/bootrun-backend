@@ -10,13 +10,13 @@ from schemas.mission import (
     MissionSubmissionResponse, MissionSubmissionHistory,
     UserMissionProgress, MissionStats
 )
-from exceptions import (
+from exceptions.responses import (
     MISSION_SUBMIT_RESPONSES,
     AUTH_RESPONSES,
     READ_RESPONSES,
     ENROLLMENT_ACCESS_RESPONSES,
 )
-from dependencies import get_current_user
+from core.dependencies import get_current_user
 from models.user import User
 
 router = APIRouter(prefix="/missions", tags=["미션"])

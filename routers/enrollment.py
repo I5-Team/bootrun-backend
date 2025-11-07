@@ -11,7 +11,7 @@ from schemas.enrollment import (
     ProgressCreate, ProgressUpdate, ProgressResponse, 
     CourseProgressDetail, StudentDashboard, LearningStats
 )
-from exceptions import (
+from exceptions.responses import (
     ENROLLMENT_CREATE_RESPONSES,
     ENROLLMENT_ACCESS_RESPONSES,
     ENROLLMENT_CANCEL_RESPONSES,
@@ -20,7 +20,7 @@ from exceptions import (
     READ_RESPONSES,
     MODIFY_RESPONSES,
 )
-from dependencies import get_current_user
+from core.dependencies import get_current_user
 from models.user import User
 
 router = APIRouter(prefix="/enrollments", tags=["수강 등록 및 학습 진행"])

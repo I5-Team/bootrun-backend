@@ -12,15 +12,15 @@ from schemas.course import (
     ChapterWithLectures,
     LectureResponse, CourseMetadataResponse
 )
-from exceptions import (
+from exceptions.responses import (
     READ_RESPONSES,
     COURSE_LIST_RESPONSES,
     COURSE_DETAIL_RESPONSES,
-    CHAPTER_DETAIL_RESPONSES,      # 추가
-    LECTURE_LIST_RESPONSES,          # 추가
-    LECTURE_DETAIL_RESPONSES,        # 추가
+    CHAPTER_DETAIL_RESPONSES,      
+    LECTURE_LIST_RESPONSES,          
+    LECTURE_DETAIL_RESPONSES,        
 )
-from dependencies import get_current_user_optional, get_current_user
+from core.dependencies import get_current_user_optional, get_current_user
 from models.user import User
 
 router = APIRouter(prefix="/courses", tags=["강의"])

@@ -10,14 +10,14 @@ from schemas.certificate import (
     CertificateGenerationResponse, CertificateVerifyRequest,
     CertificateVerifyResponse, CompletionCheckRequest, CompletionCheckResponse
 )
-from exceptions import (
+from exceptions.responses import (
     CERTIFICATE_ISSUE_RESPONSES,
     CERTIFICATE_VERIFY_RESPONSES,
     CERTIFICATE_GENERATE_RESPONSES,
     AUTH_RESPONSES,
     READ_RESPONSES,
 )
-from dependencies import get_current_user, get_current_admin
+from core.dependencies import get_current_user, get_current_admin
 from models.user import User
 
 router = APIRouter(prefix="/certificates", tags=["수료증"])

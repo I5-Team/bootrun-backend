@@ -10,14 +10,14 @@ from schemas.user import (
     SocialLoginRequest, PasswordResetRequest, PasswordResetConfirm
 )
 from schemas.common import MessageResponse
-from exceptions import (
+from exceptions.responses import (
     REGISTER_RESPONSES,
     LOGIN_RESPONSES,
     EMAIL_VERIFICATION_RESPONSES,
     PASSWORD_RESET_RESPONSES,
     AUTH_RESPONSES,
 )
-from dependencies import get_current_user
+from core.dependencies import get_current_user
 from models.user import User
 
 router = APIRouter(prefix="/auth", tags=["인증"])
