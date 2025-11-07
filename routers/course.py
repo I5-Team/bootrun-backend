@@ -29,10 +29,9 @@ router = APIRouter(prefix="/courses", tags=["강의"])
     summary="강의 필터링 메타데이터 조회",
     responses={200: {"description": "성공"}, **COURSE_LIST_RESPONSES}
 )
-async def get_course_metadata(db: AsyncSession = Depends(get_db)):
+async def get_course_metadata():
     """강의 메타데이터 조회 (카테고리, 난이도, 가격 유형 등)"""
-    service = CourseService(db)
-    return await service.get_course_metadata()
+    return CourseService.get_course_metadata()
 
 
 @router.get(
