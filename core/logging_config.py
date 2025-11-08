@@ -1,10 +1,13 @@
-import os
 import sys
 import logging
+import re
+import json
+import copy
+import asyncio
+import functools
 from logging.handlers import RotatingFileHandler, TimedRotatingFileHandler
 from pathlib import Path
 from typing import Optional, Any, Union, Dict, List
-from datetime import datetime
 
 from core.config import settings
 
@@ -26,7 +29,20 @@ JSON_FORMAT = (
 
 DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 
-
+class JsonFormatter(logging.Formatter):
+    """JSON 형식으로 로그를 출력하는 포매터"""
+    
+    def format(self, record: logging.LogRecord) -> str:
+        log_data = {
+            'timestamp': self.formatTime(record, self.datefmt),
+            'level': record.levelname,
+            'logger': record.name,
+            'function': record.funcName,
+            'line': record.lineno,
+            'message': record.getMessage()
+        }
+        return json.dumps(log_data, ensure_ascii=False)
+    
 LOG_LEVEL_MAP = {
     'DEBUG': logging.DEBUG,
     'INFO': logging.INFO,
@@ -57,27 +73,8 @@ SENSITIVE_PATTERNS = [
 
 class SensitiveDataFilter(logging.Filter):
 
-    def filter(self, record: logging.LogRecord) -> bool:
-
-        if isinstance(record.msg, str):
-            record.msg = self._mask_sensitive_data(record.msg)
-        
-        if record.args:
-            masked_args = []
-            for arg in record.args:
-                if isinstance(arg, str):
-                    masked_args.append(self._mask_sensitive_data(arg))
-                elif isinstance(arg, dict):
-                    masked_args.append(self._mask_dict(arg))
-                else:
-                    masked_args.append(arg)
-            record.args = tuple(masked_args)
-        
-        return True
-    
-    def _mask_sensitive_data(self, text: str) -> str:
-        import re
-        
+    @staticmethod
+    def _mask_sensitive_data(text: str) -> str:
         masked_text = text
         
         for pattern, replacement in SENSITIVE_PATTERNS:
@@ -90,25 +87,45 @@ class SensitiveDataFilter(logging.Filter):
         
         return masked_text
     
-    def _mask_dict(self, data: dict) -> dict:
-        masked = data.copy()
+    @staticmethod
+    def _mask_dict(data: dict) -> dict:
+        masked = copy.deepcopy(data)
         
         for key, value in masked.items():
             if key.lower() in SENSITIVE_FIELD_NAMES:
                 masked[key] = '***MASKED***'
             elif isinstance(value, dict):
-                masked[key] = self._mask_dict(value)
+                masked[key] = SensitiveDataFilter._mask_dict(value)
             elif isinstance(value, str):
-                masked[key] = self._mask_sensitive_data(value)
+                masked[key] = SensitiveDataFilter._mask_sensitive_data(value)
         
         return masked
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        try:
+            if record.args:
+                formatted_msg = record.getMessage()
+                masked_msg = self._mask_sensitive_data(formatted_msg)
+                record.msg = masked_msg
+                record.args = ()
+            else:
+                if isinstance(record.msg, str):
+                    record.msg = self._mask_sensitive_data(record.msg)
+        except (TypeError, ValueError):
+            if isinstance(record.msg, str):
+                record.msg = self._mask_sensitive_data(record.msg)
+        
+        return True
+
+
+_sensitive_filter = SensitiveDataFilter()
 
 
 def mask_sensitive_info(data: Union[Dict, str, List, Any]) -> Union[Dict, str, List, Any]:
     if isinstance(data, dict):
-        return SensitiveDataFilter()._mask_dict(data)
+        return SensitiveDataFilter._mask_dict(data)
     elif isinstance(data, str):
-        return SensitiveDataFilter()._mask_sensitive_data(data)
+        return SensitiveDataFilter._mask_sensitive_data(data)
     elif isinstance(data, list):
         return [mask_sensitive_info(item) for item in data]
     else:
@@ -122,8 +139,7 @@ def create_log_directory() -> Path:
 
 
 def create_console_handler(
-    log_level: int = logging.INFO,
-    use_colors: bool = True
+    log_level: int = logging.INFO
 ) -> logging.StreamHandler:
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(log_level)
@@ -134,7 +150,7 @@ def create_console_handler(
     )
     console_handler.setFormatter(formatter)
     
-    console_handler.addFilter(SensitiveDataFilter())
+    console_handler.addFilter(_sensitive_filter)
     
     return console_handler
 
@@ -159,7 +175,7 @@ def create_file_handler(
     )
     file_handler.setFormatter(formatter)
     
-    file_handler.addFilter(SensitiveDataFilter())
+    file_handler.addFilter(_sensitive_filter)
     
     return file_handler
 
@@ -188,7 +204,7 @@ def create_timed_file_handler(
     
     file_handler.suffix = '%Y-%m-%d'
     
-    file_handler.addFilter(SensitiveDataFilter())
+    file_handler.addFilter(_sensitive_filter)
     
     return file_handler
 
@@ -213,7 +229,7 @@ def create_error_file_handler(
     )
     error_handler.setFormatter(formatter)
     
-    error_handler.addFilter(SensitiveDataFilter())
+    error_handler.addFilter(_sensitive_filter)
     
     return error_handler
 
@@ -240,10 +256,7 @@ def setup_logger(
         create_log_directory()
     
     if use_console_logging:
-        console_handler = create_console_handler(
-            log_level=level,
-            use_colors=(settings.env == 'development')
-        )
+        console_handler = create_console_handler(log_level=level)
         logger.addHandler(console_handler)
     
     if use_file_logging:
@@ -364,14 +377,16 @@ def get_logger(name: str) -> logging.Logger:
 
 
 def log_function_call(func):
-    import functools
-    
     @functools.wraps(func)
     async def async_wrapper(*args, **kwargs):
         logger = get_logger(func.__module__)
+        
+        masked_args = mask_sensitive_info(list(args))
+        masked_kwargs = mask_sensitive_info(kwargs)
+        
         logger.debug(
             f'함수 호출: {func.__name__}() | '
-            f'args={args}, kwargs={kwargs}'
+            f'args={masked_args}, kwargs={masked_kwargs}'
         )
         try:
             result = await func(*args, **kwargs)
@@ -387,9 +402,13 @@ def log_function_call(func):
     @functools.wraps(func)
     def sync_wrapper(*args, **kwargs):
         logger = get_logger(func.__module__)
+        
+        masked_args = mask_sensitive_info(list(args))
+        masked_kwargs = mask_sensitive_info(kwargs)
+        
         logger.debug(
             f'함수 호출: {func.__name__}() | '
-            f'args={args}, kwargs={kwargs}'
+            f'args={masked_args}, kwargs={masked_kwargs}'
         )
         try:
             result = func(*args, **kwargs)
@@ -402,7 +421,6 @@ def log_function_call(func):
             )
             raise
     
-    import asyncio
     if asyncio.iscoroutinefunction(func):
         return async_wrapper
     else:
