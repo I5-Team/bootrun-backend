@@ -1,14 +1,21 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import logging
+import os
+from contextlib import asynccontextmanager
 
 # 로거 설정
 from core.logging_config import configure_logging
 
 logger = configure_logging()
 
-# 환경 변수 (실제로는 .env 파일이나 환경 변수에서 가져와야 함)
-IS_DEBUG = True  # 개발 환경 여부
+# 환경 변수에서 설정 읽기
+IS_DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
+
+# CORS 허용 origin 설정 (환경 변수에서 읽기)
+ALLOWED_ORIGINS = os.getenv(
+    'ALLOWED_ORIGINS',
+    'http://localhost:3000,http://localhost:5173'  # 개발 환경 기본값
+).split(',')
 
 # ============= FastAPI 앱 생성 =============
 
@@ -76,6 +83,30 @@ tags_metadata = [
     },
 ]
 
+# ============= Lifespan 이벤트 =============
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    애플리케이션 시작/종료 시 실행되는 이벤트
+    """
+    # 시작 시
+    logger.info("=" * 60)
+    logger.info("🚀 BootRun API 서버 시작")
+    logger.info("=" * 60)
+    logger.info(f"📝 환경: {'개발' if IS_DEBUG else '운영'}")
+    logger.info(f"📚 문서: http://localhost:8000/docs")
+    logger.info(f"📖 ReDoc: http://localhost:8000/redoc")
+    logger.info("=" * 60)
+    
+    yield
+    
+    # 종료 시
+    logger.info("=" * 60)
+    logger.info("🛑 BootRun API 서버 종료")
+    logger.info("=" * 60)
+
+
 # FastAPI 앱 인스턴스 생성
 app = FastAPI(
     title="BootRun API",
@@ -133,6 +164,7 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
     openapi_url="/openapi.json",
+    lifespan=lifespan,  
     contact={
         "name": "BootRun 개발팀",
         "email": "support@bootrun.com",
@@ -145,19 +177,14 @@ app = FastAPI(
 
 # ============= CORS 미들웨어 설정 =============
 
-# CORS 설정 (운영 환경에서는 특정 도메인만 허용해야 함)
+# CORS 설정
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",  
-        "http://localhost:5173",  
-        "https://bootrun.com",
-    ],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "Accept", "Origin", "X-Requested-With"],
 )
-
 
 # ============= 예외 핸들러 등록 =============
 
@@ -251,31 +278,6 @@ async def health_check():
         "version": "1.0.0",
     }
 
-
-# ============= 시작 및 종료 이벤트 =============
-
-@app.on_event("startup")
-async def startup_event():
-    """
-    애플리케이션 시작 시 실행되는 이벤트
-    """
-    logger.info("=" * 60)
-    logger.info("🚀 BootRun API 서버 시작")
-    logger.info("=" * 60)
-    logger.info(f"📝 환경: {'개발' if IS_DEBUG else '운영'}")
-    logger.info(f"📚 문서: http://localhost:8000/docs")
-    logger.info(f"📖 ReDoc: http://localhost:8000/redoc")
-    logger.info("=" * 60)
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """
-    애플리케이션 종료 시 실행되는 이벤트
-    """
-    logger.info("=" * 60)
-    logger.info("🛑 BootRun API 서버 종료")
-    logger.info("=" * 60)
 
 
 # ============= 메인 실행 =============
