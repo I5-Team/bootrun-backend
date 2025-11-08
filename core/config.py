@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings
+from pydantic import Field
 
 
 class Settings(BaseSettings):
@@ -37,7 +38,7 @@ class Settings(BaseSettings):
         )
     
     @property
-    def sync_database_url(self) -> str: 
+    def sync_database_url(self) -> str:
         """동기 PostgreSQL URL (psycopg2) - Alembic용"""
         return (
             f"postgresql+psycopg2://{self.database_user}:"
@@ -72,8 +73,8 @@ class Settings(BaseSettings):
     jwt_email_verify_token_expire_minutes: int = 1440
     jwt_reset_password_token_expire_minutes: int = 30
 
-    # Fernet 암호화 키
-    fernet_key: str = "your_fernet_key_here_32_bytes_base64_encoded"
+    # Fernet 암호화 키 (환경변수 필수)
+    fernet_key: str = Field(...)
     # =====================================================
     # OpenAI / LangChain 챗봇 설정
     # =====================================================
@@ -144,7 +145,6 @@ class Settings(BaseSettings):
         """Pydantic 설정"""
         env_file = ".env"
         case_sensitive = False
-        extra = "ignore"
 
 
 # 전역 설정 인스턴스 생성
