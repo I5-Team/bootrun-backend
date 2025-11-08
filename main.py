@@ -1,15 +1,11 @@
-"""
-BootRun - 온라인 교육 플랫폼 메인 애플리케이션
-"""
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 
 # 로거 설정
-from core.logging import setup_logging
+from core.logging_config import configure_logging
 
-logger = setup_logging()
+logger = configure_logging()
 
 # 환경 변수 (실제로는 .env 파일이나 환경 변수에서 가져와야 함)
 IS_DEBUG = True  # 개발 환경 여부
@@ -293,4 +289,5 @@ if __name__ == "__main__":
         port=8000,
         reload=IS_DEBUG,  # 개발 환경에서만 자동 재시작
         log_level="info",
+        log_config=None
     )
