@@ -36,6 +36,15 @@ class Settings(BaseSettings):
             f"{self.database_password}@{self.database_host}:"
             f"{self.database_port}/{self.database_name}"
         )
+    
+    @property
+    def sync_database_url(self) -> str:
+        """동기 PostgreSQL URL (psycopg2) - Alembic용"""
+        return (
+            f"postgresql+psycopg2://{self.database_user}:"
+            f"{self.database_password}@{self.database_host}:"
+            f"{self.database_port}/{self.database_name}"
+        )
 
     # =====================================================
     # Redis 캐시
@@ -61,24 +70,11 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 60
     jwt_refresh_token_expire_days: int = 7
+    jwt_email_verify_token_expire_minutes: int = 1440
+    jwt_reset_password_token_expire_minutes: int = 30
 
-    # --- [JWT 추가 토큰 만료 시간 설정] ---
-    # 환경 변수에서 값을 찾고, 없다면 default 값을 사용
-    jwt_email_verify_token_expire_minutes: int = Field(
-        default=1440,
-        env='JWT_EMAIL_VERIFY_TOKEN_EXPIRE_MINUTES'
-    )
-    jwt_reset_password_token_expire_minutes: int = Field(
-        default=30,
-        env='JWT_RESET_PASSWORD_TOKEN_EXPIRE_MINUTES'
-    )
-
-    # --- [Fernet 암호화 키 추가] ---
-    # 반드시 .env 파일에 존재해야 하는 값
-    fernet_key: str = Field(
-        ...,  # 값이 반드시 설정되어야 함을 나타냄
-        env='FERNET_KEY'
-    )
+    # Fernet 암호화 키 (환경변수 필수)
+    fernet_key: str = Field(...)
     # =====================================================
     # OpenAI / LangChain 챗봇 설정
     # =====================================================
