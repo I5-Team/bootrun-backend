@@ -1,11 +1,273 @@
-bootrun/ # 가상환경 제외
+# =====================================================
+# Python
+# =====================================================
 __pycache__/
-.env
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+.Python
 
+# Virtual environments
 venv/
+env/
+ENV/
+bootrun/
+.venv
+
+# Python build artifacts
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+nosetests.xml
+test-results/
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+
+# =====================================================
+# Environment Variables & Secrets (CRITICAL!)
+# =====================================================
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+.env.test
+
+# AWS Credentials
+.aws/
+*.pem
+*.ppk
+credentials
+
+# SSH Keys
+*.key
+id_rsa
+id_rsa.pub
+*.pub
+
+# API Keys & Secrets
+secrets/
+.secrets
+*.secret
+
+
+# =====================================================
+# IDEs & Editors
+# =====================================================
 .vscode/
 .idea/
-.DS_Store
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# JetBrains
+.idea/
+*.iml
+*.iws
+.idea_modules/
+
+
+# =====================================================
+# Docker
+# =====================================================
+# Docker volumes (contains persistent data)
+postgres_data/
+redis_data/
+docker-data/
+
+# Docker Compose override files (local configurations)
+docker-compose.override.yml
+
+# Docker environment files
+.dockerenv
+
+
+# =====================================================
+# Databases & Backups
+# =====================================================
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Database dumps & backups
+backups/
+*.sql
+*.dump
+*.bak
+*.backup
+
+# PostgreSQL
+postgresql/
+
+
+# =====================================================
+# Logs
+# =====================================================
 logs/
 *.log
+*.log.*
+log/
+*.out
+
+
+# =====================================================
+# OS Specific
+# =====================================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+.Trash-*
+
+
+# =====================================================
+# Alembic (Keep migrations, ignore local config)
+# =====================================================
+alembic.ini.local
+
+
+# =====================================================
+# Temporary Files
+# =====================================================
+tmp/
+temp/
+*.tmp
+*.temp
+.cache/
+
+
+# =====================================================
+# Media & Uploads (if stored locally)
+# =====================================================
+media/
+uploads/
+user-uploads/
+*.mp4
+*.avi
+*.mov
+*.mkv
+
+
+# =====================================================
+# Cloud Provider Specific
+# =====================================================
+# AWS
+.aws-sam/
+samconfig.toml
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# Serverless
+.serverless/
+
+
+# =====================================================
+# CI/CD
+# =====================================================
+.github/workflows/*.local.yml
+
+
+# =====================================================
+# Development Tools
+# =====================================================
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# poetry
+poetry.lock
+
+# celery
+celerybeat-schedule
+celerybeat.pid
+
+
+# =====================================================
+# Documentation (auto-generated)
+# =====================================================
+site/
+.pdm.toml
+
+
+# =====================================================
+# Custom - Project Specific
+# =====================================================
+# Local development overrides
+local_settings.py
+
+# SSL Certificates
+*.crt
+*.cer
+*.p12
+*.pfx
+ssl/
+certs/
+
+# Keep important files (exceptions to ignore rules)
+# If you need to track specific files, use:
+# !path/to/important/file
