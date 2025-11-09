@@ -12,18 +12,17 @@ if config.config_file_name is not None:
 project_root = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(project_root))
 
-from core.config import settings
-from models.base import Base
-from models.user import User
-from models.course import Course, Chapter, Lecture
-from models.mission import Mission, MissionSubmission
-from models.progress import Enrollment, Progress
-from models.payment import Payment, Coupon, Refund
-from models.certificate import Certificate
-from models.question import CourseQuestion, Comment
+from app.core.config import settings
+from app.models.base import Base
+from app.models.user import User
+from app.models.course import Course, Chapter, Lecture
+from app.models.mission import Mission, MissionSubmission
+from app.models.progress import Enrollment, Progress
+from app.models.payment import Payment, Coupon, Refund
+from app.models.certificate import Certificate
+from app.models.question import CourseQuestion, Comment
 
 target_metadata = Base.metadata
-
 
 def run_migrations_offline() -> None:
     url = settings.sync_database_url
@@ -38,7 +37,6 @@ def run_migrations_offline() -> None:
 
     with context.begin_transaction():
         context.run_migrations()
-
 
 def run_migrations_online() -> None:
     configuration = config.get_section(config.config_ini_section)
@@ -60,7 +58,6 @@ def run_migrations_online() -> None:
 
         with context.begin_transaction():
             context.run_migrations()
-
 
 if context.is_offline_mode():
     run_migrations_offline()

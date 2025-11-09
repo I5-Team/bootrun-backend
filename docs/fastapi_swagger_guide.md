@@ -952,7 +952,7 @@ from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from exceptions import (
+from app.exceptions.responses import (
     CustomException,
     custom_exception_handler,
     http_exception_handler,
