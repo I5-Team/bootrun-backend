@@ -5,8 +5,10 @@
 """
 
 from datetime import datetime, timezone, date
-from typing import Any, Dict, List, Optional, TypeVar
+from typing import Any, Dict, List, Optional, TypeVar, Union, Type
 from math import ceil
+from enum import Enum
+from urllib.parse import urlencode
 import re
 import pytz
 
@@ -14,7 +16,6 @@ from app.utils.constants import (
     DEFAULT_PAGE,
     DEFAULT_PAGE_SIZE,
     TIMEZONE_KST,
-    TIMEZONE_UTC,
     PASSWORD_PATTERN,
     PATTERN_EMAIL,
 )
@@ -53,6 +54,11 @@ def convert_to_utc(dt: datetime) -> datetime:
 
 def calculate_age(birth_date: date) -> int:
     today = date.today()
+    
+    # 미래 날짜인 경우 0 반환
+    if birth_date > today:
+        return 0
+    
     age = today.year - birth_date.year
 
     # 생일이 지나지 않았으면 1살 빼기
@@ -67,10 +73,22 @@ def is_within_date_range(
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None
 ) -> bool:
-    if start_date and target_date < start_date:
-        return False
-    if end_date and target_date > end_date:
-        return False
+    # 타임존 일관성 확보: 모두 UTC로 변환
+    if target_date.tzinfo is None:
+        target_date = target_date.replace(tzinfo=timezone.utc)
+    
+    if start_date:
+        if start_date.tzinfo is None:
+            start_date = start_date.replace(tzinfo=timezone.utc)
+        if target_date < start_date:
+            return False
+    
+    if end_date:
+        if end_date.tzinfo is None:
+            end_date = end_date.replace(tzinfo=timezone.utc)
+        if target_date > end_date:
+            return False
+    
     return True
 
 
@@ -96,6 +114,8 @@ def calculate_total_pages(total_items: int, page_size: int) -> int:
 
 
 def calculate_offset(page: int, page_size: int) -> int:
+    if page < 1:
+        raise ValueError("page must be greater than or equal to 1")
     return (page - 1) * page_size
 
 
@@ -174,6 +194,9 @@ def truncate_string(text: str, max_length: int, suffix: str = "...") -> str:
     if len(text) <= max_length:
         return text
 
+    if max_length < len(suffix):
+        return text[:max_length]
+
     return text[:max_length - len(suffix)] + suffix
 
 
@@ -247,15 +270,15 @@ def build_cache_key(*parts: Any) -> str:
 # Enum 유틸리티
 # =====================================================
 
-def enum_to_dict(enum_class) -> Dict[str, str]:
+def enum_to_dict(enum_class: Type[Enum]) -> Dict[str, str]:
     return {item.name: item.value for item in enum_class}
 
 
-def enum_values_list(enum_class) -> List[str]:
+def enum_values_list(enum_class: Type[Enum]) -> List[str]:
     return [item.value for item in enum_class]
 
 
-def enum_names_list(enum_class) -> List[str]:
+def enum_names_list(enum_class: Type[Enum]) -> List[str]:
     return [item.name for item in enum_class]
 
 
@@ -263,9 +286,9 @@ def enum_names_list(enum_class) -> List[str]:
 # 숫자 포맷팅 유틸리티
 # =====================================================
 
-def format_currency(amount: int, currency: str = "KRW") -> str:
+def format_currency(amount: Union[int, float], currency: str = "KRW") -> str:
     if currency == "KRW":
-        return f"{amount:,}원"
+        return f"{int(amount):,}원"
     elif currency == "USD":
         return f"${amount:,.2f}"
     else:
@@ -277,12 +300,13 @@ def format_percentage(value: float, decimal_places: int = 1) -> str:
 
 
 def format_file_size(size_bytes: int) -> str:
+    size = size_bytes
     for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
-        if size_bytes < 1024.0:
-            return f"{size_bytes:.1f} {unit}"
-        size_bytes /= 1024.0
+        if size < 1024.0:
+            return f"{size:.1f} {unit}"
+        size /= 1024.0
 
-    return f"{size_bytes:.1f} PB"
+    return f"{size:.1f} PB"
 
 
 # =====================================================
@@ -372,7 +396,7 @@ def build_url(base_url: str, path: str, **query_params) -> str:
     if query_params:
         filtered_params = filter_none_values(query_params)
         if filtered_params:
-            query_string = '&'.join(f"{k}={v}" for k, v in filtered_params.items())
+            query_string = urlencode(filtered_params)
             url = f"{url}?{query_string}"
 
     return url
