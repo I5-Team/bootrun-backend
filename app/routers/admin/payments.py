@@ -4,7 +4,7 @@ from app.schemas.admin import (
     RefundManagementListParams, RefundManagementPaginatedResponse
 )
 from app.schemas.payment import RefundUpdate, RefundResponse
-from app.schemas.common import MessageResponse, SuccessResponse
+from app.schemas.common import SuccessResponse
 from app.exceptions.responses import (
     ADMIN_PAYMENT_MANAGEMENT_RESPONSES,
     REFUND_UPDATE_RESPONSES,
