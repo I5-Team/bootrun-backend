@@ -5,6 +5,7 @@ from app.schemas.certificate import (
     CertificateGenerationResponse, CertificateVerifyRequest,
     CertificateVerifyResponse, CompletionCheckRequest, CompletionCheckResponse
 )
+from app.schemas.common import SuccessResponse
 from app.exceptions.responses import (
     CERTIFICATE_ISSUE_RESPONSES,
     CERTIFICATE_VERIFY_RESPONSES,
@@ -19,7 +20,7 @@ router = APIRouter(prefix="/certificates", tags=["수료증"])
 
 @router.post(
     "",
-    response_model=CertificateResponse,
+    response_model=SuccessResponse[CertificateResponse],
     status_code=status.HTTP_201_CREATED,
     summary="수료증 발급",
     description="수료 조건을 만족한 강의의 수료증을 발급합니다.",
@@ -36,7 +37,7 @@ async def issue_certificate(
 
 @router.get(
     "/my",
-    response_model=List[CertificateListResponse],
+    response_model=SuccessResponse[List[CertificateListResponse]],
     summary="내 수료증 목록",
     description="사용자가 발급받은 수료증 목록을 조회합니다.",
     responses={
@@ -49,7 +50,7 @@ async def get_my_certificates(current_user: User = Depends(get_current_user)):
 
 @router.get(
     "/{certificate_id}",
-    response_model=CertificateResponse,
+    response_model=SuccessResponse[CertificateResponse],
     summary="수료증 상세 조회",
     description="특정 수료증의 상세 정보를 조회합니다.",
     responses={
@@ -66,7 +67,7 @@ async def get_certificate(
 
 @router.post(
     "/{certificate_id}/pdf",
-    response_model=CertificateGenerationResponse,
+    response_model=SuccessResponse[CertificateGenerationResponse],
     summary="수료증 PDF 생성",
     description="수료증 PDF 파일을 생성하고 다운로드 URL을 반환합니다.",
     responses={
@@ -99,7 +100,7 @@ async def delete_certificate(
 
 @router.post(
     "/check-eligibility",
-    response_model=CompletionCheckResponse,
+    response_model=SuccessResponse[CompletionCheckResponse],
     summary="수료 조건 확인",
     description="수강 중인 강의의 수료 가능 여부를 확인합니다.",
     responses={
@@ -115,7 +116,7 @@ async def check_completion_eligibility(
 
 @router.post(
     "/verify",
-    response_model=CertificateVerifyResponse,
+    response_model=SuccessResponse[CertificateVerifyResponse],
     summary="수료증 진위 확인",
     description="수료증 번호로 수료증의 진위를 확인합니다. 인증 불필요(공개 API).",
     responses={

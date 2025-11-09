@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.schemas.common import PaginatedResponse
+from app.schemas.common import PaginatedResponse, SuccessResponse
 from app.schemas.course import (
     CourseResponse, CourseDetailResponse,
     CourseListParams, 
@@ -24,7 +24,7 @@ router = APIRouter(prefix="/courses", tags=["강의"])
 
 @router.get(
     "/metadata",
-    response_model=CourseMetadataResponse,
+    response_model=SuccessResponse[CourseMetadataResponse],
     summary="강의 필터링 메타데이터 조회",
     responses={200: {"description": "성공"}, **COURSE_LIST_RESPONSES}
 )
@@ -55,7 +55,7 @@ async def get_courses(
 
 @router.get(
     "/{course_id}",
-    response_model=CourseDetailResponse,
+    response_model=SuccessResponse[CourseDetailResponse],
     summary="강의 상세 조회",
     responses={200: {"description": "성공"}, **COURSE_DETAIL_RESPONSES}
 )
@@ -70,7 +70,7 @@ async def get_course(
 
 @router.get(
     "/{course_id}/chapters",
-    response_model=List[ChapterWithLectures],
+    response_model=SuccessResponse[List[ChapterWithLectures]],
     summary="챕터 목록 조회",
     responses={200: {"description": "성공"}, **CHAPTER_DETAIL_RESPONSES}
 )
@@ -85,7 +85,7 @@ async def get_chapters(
 
 @router.get(
     "/{course_id}/chapters/{chapter_id}",
-    response_model=ChapterWithLectures,
+    response_model=SuccessResponse[ChapterWithLectures],
     summary="챕터 상세 조회",
     responses={200: {"description": "성공"}, **COURSE_DETAIL_RESPONSES}
 )
@@ -99,7 +99,7 @@ async def get_chapter(
 
 @router.get(
     "/{course_id}/chapters/{chapter_id}/lectures",
-    response_model=List[LectureResponse],
+    response_model=SuccessResponse[List[LectureResponse]],
     summary="강의 영상 목록 조회",
     responses={200: {"description": "성공"}, **LECTURE_LIST_RESPONSES}
 )
@@ -114,7 +114,7 @@ async def get_lectures(
 
 @router.get(
     "/{course_id}/chapters/{chapter_id}/lectures/{lecture_id}",
-    response_model=LectureResponse,
+    response_model=SuccessResponse[LectureResponse],
     summary="강의 영상 상세 조회",
     responses={200: {"description": "성공"}, **LECTURE_DETAIL_RESPONSES}
 )

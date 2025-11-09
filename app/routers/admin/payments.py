@@ -4,7 +4,7 @@ from app.schemas.admin import (
     RefundManagementListParams, RefundManagementPaginatedResponse
 )
 from app.schemas.payment import RefundUpdate, RefundResponse
-from app.schemas.common import MessageResponse
+from app.schemas.common import SuccessResponse
 from app.exceptions.responses import (
     ADMIN_PAYMENT_MANAGEMENT_RESPONSES,
     REFUND_UPDATE_RESPONSES,
@@ -53,7 +53,7 @@ async def get_refunds(params: RefundManagementListParams = Depends()):
 
 @router.get(
     "/refunds/{refund_id}",
-    response_model=RefundResponse,
+    response_model=SuccessResponse[RefundResponse],
     summary="환불 상세 조회",
     description="환불 요청의 상세 정보를 조회합니다.",
     responses={
@@ -66,7 +66,7 @@ async def get_refund(refund_id: int):
 
 @router.patch(
     "/refunds/{refund_id}",
-    response_model=RefundResponse,
+    response_model=SuccessResponse[RefundResponse],
     summary="환불 상태 변경",
     description="환불 요청을 승인하거나 거절합니다.",
     responses={

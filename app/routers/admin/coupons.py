@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, status
-from app.schemas.common import MessageResponse, PaginatedResponse  
+from app.schemas.common import MessageResponse, PaginatedResponse, SuccessResponse
 from app.schemas.payment import (
-    CouponCreate, 
-    CouponUpdate, 
+    CouponCreate,
+    CouponUpdate,
     CouponResponse,
-    CouponListParams  
+    CouponListParams
 )
 from app.exceptions.responses import (
     ADMIN_RESPONSES,
@@ -29,7 +29,7 @@ async def get_coupons(params: CouponListParams = Depends()):
 
 @router.get(
     "/{coupon_id}",
-    response_model=CouponResponse,
+    response_model=SuccessResponse[CouponResponse],
     summary="쿠폰 상세 조회",
     description="특정 쿠폰의 상세 정보를 조회합니다.",
     responses={
@@ -42,7 +42,7 @@ async def get_coupon(coupon_id: int):
 
 @router.post(
     "",
-    response_model=CouponResponse,
+    response_model=SuccessResponse[CouponResponse],
     status_code=status.HTTP_201_CREATED,
     summary="쿠폰 생성",
     description="새로운 쿠폰을 생성합니다.",
@@ -56,7 +56,7 @@ async def create_coupon(data: CouponCreate):
 
 @router.patch(
     "/{coupon_id}",
-    response_model=CouponResponse,
+    response_model=SuccessResponse[CouponResponse],
     summary="쿠폰 수정",
     description="쿠폰 정보를 수정합니다.",
     responses={

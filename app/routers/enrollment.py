@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, status
-from app.schemas.common import MessageResponse
+from app.schemas.common import MessageResponse, SuccessResponse
 from app.schemas.enrollment import (
     EnrollmentCreate, EnrollmentResponse, EnrollmentDetailResponse,
     EnrollmentPaginatedResponse, MyEnrollmentListParams,
@@ -22,7 +22,7 @@ router = APIRouter(prefix="/enrollments", tags=["수강 등록 및 학습 진행
 
 @router.post(
     "",
-    response_model=EnrollmentResponse,
+    response_model=SuccessResponse[EnrollmentResponse],
     status_code=status.HTTP_201_CREATED,
     summary="수강 등록",
     description="강의를 수강 등록합니다. 결제가 완료된 후 자동으로 등록됩니다.",
@@ -55,7 +55,7 @@ async def get_my_enrollments(
 
 @router.get(
     "/{enrollment_id}",
-    response_model=EnrollmentDetailResponse,
+    response_model=SuccessResponse[EnrollmentDetailResponse],
     summary="수강 상세 조회",
     description="특정 수강 등록의 상세 정보를 조회합니다.",
     responses={
@@ -100,7 +100,7 @@ async def cancel_enrollment(
 
 @router.post(
     "/progress",
-    response_model=ProgressResponse,
+    response_model=SuccessResponse[ProgressResponse],
     status_code=status.HTTP_201_CREATED,
     summary="학습 진행 생성",
     description="새로운 강의 영상의 학습 진행을 시작합니다.",
@@ -117,7 +117,7 @@ async def create_progress(
 
 @router.patch(
     "/progress/lectures/{lecture_id}",
-    response_model=ProgressResponse,
+    response_model=SuccessResponse[ProgressResponse],
     summary="학습 진행 업데이트",
     description="강의 영상의 학습 진행 상태를 업데이트합니다.",
     responses={
@@ -134,7 +134,7 @@ async def update_progress(
 
 @router.get(
     "/progress/course/{course_id}",
-    response_model=CourseProgressDetail,
+    response_model=SuccessResponse[CourseProgressDetail],
     summary="강의별 학습 진행 조회",
     description="특정 강의의 전체 학습 진행 상황을 조회합니다.",
     responses={
@@ -150,7 +150,7 @@ async def get_course_progress(
 
 @router.get(
     "/progress/lecture/{lecture_id}",
-    response_model=ProgressResponse,
+    response_model=SuccessResponse[ProgressResponse],
     summary="강의 영상별 진행 조회",
     description="특정 강의 영상의 학습 진행 상태를 조회합니다.",
     responses={
@@ -166,7 +166,7 @@ async def get_lecture_progress(
 
 @router.get(
     "/dashboard",
-    response_model=StudentDashboard,
+    response_model=SuccessResponse[StudentDashboard],
     summary="학습자 대시보드",
     description="학습자의 전체 학습 현황을 요약하여 보여줍니다.",
     responses={
@@ -179,7 +179,7 @@ async def get_student_dashboard(current_user: User = Depends(get_current_user)):
 
 @router.get(
     "/stats",
-    response_model=LearningStats,
+    response_model=SuccessResponse[LearningStats],
     summary="학습 통계",
     description="학습 시간, 출석 등의 통계 정보를 조회합니다.",
     responses={

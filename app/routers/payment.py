@@ -8,7 +8,7 @@ from app.schemas.payment import (
     # Refund schemas
     RefundCreate, RefundResponse, RefundCheckResponse
 )
-from app.schemas.common import MessageResponse
+from app.schemas.common import MessageResponse, SuccessResponse
 from app.exceptions.responses import (
     PAYMENT_CREATE_RESPONSES,
     PAYMENT_CONFIRM_RESPONSES,
@@ -27,7 +27,7 @@ router = APIRouter(prefix="/payments", tags=["결제 및 환불"])
 
 @router.post(
     "",
-    response_model=PaymentResponse,
+    response_model=SuccessResponse[PaymentResponse],
     status_code=status.HTTP_201_CREATED,
     summary="결제 생성",
     description="강의 결제를 생성합니다. PG사 결제 페이지로 리다이렉트할 정보를 반환합니다.",
@@ -64,7 +64,7 @@ async def get_payments(
 
 @router.get(
     "/{payment_id}",
-    response_model=PaymentDetailResponse,
+    response_model=SuccessResponse[PaymentDetailResponse],
     summary="결제 상세 조회",
     description="특정 결제의 상세 정보를 조회합니다.",
     responses={
@@ -82,7 +82,7 @@ async def get_payment(
 
 @router.post(
     "/{payment_id}/confirm",
-    response_model=PaymentResponse,
+    response_model=SuccessResponse[PaymentResponse],
     summary="결제 확인",
     description="PG사에서 결제 완료 후 최종 확인을 진행합니다.",
     responses={
@@ -130,7 +130,7 @@ async def cancel_payment(
 
 @router.get(
     "/{payment_id}/refund-check",
-    response_model=RefundCheckResponse,
+    response_model=SuccessResponse[RefundCheckResponse],
     summary="환불 가능 여부 확인",
     description="결제의 환불 가능 여부와 사유를 확인합니다.",
     responses={
@@ -150,7 +150,7 @@ async def check_refund_eligibility(
 
 @router.post(
     "/refunds",
-    response_model=RefundResponse,
+    response_model=SuccessResponse[RefundResponse],
     status_code=status.HTTP_201_CREATED,
     summary="환불 요청",
     description="결제에 대한 환불을 요청합니다.",
@@ -169,7 +169,7 @@ async def create_refund(
 
 @router.get(
     "/refunds/my",
-    response_model=list[RefundResponse],
+    response_model=SuccessResponse[list[RefundResponse]],
     summary="내 환불 요청 목록",
     description="사용자의 환불 요청 내역을 조회합니다.",
     responses={
@@ -186,7 +186,7 @@ async def get_my_refunds(
 
 @router.get(
     "/refunds/{refund_id}",
-    response_model=RefundResponse,
+    response_model=SuccessResponse[RefundResponse],
     summary="환불 상세 조회",
     description="특정 환불 요청의 상세 정보를 조회합니다.",
     responses={
