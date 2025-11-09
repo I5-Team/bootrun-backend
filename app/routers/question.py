@@ -6,7 +6,7 @@ from app.schemas.course import (
     QuestionDetailResponse, QuestionListParams,
     CommentCreate, CommentUpdate, CommentResponse
 )
-from app.schemas.common import MessageResponse, PaginatedResponse
+from app.schemas.common import MessageResponse, PaginatedResponse, SuccessResponse
 from app.exceptions.responses import (
     QNA_CREATE_RESPONSES,
     QNA_UPDATE_RESPONSES,
@@ -44,7 +44,7 @@ async def get_questions(
 
 @router.get(
     "/{question_id}",
-    response_model=QuestionDetailResponse,
+    response_model=SuccessResponse[QuestionDetailResponse],
     summary="질문 상세 조회",
     description="특정 질문의 상세 정보와 답변을 조회합니다.",
     responses={
@@ -62,7 +62,7 @@ async def get_question(
 
 @router.post(
     "",
-    response_model=QuestionResponse,
+    response_model=SuccessResponse[QuestionResponse],
     status_code=status.HTTP_201_CREATED,
     summary="질문 작성",
     description="학습 Q&A 게시판에 질문을 작성합니다.",
@@ -82,7 +82,7 @@ async def create_question(
 
 @router.patch(
     "/{question_id}",
-    response_model=QuestionResponse,
+    response_model=SuccessResponse[QuestionResponse],
     summary="질문 수정",
     description="작성한 질문을 수정합니다.",
     responses={
@@ -121,7 +121,7 @@ async def delete_question(
 
 @router.post(
     "/{question_id}/comments",
-    response_model=CommentResponse,
+    response_model=SuccessResponse[CommentResponse],
     status_code=status.HTTP_201_CREATED,
     summary="답변 작성",
     description="질문에 답변(댓글)을 작성합니다. 관리자 또는 강사만 가능합니다.",
@@ -141,7 +141,7 @@ async def create_comment(
 
 @router.patch(
     "/{question_id}/comments/{comment_id}",
-    response_model=CommentResponse,
+    response_model=SuccessResponse[CommentResponse],
     summary="답변 수정",
     description="작성한 답변을 수정합니다.",
     responses={
@@ -201,7 +201,7 @@ async def get_my_questions(
 
 @router.get(
     "/my/comments",
-    response_model=list[CommentResponse],
+    response_model=SuccessResponse[list[CommentResponse]],
     summary="내가 작성한 답변",
     description="현재 사용자가 작성한 답변 목록을 조회합니다.",
     responses={

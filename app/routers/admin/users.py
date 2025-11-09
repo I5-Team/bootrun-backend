@@ -4,7 +4,7 @@ from app.schemas.admin import (
     UserManagementListParams, UserManagementPaginatedResponse,
     UserDetailForAdmin, UserLearningReport
 )
-from app.schemas.common import MessageResponse
+from app.schemas.common import MessageResponse, SuccessResponse
 from app.exceptions.responses import (
     ADMIN_USER_MANAGEMENT_RESPONSES,
     ADMIN_RESPONSES,
@@ -27,7 +27,7 @@ async def get_users(params: UserManagementListParams = Depends()):
 
 @router.get(
     "/{user_id}",
-    response_model=UserDetailForAdmin,
+    response_model=SuccessResponse[UserDetailForAdmin],
     summary="사용자 상세 조회",
     description="특정 사용자의 상세 정보를 조회합니다.",
     responses={
@@ -79,7 +79,7 @@ async def delete_user(user_id: int):
 
 @router.get(
     "/{user_id}/learning-report",
-    response_model=UserLearningReport,
+    response_model=SuccessResponse[UserLearningReport],
     summary="사용자 학습 리포트",
     description="사용자의 학습 리포트를 조회합니다.",
     responses={

@@ -6,7 +6,7 @@ from app.schemas.user import (
     EmailChangeRequest, EmailChangeConfirm,
     ActivityResponse, NotificationResponse
 )
-from app.schemas.common import MessageResponse, ProfileImageUploadResponse, PaginatedResponse
+from app.schemas.common import MessageResponse, ProfileImageUploadResponse, PaginatedResponse, SuccessResponse
 from app.exceptions.responses import (
     USER_UPDATE_RESPONSES,
     AUTH_RESPONSES,
@@ -21,7 +21,7 @@ router = APIRouter(prefix="/users", tags=["사용자"])
 
 @router.get(
     "/me",
-    response_model=UserResponse,
+    response_model=SuccessResponse[UserResponse],
     summary="내 프로필 조회",
     description="현재 로그인한 사용자의 프로필 정보를 조회합니다.",
     responses={
@@ -37,7 +37,7 @@ async def get_my_profile(
 
 @router.get(
     "/{user_id}",
-    response_model=UserResponse,
+    response_model=SuccessResponse[UserResponse],
     summary="사용자 프로필 조회",
     description="특정 사용자의 프로필 정보를 조회합니다.",
     responses={
@@ -53,7 +53,7 @@ async def get_user_profile(
 
 @router.patch(
     "/me",
-    response_model=UserResponse,
+    response_model=SuccessResponse[UserResponse],
     summary="내 프로필 수정",
     description="현재 로그인한 사용자의 프로필 정보를 수정합니다.",
     responses={
@@ -70,7 +70,7 @@ async def update_my_profile(
 
 @router.post(
     "/me/profile-image",
-    response_model=ProfileImageUploadResponse,
+    response_model=SuccessResponse[ProfileImageUploadResponse],
     status_code=status.HTTP_201_CREATED,
     summary="프로필 이미지 업로드",
     description="프로필 이미지를 업로드하고 URL을 반환합니다.",
@@ -244,7 +244,7 @@ async def get_my_notifications(
 
 @router.patch(
     "/me/notifications/{notification_id}/read",
-    response_model=NotificationResponse,
+    response_model=SuccessResponse[NotificationResponse],
     summary="알림 읽음 처리",
     description="특정 알림을 읽음 상태로 변경합니다.",
     responses={

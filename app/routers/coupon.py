@@ -3,6 +3,7 @@ from app.schemas.payment import (
     CouponResponse, CouponListParams,
     CouponValidationRequest, CouponValidationResponse
 )
+from app.schemas.common import SuccessResponse
 from app.exceptions.responses import (
     COUPON_VALIDATE_RESPONSES,
     AUTH_RESPONSES,
@@ -15,7 +16,7 @@ router = APIRouter(prefix="/coupons", tags=["쿠폰"])
 
 @router.get(
     "",
-    response_model=list[CouponResponse],
+    response_model=SuccessResponse[list[CouponResponse]],
     summary="쿠폰 목록 조회",
     description="사용 가능한 쿠폰 목록을 조회합니다.",
     responses={
@@ -28,7 +29,7 @@ async def get_coupons(params: CouponListParams = Depends()):
 
 @router.get(
     "/{coupon_id}",
-    response_model=CouponResponse,
+    response_model=SuccessResponse[CouponResponse],
     summary="쿠폰 상세 조회",
     description="특정 쿠폰의 상세 정보를 조회합니다.",
     responses={
@@ -41,7 +42,7 @@ async def get_coupon(coupon_id: int):
 
 @router.post(
     "/validate",
-    response_model=CouponValidationResponse,
+    response_model=SuccessResponse[CouponValidationResponse],
     summary="쿠폰 유효성 검증",
     description="결제 시 쿠폰 코드의 유효성을 검증하고 할인 금액을 계산합니다.",
     responses={
@@ -57,7 +58,7 @@ async def validate_coupon(
 
 @router.get(
     "/my",
-    response_model=list[CouponResponse],
+    response_model=SuccessResponse[list[CouponResponse]],
     summary="내 쿠폰 목록",
     description="사용자가 사용할 수 있는 쿠폰 목록을 조회합니다.",
     responses={

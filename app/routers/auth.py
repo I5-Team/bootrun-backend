@@ -4,7 +4,7 @@ from app.schemas.user import (
     EmailVerificationRequest, EmailVerificationConfirm,
     SocialLoginRequest, PasswordResetRequest, PasswordResetConfirm
 )
-from app.schemas.common import MessageResponse
+from app.schemas.common import MessageResponse, SuccessResponse
 from app.exceptions.responses import (
     REGISTER_RESPONSES,
     LOGIN_RESPONSES,
@@ -22,7 +22,7 @@ router = APIRouter(prefix="/auth", tags=["인증"])
 
 @router.post(
     "/register",
-    response_model=UserResponse,
+    response_model=SuccessResponse[UserResponse],
     status_code=status.HTTP_201_CREATED,
     summary="회원가입",
     description="새로운 사용자를 등록합니다. 이메일과 비밀번호를 사용하여 회원가입할 수 있습니다.",
@@ -36,7 +36,7 @@ async def register(data: UserCreate):
 
 @router.post(
     "/login",
-    response_model=TokenResponse,
+    response_model=SuccessResponse[TokenResponse],
     summary="로그인",
     description="이메일과 비밀번호로 로그인하여 액세스 토큰을 발급받습니다.",
     responses={
@@ -64,7 +64,7 @@ async def logout(current_user: User = Depends(get_current_user)):
 
 @router.post(
     "/refresh",
-    response_model=TokenResponse,
+    response_model=SuccessResponse[TokenResponse],
     summary="토큰 갱신",
     description="리프레시 토큰을 사용하여 새로운 액세스 토큰을 발급받습니다.",
     responses={
@@ -117,7 +117,7 @@ async def confirm_email_verification(data: EmailVerificationConfirm):
 
 @router.post(
     "/social/google",
-    response_model=TokenResponse,
+    response_model=SuccessResponse[TokenResponse],
     summary="Google 소셜 로그인",
     description="Google 계정으로 로그인합니다.",
     responses={
@@ -130,7 +130,7 @@ async def google_login(data: SocialLoginRequest):
 
 @router.post(
     "/social/github",
-    response_model=TokenResponse,
+    response_model=SuccessResponse[TokenResponse],
     summary="Github 소셜 로그인",
     description="Github 계정으로 로그인합니다.",
     responses={
@@ -169,7 +169,7 @@ async def confirm_password_reset(data: PasswordResetConfirm):
 
 @router.get(
     "/verify",
-    response_model=UserResponse,
+    response_model=SuccessResponse[UserResponse],
     summary="토큰 검증",
     description="현재 액세스 토큰의 유효성을 검증하고 사용자 정보를 반환합니다.",
     responses={

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, status
 from app.schemas.admin import (
     CourseManagementListParams, CourseAnalyticsResponse, CourseManagementPaginatedResponse,
 )
-from app.schemas.common import MessageResponse
+from app.schemas.common import MessageResponse, SuccessResponse
 from app.schemas.course import (
     CourseCreate, CourseUpdate, CourseResponse,
     ChapterCreate, ChapterUpdate, ChapterResponse,
@@ -34,7 +34,7 @@ async def get_courses(params: CourseManagementListParams = Depends()):
 
 @router.post(
     "",
-    response_model=CourseResponse,
+    response_model=SuccessResponse[CourseResponse],
     status_code=status.HTTP_201_CREATED,
     summary="강의 생성",
     description="새로운 강의를 생성합니다.",
@@ -48,7 +48,7 @@ async def create_course(data: CourseCreate):
 
 @router.patch(
     "/{course_id}",
-    response_model=CourseResponse,
+    response_model=SuccessResponse[CourseResponse],
     summary="강의 수정",
     description="강의 정보를 수정합니다.",
     responses={
@@ -100,7 +100,7 @@ async def unpublish_course(course_id: int):
 
 @router.get(
     "/{course_id}/analytics",
-    response_model=CourseAnalyticsResponse,
+    response_model=SuccessResponse[CourseAnalyticsResponse],
     summary="강의 분석",
     description="강의의 상세 분석 데이터를 조회합니다.",
     responses={
@@ -113,7 +113,7 @@ async def get_course_analytics(course_id: int):
 
 @router.post(
     "/{course_id}/duplicate",
-    response_model=CourseResponse,
+    response_model=SuccessResponse[CourseResponse],
     summary="강의 복제",
     description="기존 강의를 복제하여 새 강의를 생성합니다.",
     responses={
@@ -138,7 +138,7 @@ async def export_courses(params: CourseManagementListParams = Depends()):
 
 @router.post(
     "/{course_id}/chapters",
-    response_model=ChapterResponse,
+    response_model=SuccessResponse[ChapterResponse],
     status_code=status.HTTP_201_CREATED,
     summary="챕터 생성",
     description="강의에 새로운 챕터를 추가합니다.",
@@ -152,7 +152,7 @@ async def create_chapter(course_id: int, data: ChapterCreate):
 
 @router.patch(
     "/{course_id}/chapters/{chapter_id}",
-    response_model=ChapterResponse,
+    response_model=SuccessResponse[ChapterResponse],
     summary="챕터 수정",
     description="챕터 정보를 수정합니다.",
     responses={
@@ -178,7 +178,7 @@ async def delete_chapter(course_id: int, chapter_id: int):
 
 @router.post(
     "/{course_id}/chapters/{chapter_id}/lectures",
-    response_model=LectureResponse,
+    response_model=SuccessResponse[LectureResponse],
     status_code=status.HTTP_201_CREATED,
     summary="강의 영상 생성",
     description="챕터에 새로운 강의 영상을 추가합니다.",
@@ -192,7 +192,7 @@ async def create_lecture(course_id: int, chapter_id: int, data: LectureCreate):
 
 @router.patch(
     "/{course_id}/chapters/{chapter_id}/lectures/{lecture_id}",
-    response_model=LectureResponse,
+    response_model=SuccessResponse[LectureResponse],
     summary="강의 영상 수정",
     description="강의 영상 정보를 수정합니다.",
     responses={
