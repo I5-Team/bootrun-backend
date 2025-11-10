@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     # 애플리케이션 설정
     # =====================================================
     env: str = "development"
-    app_title: str = "BootRun AI Chatbot"
+    app_title: str = "BootRun"
     app_version: str = "1.0.0"
     debug: bool = True
     app_port: int = 8000
@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     database_port: int = 5432
     database_name: str = "bootrun_db"
     database_user: str = "bootrun_user"
-    database_password: str = "your_secure_postgres_password"
+    database_password: str = "your_secure_password"
     database_echo: bool = False
     database_pool_size: int = 20
     database_max_overflow: int = 10
