@@ -186,6 +186,15 @@ app.add_middleware(
     allow_headers=["Content-Type", "Authorization", "Accept", "Origin", "X-Requested-With"],
 )
 
+# Rate Limiting 미들웨어
+from app.middleware.rate_limit import RateLimitMiddleware
+
+app.add_middleware(
+    RateLimitMiddleware,
+    requests_per_minute=60,
+    burst_size=10
+)
+
 # ============= 예외 핸들러 등록 =============
 
 from app.exceptions.handlers import register_exception_handlers

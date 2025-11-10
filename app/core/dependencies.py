@@ -9,11 +9,20 @@ import logging
 
 from app.core.security import decode_token
 from app.core.database import get_db
-from app.models.user import User
+from app.core.redis import get_redis
+from app.models.user import User, UserRole
+from app.services.user_service import UserService
 
 logger = logging.getLogger(__name__)
 
 security = HTTPBearer()
+
+
+async def get_user_service(
+    db: AsyncSession = Depends(get_db),
+    redis = Depends(get_redis)
+) -> UserService:
+    return UserService(db=db, redis_client=redis)
 
 # ============= 사용자 인증 =============
 
@@ -71,12 +80,18 @@ async def get_current_active_user(
 async def get_current_admin(
     current_user: User = Depends(get_current_user)
 ) -> User:
-    if not current_user.is_admin:
+    if current_user.role != UserRole.ADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="관리자 권한이 필요합니다"
         )
     return current_user
+
+
+async def require_admin(
+    current_user: User = Depends(get_current_user)
+) -> User:
+    return await get_current_admin(current_user)
 
 async def get_current_instructor(
     current_user: User = Depends(get_current_user)
