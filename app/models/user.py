@@ -1,4 +1,3 @@
-
 from sqlalchemy import Column, Integer, String, Date, Boolean, DateTime, Enum as SQLEnum
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -53,10 +52,10 @@ class User(Base):
     enrollments = relationship("Enrollment", back_populates="user", cascade="all, delete-orphan")
     payments = relationship("Payment", back_populates="user", cascade="all, delete-orphan")
     progresses = relationship("Progress", back_populates="user", cascade="all, delete-orphan")
-    course_questions = relationship("CourseQuestion", foreign_keys="[CourseQuestion.user_id]", back_populates="user", cascade="all, delete-orphan")
-    deleted_questions = relationship("CourseQuestion", foreign_keys="[CourseQuestion.deleted_by]", back_populates="deleter")
-    comments = relationship("Comment", foreign_keys="[Comment.user_id]", back_populates="user", cascade="all, delete-orphan")
-    deleted_comments = relationship("Comment", foreign_keys="[Comment.deleted_by]", back_populates="deleter")
+    course_questions = relationship("CourseQuestion", foreign_keys="CourseQuestion.user_id", back_populates="user", cascade="all, delete-orphan")
+    deleted_questions = relationship("CourseQuestion", foreign_keys="CourseQuestion.deleted_by", back_populates="deleter")
+    comments = relationship("Comment", foreign_keys="Comment.user_id", back_populates="user", cascade="all, delete-orphan")
+    deleted_comments = relationship("Comment", foreign_keys="Comment.deleted_by", back_populates="deleter")
     mission_submissions = relationship("MissionSubmission", back_populates="user", cascade="all, delete-orphan")
     certificates = relationship("Certificate", back_populates="user", cascade="all, delete-orphan")
     refunds = relationship("Refund", back_populates="user", cascade="all, delete-orphan")

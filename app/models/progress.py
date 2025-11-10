@@ -25,7 +25,7 @@ class Enrollment(Base):
     # Relationships
     user = relationship("User", back_populates="enrollments")
     course = relationship("Course", back_populates="enrollments")
-    certificates = relationship("Certificate", back_populates="enrollment", uselist=False)
+    certificates = relationship("Certificate", back_populates="enrollment", uselist=False, cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Enrollment(id={self.id}, user_id={self.user_id}, course_id={self.course_id}, progress={self.progress_rate}%)>"
