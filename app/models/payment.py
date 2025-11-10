@@ -41,8 +41,8 @@ class Payment(Base):
     final_amount = Column(Integer, nullable=False, comment="최종 결제 금액")
     
     # 결제 정보
-    payment_method = Column(SQLEnum(PaymentMethod), nullable=False, comment="결제 방식")
-    status = Column(SQLEnum(PaymentStatus), nullable=False, default=PaymentStatus.PENDING, comment="결제 상태")
+    payment_method = Column(SQLEnum(PaymentMethod, values_callable=lambda obj: [e.value for e in obj]), nullable=False, comment="결제 방식")
+    status = Column(SQLEnum(PaymentStatus, values_callable=lambda obj: [e.value for e in obj]), nullable=False, default=PaymentStatus.PENDING, comment="결제 상태")
     transaction_id = Column(String(100), unique=True, nullable=True, index=True, comment="PG사 거래 ID")
     receipt_url = Column(String(500), nullable=True, comment="영수증 URL")
     
@@ -103,7 +103,7 @@ class Refund(Base):
     # 환불 정보
     amount = Column(Integer, nullable=False, comment="환불 금액")
     reason = Column(Text, nullable=False, comment="환불 사유")
-    status = Column(SQLEnum(RefundStatus), nullable=False, default=RefundStatus.PENDING, comment="환불 상태")
+    status = Column(SQLEnum(RefundStatus, values_callable=lambda obj: [e.value for e in obj]), nullable=False, default=RefundStatus.PENDING, comment="환불 상태")
     admin_note = Column(Text, nullable=True, comment="관리자 메모")
     
     # 타임스탬프

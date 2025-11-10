@@ -48,7 +48,17 @@ async def get_current_user(
             detail="토큰에서 사용자 정보를 찾을 수 없습니다",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
+    # user_id를 정수로 변환 (JWT에서 문자열로 저장될 수 있음)
+    try:
+        user_id = int(user_id)
+    except (ValueError, TypeError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="유효하지 않은 사용자 ID입니다",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     # 비동기 쿼리
     result = await db.execute(
         select(User).where(User.id == user_id)
@@ -124,7 +134,13 @@ async def get_current_user_optional(
         user_id = payload.get('sub')
         if user_id is None:
             return None
-        
+
+        # user_id를 정수로 변환 (JWT에서 문자열로 저장될 수 있음)
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            return None
+
         result = await db.execute(
             select(User).where(User.id == user_id)
         )
@@ -165,8 +181,8 @@ async def verify_enrollment_access(
         )
     
     current_time_utc = datetime.now(timezone.utc)
-    expired_at_utc = enrollment.expired_at.replace(tzinfo=timezone.utc) \
-        if enrollment.expired_at.tzinfo is None else enrollment.expired_at
+    expired_at_utc = enrollment.expires_at.replace(tzinfo=timezone.utc) \
+        if enrollment.expires_at.tzinfo is None else enrollment.expires_at
     
     if expired_at_utc < current_time_utc:
         raise HTTPException(
@@ -258,10 +274,10 @@ async def verify_lecture_access(
         )
     
     current_time_utc = datetime.now(timezone.utc)
-    expired_at_utc = enrollment.expired_at.replace(tzinfo=timezone.utc) \
-        if enrollment.expired_at.tzinfo is None else enrollment.expired_at
+    expires_at_utc = enrollment.expires_at.replace(tzinfo=timezone.utc) \
+        if enrollment.expires_at.tzinfo is None else enrollment.expires_at
     
-    if expired_at_utc < current_time_utc:
+    if expires_at_utc < current_time_utc:
         raise HTTPException(
             status_code=status.HTTP_410_GONE,
             detail="수강 기간이 만료되었습니다"

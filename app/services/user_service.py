@@ -1,13 +1,14 @@
-# -*- coding: utf-8 -*-
-from typing import Optional, List, Dict, Any
-from datetime import datetime, timezone, timedelta
+from typing import Optional, Dict, Any
+from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_, or_, desc
-from sqlalchemy.orm import selectinload
+from sqlalchemy import select, func, and_, desc, literal, union_all
 from fastapi import UploadFile
 import secrets
 import string
 import logging
+import uuid
+import os
+import aiofiles
 
 from app.models.user import User, UserRole, Gender, SocialProvider
 from app.models.progress import Enrollment, Progress
@@ -20,13 +21,9 @@ from app.schemas.user import (
     UserResponse,
     TokenResponse,
     PasswordChangeRequest,
-    EmailChangeRequest,
     EmailChangeConfirm,
-    PasswordResetRequest,
     PasswordResetConfirm,
     UserProfileResponse,
-    EmailVerificationRequest,
-    EmailVerificationConfirm,
     ActivityResponse,
     NotificationResponse,
 )
@@ -39,7 +36,6 @@ from app.core.security import (
     verify_password,
     create_access_token,
     create_refresh_token,
-    create_email_verification_token,
     create_password_reset_token,
     verify_password_reset_token,
     decode_token,
@@ -64,7 +60,6 @@ from app.utils.constants import (
     DEFAULT_PROFILE_IMAGE,
 )
 from app.utils.helpers import (
-    calculate_age,
     calculate_total_pages,
     calculate_offset,
     get_current_utc_datetime,
@@ -106,9 +101,7 @@ class UserService:
             birth_date=data.birth_date,
             profile_image=data.profile_image,
             role=UserRole.STUDENT,
-            social_provider=(
-                data.provider if data.provider else SocialProvider.EMAIL
-            ),
+            social_provider=data.provider if data.provider else SocialProvider.EMAIL,
             social_id=data.social_id,
             is_active=True,
             is_email_verified=False,
@@ -426,9 +419,19 @@ class UserService:
                 'JPG, PNG, GIF, WEBP만 업로드 가능합니다'
             )
 
-        import uuid
         file_extension = file.filename.split('.')[-1]
         new_filename = f'{uuid.uuid4()}.{file_extension}'
+        
+        # 업로드 디렉토리 생성
+        upload_dir = 'uploads/profiles'
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        # 파일 저장 경로
+        file_path = os.path.join(upload_dir, new_filename)
+        
+        # 파일을 디스크에 비동기로 저장
+        async with aiofiles.open(file_path, 'wb') as f:
+            await f.write(file_content)
 
         image_url = f'/uploads/profiles/{new_filename}'
 
@@ -436,7 +439,7 @@ class UserService:
         user.updated_at = get_current_utc_datetime()
         await self.db.commit()
 
-        logger.info(f'프로필 이미지 업로드: 사용자 ID {user_id}')
+        logger.info(f'프로필 이미지 업로드: 사용자 ID {user_id}, 파일: {file_path}')
 
         return ProfileImageUploadResponse(
             image_url=image_url,
@@ -515,11 +518,38 @@ class UserService:
         self,
         data: PasswordResetConfirm
     ) -> None:
+        # JWT 토큰 자체의 유효성 검증 (만료 시간, 서명 등)
         user_id = verify_password_reset_token(data.reset_token)
         if not user_id:
+            logger.warning(f'토큰 검증 실패: {data.reset_token[:20]}...')
             raise UnauthorizedError(
                 '유효하지 않거나 만료된 토큰입니다'
             )
+
+        # Redis에 저장된 토큰과 비교하여 일회용 토큰 검증
+        if self.redis:
+            key = REDIS_KEY_PASSWORD_RESET.format(user_id=user_id)
+            stored_token = await self.redis.get(key)
+
+            logger.info(f'Redis 토큰 확인: user_id={user_id}, key={key}')
+            logger.info(f'저장된 토큰 존재 여부: {stored_token is not None}')
+            logger.info(f'받은 토큰: {data.reset_token[:20]}...')
+
+            if not stored_token:
+                logger.warning(f'Redis에 토큰이 없음: user_id={user_id} - 이미 사용되었거나 만료됨')
+                raise UnauthorizedError(
+                    '토큰이 이미 사용되었거나 만료되었습니다. 비밀번호 재설정을 다시 요청해주세요'
+                )
+
+            # bytes인 경우 decode
+            if isinstance(stored_token, bytes):
+                stored_token = stored_token.decode('utf-8')
+
+            if stored_token != data.reset_token:
+                logger.warning(f'토큰 불일치: user_id={user_id}')
+                raise UnauthorizedError(
+                    '유효하지 않은 토큰입니다'
+                )
 
         user = await self.get_user_by_id(user_id)
 
@@ -534,6 +564,7 @@ class UserService:
 
         await self.db.commit()
 
+        # 비밀번호 재설정 완료 후 토큰 삭제 (일회용 토큰)
         if self.redis:
             key = REDIS_KEY_PASSWORD_RESET.format(user_id=user.id)
             await self.redis.delete(key)
@@ -619,7 +650,7 @@ class UserService:
                 and_(
                     Enrollment.user_id == user_id,
                     Enrollment.is_active == True,
-                    Enrollment.expired_at > get_current_utc_datetime()
+                    Enrollment.expires_at > get_current_utc_datetime()
                 )
             )
         )
@@ -678,45 +709,78 @@ class UserService:
     ) -> PaginatedResponse[ActivityResponse]:
         user = await self.get_user_by_id(user_id)
 
-        activities = []
-
+        # 활동 유형별 서브쿼리 생성
+        queries = []
+        
         if not activity_type or activity_type == 'enrollment':
-            enrollments = await self.db.execute(
-                select(Enrollment)
+            enrollment_query = (
+                select(
+                    Enrollment.id,
+                    literal('enrollment').label('activity_type'),
+                    literal('강의 수강 등록').label('title'),
+                    func.concat('강의 ID: ', Enrollment.course_id).label('description'),
+                    Enrollment.created_at,
+                    Enrollment.course_id.label('related_id')
+                )
                 .where(Enrollment.user_id == user_id)
-                .order_by(desc(Enrollment.created_at))
-                .limit(page_size)
-                .offset((page - 1) * page_size)
             )
-            for enrollment in enrollments.scalars():
-                activities.append(ActivityResponse(
-                    id=enrollment.id,
-                    activity_type='enrollment',
-                    title='강의 수강 등록',
-                    description=f'강의 ID: {enrollment.course_id}',
-                    created_at=enrollment.created_at,
-                    related_id=enrollment.course_id
-                ))
+            queries.append(enrollment_query)
 
         if not activity_type or activity_type == 'payment':
-            payments = await self.db.execute(
-                select(Payment)
+            payment_query = (
+                select(
+                    Payment.id,
+                    literal('payment').label('activity_type'),
+                    literal('결제 완료').label('title'),
+                    func.concat('금액: ', Payment.amount, '원').label('description'),
+                    Payment.created_at,
+                    Payment.id.label('related_id')
+                )
                 .where(Payment.user_id == user_id)
-                .order_by(desc(Payment.created_at))
-                .limit(page_size)
-                .offset((page - 1) * page_size)
             )
-            for payment in payments.scalars():
-                activities.append(ActivityResponse(
-                    id=payment.id,
-                    activity_type='payment',
-                    title='결제 완료',
-                    description=f'금액: {payment.amount}원',
-                    created_at=payment.created_at,
-                    related_id=payment.id
-                ))
+            queries.append(payment_query)
 
-        total = len(activities)
+        # UNION ALL로 결합
+        if len(queries) == 0:
+            return PaginatedResponse(
+                success=True,
+                total=0,
+                page=page,
+                page_size=page_size,
+                total_pages=0,
+                items=[]
+            )
+        
+        combined_query = union_all(*queries).alias('activities')
+        
+        # 전체 개수 조회
+        count_query = select(func.count()).select_from(combined_query)
+        total_result = await self.db.execute(count_query)
+        total = total_result.scalar() or 0
+        
+        # 정렬 및 페이징 적용
+        final_query = (
+            select(combined_query)
+            .order_by(desc(combined_query.c.created_at))
+            .limit(page_size)
+            .offset(calculate_offset(page, page_size))
+        )
+        
+        result = await self.db.execute(final_query)
+        rows = result.fetchall()
+        
+        activities = [
+            ActivityResponse(
+                id=row.id,
+                activity_type=row.activity_type,
+                title=row.title,
+                description=row.description,
+                created_at=row.created_at,
+                related_id=row.related_id
+            )
+            for row in rows
+        ]
+        
         total_pages = calculate_total_pages(total, page_size)
 
         return PaginatedResponse(
@@ -840,23 +904,23 @@ class UserService:
             }
 
         now = get_current_utc_datetime()
-        expired_at = enrollment.expired_at
+        expires_at = enrollment.expires_at
 
-        if expired_at.tzinfo is None:
-            expired_at = expired_at.replace(tzinfo=timezone.utc)
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
 
-        if now > expired_at:
+        if now > expires_at:
             return {
                 'has_access': False,
-                'expired_at': expired_at,
+                'expires_at': expires_at,
                 'message': '수강 기간이 만료되었습니다',
             }
 
-        days_remaining = (expired_at - now).days
+        days_remaining = (expires_at - now).days
 
         return {
             'has_access': True,
-            'expired_at': expired_at,
+            'expires_at': expires_at,
             'days_remaining': days_remaining,
             'message': f'수강 가능 (남은 기간: {days_remaining}일)',
         }
@@ -907,14 +971,14 @@ class UserService:
         user_id: int
     ) -> Optional[datetime]:
         query = (
-            select(Enrollment.expired_at)
+            select(Enrollment.expires_at)
             .where(
                 and_(
                     Enrollment.user_id == user_id,
                     Enrollment.is_active == True
                 )
             )
-            .order_by(Enrollment.expired_at.asc())
+            .order_by(Enrollment.expires_at.asc())
             .limit(1)
         )
         result = await self.db.execute(query)

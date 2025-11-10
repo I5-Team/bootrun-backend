@@ -27,8 +27,9 @@ T = TypeVar('T')
 # 날짜/시간 유틸리티
 # =====================================================
 
-def get_current_utc_datetime() -> datetime:
-    return datetime.now(timezone.utc)
+def get_current_utc_datetime():
+    """timezone 정보가 없는 UTC datetime 반환 (PostgreSQL TIMESTAMP WITHOUT TIME ZONE 호환)"""
+    return datetime.utcnow()
 
 
 def get_korean_timezone_datetime() -> datetime:

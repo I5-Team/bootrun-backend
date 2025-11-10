@@ -1,4 +1,4 @@
-import smtplib
+import aiosmtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from typing import List, Optional
@@ -150,15 +150,16 @@ class EmailService:
             html_part = MIMEText(html_content, 'html', 'utf-8')
             msg.attach(html_part)
 
-            with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
-                server.starttls()
-                server.login(self.smtp_user, self.smtp_password)
-                recipients = [to_email] + (cc if cc else [])
-                server.sendmail(
-                    self.from_address,
-                    recipients,
-                    msg.as_string()
-                )
+            recipients = [to_email] + (cc if cc else [])
+
+            await aiosmtplib.send(
+                msg,
+                hostname=self.smtp_host,
+                port=self.smtp_port,
+                username=self.smtp_user,
+                password=self.smtp_password,
+                start_tls=True,
+            )
 
             logger.info(f'이메일 전송 성공: {to_email}')
             return True

@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
                             "id": 1,
                             "email": "hong@example.com",
                             "nickname": "홍길동",
-                            "gender": "MALE",
+                            "gender": "male",
                             "birth_date": "1995-01-01",
                             "profile_image": None,
                             "role": "student",
@@ -108,7 +108,7 @@ async def register(
                                 "id": 1,
                                 "email": "hong@example.com",
                                 "nickname": "홍길동",
-                                "gender": "MALE",
+                                "gender": "male",
                                 "birth_date": "1995-01-01",
                                 "profile_image": None,
                                 "role": "student",
@@ -202,7 +202,7 @@ async def logout(
                                 "id": 1,
                                 "email": "hong@example.com",
                                 "nickname": "홍길동",
-                                "gender": "MALE",
+                                "gender": "male",
                                 "birth_date": "1995-01-01",
                                 "profile_image": None,
                                 "role": "student",
@@ -367,7 +367,7 @@ async def confirm_email_verification(
                                 "id": 1,
                                 "email": "user@gmail.com",
                                 "nickname": "구글사용자",
-                                "gender": "OTHER",
+                                "gender": "other",
                                 "birth_date": "2000-01-01",
                                 "profile_image": None,
                                 "role": "student",
@@ -451,7 +451,7 @@ async def google_login(
                                 "id": 2,
                                 "email": "user@github.com",
                                 "nickname": "깃허브사용자",
-                                "gender": "OTHER",
+                                "gender": "other",
                                 "birth_date": "2000-01-01",
                                 "profile_image": None,
                                 "role": "student",
@@ -607,7 +607,7 @@ async def confirm_password_reset(
                             "id": 1,
                             "email": "user@example.com",
                             "nickname": "사용자",
-                            "gender": "MALE",
+                            "gender": "male",
                             "birth_date": "1995-01-01",
                             "profile_image": None,
                             "role": "student",
@@ -627,8 +627,20 @@ async def confirm_password_reset(
     }
 )
 async def verify_token(current_user: User = Depends(get_current_user)):
-    return SuccessResponse(
-        success=True,
-        message="토큰이 유효합니다",
-        data=UserResponse.model_validate(current_user)
-    )
+    try:
+        return SuccessResponse(
+            success=True,
+            message="토큰이 유효합니다",
+            data=UserResponse.model_validate(current_user)
+        )
+    except BaseAPIException as e:
+        raise HTTPException(
+            status_code=e.status_code,
+            detail={"error": e.error_code, "detail": e.detail}
+        )
+    except Exception as e:
+        logger.error(f"토큰 검증 중 오류: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"error": "INTERNAL_SERVER_ERROR", "detail": "토큰 검증 중 오류가 발생했습니다"}
+        )
