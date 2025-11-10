@@ -64,19 +64,6 @@ async def activate_user(user_id: int):
 async def deactivate_user(user_id: int):
     pass
 
-@router.delete(
-    "/{user_id}",
-    response_model=MessageResponse,
-    summary="사용자 삭제",
-    description="사용자를 완전히 삭제합니다.",
-    responses={
-        200: {"description": "사용자 삭제 완료"},
-        **ADMIN_USER_MANAGEMENT_RESPONSES
-    }
-)
-async def delete_user(user_id: int):
-    pass
-
 @router.get(
     "/{user_id}/learning-report",
     response_model=SuccessResponse[UserLearningReport],
@@ -88,16 +75,4 @@ async def delete_user(user_id: int):
     }
 )
 async def get_user_learning_report(user_id: int, report_period: str):
-    pass
-
-@router.get(
-    "/export",
-    summary="사용자 목록 내보내기",
-    description="사용자 목록을 엑셀 파일로 내보냅니다.",
-    responses={
-        200: {"description": "사용자 목록 내보내기 완료"},
-        **ADMIN_RESPONSES
-    }
-)
-async def export_users(params: UserManagementListParams = Depends()):
     pass
