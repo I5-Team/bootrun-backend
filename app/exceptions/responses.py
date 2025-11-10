@@ -490,7 +490,30 @@ PAYMENT_CONFIRM_RESPONSES = {
     ),
     401: COMMON_401,
     403: COMMON_403,
-    404: COMMON_404,
+    404: _make_error_response(
+        'PAYMENT_NOT_FOUND',
+        '결제 내역을 찾을 수 없습니다',
+        '결제 확인 실패'
+    ),
+    422: COMMON_422,
+    500: COMMON_500,
+}
+
+PAYMENT_LIST_RESPONSES = {
+    401: COMMON_401,
+    403: COMMON_403,
+    422: COMMON_422,
+    500: COMMON_500,
+}
+
+PAYMENT_DETAIL_RESPONSES = {
+    401: COMMON_401,
+    403: COMMON_403,
+    404: _make_error_response(
+        'PAYMENT_NOT_FOUND',
+        '결제 내역을 찾을 수 없습니다',
+        '결제 조회 실패'
+    ),
     422: COMMON_422,
     500: COMMON_500,
 }
@@ -507,6 +530,52 @@ COUPON_VALIDATE_RESPONSES = {
         'COUPON_NOT_FOUND',
         '쿠폰을 찾을 수 없습니다',
         '쿠폰 조회 실패'
+    ),
+    422: COMMON_422,
+    500: COMMON_500,
+}
+
+COUPON_CREATE_RESPONSES = {
+    400: _make_error_response(
+        'COUPON_CODE_DUPLICATE',
+        '이미 존재하는 쿠폰 코드입니다',
+        '쿠폰 생성 실패'
+    ),
+    401: COMMON_401,
+    403: COMMON_403,
+    409: _make_error_response(
+        'COUPON_CODE_DUPLICATE',
+        '이미 존재하는 쿠폰 코드입니다',
+        '쿠폰 생성 실패'
+    ),
+    422: COMMON_422,
+    500: COMMON_500,
+}
+
+COUPON_UPDATE_RESPONSES = {
+    400: _make_error_response(
+        'COUPON_CODE_DUPLICATE',
+        '이미 존재하는 쿠폰 코드입니다',
+        '쿠폰 수정 실패'
+    ),
+    401: COMMON_401,
+    403: COMMON_403,
+    404: _make_error_response(
+        'COUPON_NOT_FOUND',
+        '쿠폰을 찾을 수 없습니다',
+        '쿠폰 수정 실패'
+    ),
+    422: COMMON_422,
+    500: COMMON_500,
+}
+
+COUPON_DELETE_RESPONSES = {
+    401: COMMON_401,
+    403: COMMON_403,
+    404: _make_error_response(
+        'COUPON_NOT_FOUND',
+        '쿠폰을 찾을 수 없습니다',
+        '쿠폰 삭제 실패'
     ),
     422: COMMON_422,
     500: COMMON_500,
@@ -530,12 +599,22 @@ REFUND_CREATE_RESPONSES = {
 }
 
 REFUND_UPDATE_RESPONSES = {
+    400: _make_error_response(
+        'INVALID_REFUND_STATUS',
+        '유효하지 않은 환불 상태입니다',
+        '환불 상태 변경 실패'
+    ),
     401: COMMON_401,
     403: COMMON_403,
     404: _make_error_response(
         'REFUND_NOT_FOUND',
         '환불 요청을 찾을 수 없습니다',
         '환불 처리 실패'
+    ),
+    409: _make_error_response(
+        'REFUND_ALREADY_PROCESSED',
+        '이미 처리된 환불 요청입니다',
+        '환불 상태 변경 실패'
     ),
     422: COMMON_422,
     500: COMMON_500,
@@ -628,6 +707,46 @@ ADMIN_PAYMENT_MANAGEMENT_RESPONSES = {
 ADMIN_STATS_RESPONSES = {
     401: COMMON_401,
     403: COMMON_403,
+    422: COMMON_422,
+    500: COMMON_500,
+}
+
+# ============= 관리자 결제/쿠폰 관리 상세 응답 =============
+
+ADMIN_REFUND_LIST_RESPONSES = {
+    401: COMMON_401,
+    403: COMMON_403,
+    422: COMMON_422,
+    500: COMMON_500,
+}
+
+ADMIN_REFUND_DETAIL_RESPONSES = {
+    401: COMMON_401,
+    403: COMMON_403,
+    404: _make_error_response(
+        'REFUND_NOT_FOUND',
+        '환불 요청을 찾을 수 없습니다',
+        '환불 상세 조회 실패'
+    ),
+    422: COMMON_422,
+    500: COMMON_500,
+}
+
+ADMIN_COUPON_LIST_RESPONSES = {
+    401: COMMON_401,
+    403: COMMON_403,
+    422: COMMON_422,
+    500: COMMON_500,
+}
+
+ADMIN_COUPON_DETAIL_RESPONSES = {
+    401: COMMON_401,
+    403: COMMON_403,
+    404: _make_error_response(
+        'COUPON_NOT_FOUND',
+        '쿠폰을 찾을 수 없습니다',
+        '쿠폰 상세 조회 실패'
+    ),
     422: COMMON_422,
     500: COMMON_500,
 }

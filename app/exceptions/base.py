@@ -241,8 +241,24 @@ class CouponNotFoundError(NotFoundError):
         super().__init__(detail=detail)
 
 class CouponExpiredError(BadRequestError):
-    
+
     def __init__(self, detail: str = '쿠폰이 만료되었습니다') -> None:
+        super().__init__(detail=detail)
+
+class CouponCodeDuplicateError(ConflictError):
+
+    def __init__(
+        self,
+        detail: str = '이미 존재하는 쿠폰 코드입니다'
+    ) -> None:
+        super().__init__(detail=detail)
+
+class CouponMaxUsageExceededError(BadRequestError):
+
+    def __init__(
+        self,
+        detail: str = '쿠폰 사용 한도에 도달했습니다'
+    ) -> None:
         super().__init__(detail=detail)
 
 # 수료증
@@ -264,7 +280,7 @@ class CompletionRequirementsNotMetError(BadRequestError):
 
 # Q&A
 class QuestionNotFoundError(NotFoundError):
-    
+
     def __init__(
         self,
         detail: str = '질문을 찾을 수 없습니다'
@@ -272,9 +288,42 @@ class QuestionNotFoundError(NotFoundError):
         super().__init__(detail=detail)
 
 class OnlyAuthorCanModifyError(ForbiddenError):
-    
+
     def __init__(
         self,
         detail: str = '본인이 작성한 글만 수정할 수 있습니다'
+    ) -> None:
+        super().__init__(detail=detail)
+
+# 환불 (추가 예외)
+class InsufficientRefundPeriodError(BadRequestError):
+
+    def __init__(
+        self,
+        detail: str = '환불 가능 기간이 지났습니다'
+    ) -> None:
+        super().__init__(detail=detail)
+
+class RefundAlreadyProcessedError(ConflictError):
+
+    def __init__(
+        self,
+        detail: str = '이미 처리된 환불 요청입니다'
+    ) -> None:
+        super().__init__(detail=detail)
+
+class RefundNotFoundError(NotFoundError):
+
+    def __init__(
+        self,
+        detail: str = '환불 요청을 찾을 수 없습니다'
+    ) -> None:
+        super().__init__(detail=detail)
+
+class InvalidRefundStatusError(BadRequestError):
+
+    def __init__(
+        self,
+        detail: str = '유효하지 않은 환불 상태입니다'
     ) -> None:
         super().__init__(detail=detail)

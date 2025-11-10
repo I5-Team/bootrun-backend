@@ -6,7 +6,8 @@ from app.schemas.admin import (
 from app.schemas.payment import RefundUpdate, RefundResponse
 from app.schemas.common import SuccessResponse
 from app.exceptions.responses import (
-    ADMIN_PAYMENT_MANAGEMENT_RESPONSES,
+    ADMIN_REFUND_LIST_RESPONSES,
+    ADMIN_REFUND_DETAIL_RESPONSES,
     REFUND_UPDATE_RESPONSES,
     ADMIN_RESPONSES,
 )
@@ -45,7 +46,7 @@ async def export_payments(params: PaymentManagementListParams = Depends()):
     description="환불 요청 목록을 조회합니다.",
     responses={
         200: {"description": "환불 목록 조회 성공"},
-        **ADMIN_RESPONSES
+        **ADMIN_REFUND_LIST_RESPONSES
     }
 )
 async def get_refunds(params: RefundManagementListParams = Depends()):
@@ -58,7 +59,7 @@ async def get_refunds(params: RefundManagementListParams = Depends()):
     description="환불 요청의 상세 정보를 조회합니다.",
     responses={
         200: {"description": "환불 상세 조회 성공"},
-        **ADMIN_PAYMENT_MANAGEMENT_RESPONSES
+        **ADMIN_REFUND_DETAIL_RESPONSES
     }
 )
 async def get_refund(refund_id: int):
