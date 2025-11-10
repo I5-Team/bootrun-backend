@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Depends, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.schemas.common import MessageResponse, PaginatedResponse, SuccessResponse
 from app.schemas.payment import (
     CouponCreate,
@@ -14,6 +16,8 @@ from app.exceptions.responses import (
     COUPON_UPDATE_RESPONSES,
     COUPON_DELETE_RESPONSES,
 )
+from app.core.dependencies import get_current_admin, get_db
+from app.models.user import User
 
 router = APIRouter(prefix="/admin/coupons", tags=["관리자 - 쿠폰 관리"])
 
@@ -27,7 +31,11 @@ router = APIRouter(prefix="/admin/coupons", tags=["관리자 - 쿠폰 관리"])
         **ADMIN_COUPON_LIST_RESPONSES
     }
 )
-async def get_coupons(params: CouponListParams = Depends()):
+async def get_coupons(
+    params: CouponListParams = Depends(),
+    current_admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
     pass
 
 @router.get(
@@ -40,7 +48,11 @@ async def get_coupons(params: CouponListParams = Depends()):
         **ADMIN_COUPON_DETAIL_RESPONSES
     }
 )
-async def get_coupon(coupon_id: int):
+async def get_coupon(
+    coupon_id: int,
+    current_admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
     pass
 
 @router.post(
@@ -54,7 +66,11 @@ async def get_coupon(coupon_id: int):
         **COUPON_CREATE_RESPONSES
     }
 )
-async def create_coupon(data: CouponCreate):
+async def create_coupon(
+    data: CouponCreate,
+    current_admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
     pass
 
 @router.patch(
@@ -67,7 +83,12 @@ async def create_coupon(data: CouponCreate):
         **COUPON_UPDATE_RESPONSES
     }
 )
-async def update_coupon(coupon_id: int, data: CouponUpdate):
+async def update_coupon(
+    coupon_id: int,
+    data: CouponUpdate,
+    current_admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
     pass
 
 @router.delete(
@@ -80,5 +101,9 @@ async def update_coupon(coupon_id: int, data: CouponUpdate):
         **COUPON_DELETE_RESPONSES
     }
 )
-async def delete_coupon(coupon_id: int):
+async def delete_coupon(
+    coupon_id: int,
+    current_admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
     pass

@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Depends
 from typing import List
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.schemas.admin import (
     DashboardStats, DailyStats, RevenueStats,
     CourseStats, CategoryStats, StatsQueryParams,
@@ -7,6 +9,8 @@ from app.schemas.admin import (
 )
 from app.schemas.common import SuccessResponse
 from app.exceptions.responses import ADMIN_DASHBOARD_RESPONSES
+from app.core.dependencies import get_current_admin, get_db
+from app.models.user import User
 
 router = APIRouter(prefix="/admin/dashboard", tags=["관리자 - 대시보드"])
 
@@ -20,7 +24,10 @@ router = APIRouter(prefix="/admin/dashboard", tags=["관리자 - 대시보드"])
         **ADMIN_DASHBOARD_RESPONSES
     }
 )
-async def get_dashboard_stats():
+async def get_dashboard_stats(
+    current_admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
     pass
 
 @router.get(
@@ -33,7 +40,11 @@ async def get_dashboard_stats():
         **ADMIN_DASHBOARD_RESPONSES
     }
 )
-async def get_daily_stats(params: StatsQueryParams = Depends()):
+async def get_daily_stats(
+    params: StatsQueryParams = Depends(),
+    current_admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
     pass
 
 @router.get(
@@ -46,7 +57,11 @@ async def get_daily_stats(params: StatsQueryParams = Depends()):
         **ADMIN_DASHBOARD_RESPONSES
     }
 )
-async def get_revenue_stats(params: StatsQueryParams = Depends()):
+async def get_revenue_stats(
+    params: StatsQueryParams = Depends(),
+    current_admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
     pass
 
 @router.get(
@@ -59,7 +74,11 @@ async def get_revenue_stats(params: StatsQueryParams = Depends()):
         **ADMIN_DASHBOARD_RESPONSES
     }
 )
-async def get_course_stats(params: CourseStatsQueryParams = Depends()):
+async def get_course_stats(
+    params: CourseStatsQueryParams = Depends(),
+    current_admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
     pass
 
 @router.get(
@@ -72,7 +91,10 @@ async def get_course_stats(params: CourseStatsQueryParams = Depends()):
         **ADMIN_DASHBOARD_RESPONSES
     }
 )
-async def get_category_stats():
+async def get_category_stats(
+    current_admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
     pass
 
 @router.get(
@@ -85,7 +107,10 @@ async def get_category_stats():
         **ADMIN_DASHBOARD_RESPONSES
     }
 )
-async def get_system_settings():
+async def get_system_settings(
+    current_admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
     pass
 
 @router.patch(
@@ -98,5 +123,9 @@ async def get_system_settings():
         **ADMIN_DASHBOARD_RESPONSES
     }
 )
-async def update_system_settings(data: SystemSettings):
+async def update_system_settings(
+    data: SystemSettings,
+    current_admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
     pass
