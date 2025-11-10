@@ -17,6 +17,17 @@ from app.core.dependencies import get_current_user, get_user_service
 from app.models.user import User
 from app.services.user_service import UserService
 from app.exceptions.base import BaseAPIException
+from app.utils.constants import (
+    MSG_USER_REGISTERED,
+    MSG_LOGIN_SUCCESS,
+    MSG_LOGOUT_SUCCESS,
+    MSG_TOKEN_REFRESHED,
+    MSG_EMAIL_VERIFIED,
+    MSG_ERROR_INVALID_TOKEN,
+    MSG_PASSWORD_RESET_EMAIL_SENT,
+    MSG_PASSWORD_RESET_SUCCESS,
+)
+from app.utils.helpers import is_valid_email, truncate_string
 import logging
 
 router = APIRouter(prefix="/auth", tags=["인증"])
@@ -67,7 +78,7 @@ async def register(
         user = await user_service.register_user(data)
         return SuccessResponse(
             success=True,
-            message="회원가입이 완료되었습니다",
+            message=MSG_USER_REGISTERED,
             data=user
         )
     except BaseAPIException as e:
@@ -125,7 +136,7 @@ async def login(
         token_response = await user_service.login(data)
         return SuccessResponse(
             success=True,
-            message="로그인에 성공했습니다",
+            message=MSG_LOGIN_SUCCESS,
             data=token_response
         )
     except BaseAPIException as e:
@@ -162,7 +173,7 @@ async def logout(
         await user_service.logout(current_user.id)
         return MessageResponse(
             success=True,
-            message="로그아웃이 완료되었습니다"
+            message=MSG_LOGOUT_SUCCESS
         )
     except BaseAPIException as e:
         raise HTTPException(
@@ -242,7 +253,7 @@ async def refresh_token(
         if not authorization.startswith("Bearer "):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail={"error": "INVALID_TOKEN", "detail": "잘못된 토큰 형식입니다"}
+                detail={"error": "INVALID_TOKEN", "detail": MSG_ERROR_INVALID_TOKEN}
             )
 
         token = authorization.replace("Bearer ", "")
@@ -250,7 +261,7 @@ async def refresh_token(
 
         return SuccessResponse(
             success=True,
-            message="토큰 갱신에 성공했습니다",
+            message=MSG_TOKEN_REFRESHED,
             data=token_response
         )
     except BaseAPIException as e:
@@ -327,7 +338,7 @@ async def confirm_email_verification(
         await user_service.verify_email(data.email, data.verification_code)
         return MessageResponse(
             success=True,
-            message="이메일 인증이 완료되었습니다"
+            message=MSG_EMAIL_VERIFIED
         )
     except BaseAPIException as e:
         raise HTTPException(
@@ -393,7 +404,13 @@ async def google_login(
                 detail={"error": "EMAIL_REQUIRED", "detail": "이메일이 필요합니다"}
             )
 
-        social_id = f"google_{data.access_token[:20]}"
+        if not is_valid_email(data.email):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"error": "INVALID_EMAIL", "detail": "유효하지 않은 이메일 형식입니다"}
+            )
+
+        social_id = f"google_{truncate_string(data.access_token, 20, suffix='')}"
 
         token_response = await user_service.social_login(
             provider=SocialProvider.GOOGLE,
@@ -471,7 +488,13 @@ async def github_login(
                 detail={"error": "EMAIL_REQUIRED", "detail": "이메일이 필요합니다"}
             )
 
-        social_id = f"github_{data.access_token[:20]}"
+        if not is_valid_email(data.email):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"error": "INVALID_EMAIL", "detail": "유효하지 않은 이메일 형식입니다"}
+            )
+
+        social_id = f"github_{truncate_string(data.access_token, 20, suffix='')}"
 
         token_response = await user_service.social_login(
             provider=SocialProvider.GITHUB,
@@ -522,7 +545,7 @@ async def request_password_reset(
 
         return MessageResponse(
             success=True,
-            message="비밀번호 재설정 링크가 이메일로 발송되었습니다",
+            message=MSG_PASSWORD_RESET_EMAIL_SENT,
             detail=f"개발 환경에서 재설정 토큰: {reset_token}"
         )
     except BaseAPIException as e:
@@ -559,7 +582,7 @@ async def confirm_password_reset(
         await user_service.confirm_password_reset(data)
         return MessageResponse(
             success=True,
-            message="비밀번호가 성공적으로 재설정되었습니다"
+            message=MSG_PASSWORD_RESET_SUCCESS
         )
     except BaseAPIException as e:
         raise HTTPException(
