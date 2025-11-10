@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
 from app.core.redis import init_redis, close_redis
+from app.core.config import settings
 from contextlib import asynccontextmanager
 
 # 로거 설정
@@ -9,14 +10,6 @@ from app.core.logging_config import configure_logging
 
 logger = configure_logging()
 
-# 환경 변수에서 설정 읽기
-IS_DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
-
-# CORS 허용 origin 설정 (환경 변수에서 읽기)
-ALLOWED_ORIGINS = os.getenv(
-    'ALLOWED_ORIGINS',
-    'http://localhost:3000,http://localhost:5173'  # 개발 환경 기본값
-).split(',')
 
 # ============= FastAPI 앱 생성 =============
 
@@ -92,7 +85,7 @@ async def lifespan(app: FastAPI):
     logger.info("=" * 60)
     logger.info("🚀 BootRun API 서버 시작")
     logger.info("=" * 60)
-    logger.info(f"📝 환경: {'개발' if IS_DEBUG else '운영'}")
+    logger.info(f"📝 환경: {'개발' if settings.debug else '운영'}")
     logger.info(f"📚 문서: http://localhost:8000/docs")
     logger.info(f"📖 ReDoc: http://localhost:8000/redoc")
     logger.info("=" * 60)
@@ -149,14 +142,6 @@ app = FastAPI(
     2. Authorization 헤더에 `Bearer {token}` 형식으로 포함
     3. 토큰 만료 시 refresh API로 갱신
     
-    에러 응답 형식
-    모든 에러는 일관된 JSON 형식으로 반환됩니다:
-    ```json
-    {
-        "error": "ERROR_CODE",
-        "detail": "에러 상세 메시지",
-        "path": "/auth/login"
-    }
     ```
     
     """,
@@ -180,10 +165,10 @@ app = FastAPI(
 # CORS 설정
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization", "Accept", "Origin", "X-Requested-With"],
+    allow_origins=settings.cors_origins,
+    allow_credentials=settings.cors_allow_credentials,
+    allow_methods=settings.cors_allow_methods.split(","),
+    allow_headers=settings.cors_allow_headers.split(","),
 )
 
 # Rate Limiting 미들웨어
@@ -288,7 +273,7 @@ if __name__ == "__main__":
         "main:app",
         host="0.0.0.0",
         port=8000,
-        reload=IS_DEBUG,  # 개발 환경에서만 자동 재시작
+        reload=settings.debug,  
         log_level="info",
         log_config=None
     )

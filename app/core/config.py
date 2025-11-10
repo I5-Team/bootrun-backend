@@ -100,7 +100,7 @@ class Settings(BaseSettings):
     # =====================================================
     # CORS 설정
     # =====================================================
-    cors_origins: str = "https://yourdomain.com,https://www.yourdomain.com"
+    cors_origins: list[str] = ["https://yourdomain.com","https://www.yourdomain.com"]
     cors_allow_credentials: bool = True
     cors_allow_methods: str = "GET,POST,PUT,DELETE,OPTIONS,PATCH"
     cors_allow_headers: str = "Content-Type,Authorization"
@@ -146,7 +146,7 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
-        case_sensitive = False
+        extra = "ignore"
 
 # 전역 설정 인스턴스 생성
 settings = Settings()
