@@ -543,11 +543,6 @@ COUPON_CREATE_RESPONSES = {
     ),
     401: COMMON_401,
     403: COMMON_403,
-    409: _make_error_response(
-        'COUPON_CODE_DUPLICATE',
-        '이미 존재하는 쿠폰 코드입니다',
-        '쿠폰 생성 실패'
-    ),
     422: COMMON_422,
     500: COMMON_500,
 }

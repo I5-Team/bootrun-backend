@@ -1,6 +1,7 @@
 
 from fastapi import status
 from typing import Optional
+import re
 
 # ============= 커스텀 예외 기본 클래스 =============
 
@@ -21,10 +22,8 @@ class BaseAPIException(Exception):
             # 클래스명을 UPPER_SNAKE_CASE로 변환
             # 예: LoginFailedError -> LOGIN_FAILED
             class_name = self.__class__.__name__.replace('Error', '')
-            self.error_code = ''.join(
-                ['_' + c.upper() if c.isupper() and i > 0 else c.upper()
-                 for i, c in enumerate(class_name)]
-            ).lstrip('_')
+            # CamelCase를 UPPER_SNAKE_CASE로 변환
+            self.error_code = re.sub(r'(?<!^)(?=[A-Z])', '_', class_name).upper()
         super().__init__(self.detail)
 
 # ============= HTTP 예외 클래스 (4xx, 5xx) =============
@@ -108,9 +107,9 @@ class InternalServerError(BaseAPIException):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
-# ============= 도메인별 커스텀 예외 =============
+# ============= 도메인별 커스텀 예외 (HTTP 예외 확장) =============
 
-# 인증/회원
+# 인증/회원 도메인
 class LoginFailedError(UnauthorizedError):
     
     def __init__(
@@ -136,11 +135,11 @@ class VerificationCodeInvalidError(BadRequestError):
         super().__init__(detail=detail)
 
 class TokenExpiredError(UnauthorizedError):
-    
+
     def __init__(self, detail: str = '토큰이 만료되었습니다') -> None:
         super().__init__(detail=detail)
 
-# 강의
+# 강의 도메인
 class CourseNotFoundError(NotFoundError):
     
     def __init__(
@@ -158,14 +157,14 @@ class ChapterNotFoundError(NotFoundError):
         super().__init__(detail=detail)
 
 class LectureNotFoundError(NotFoundError):
-    
+
     def __init__(
         self,
         detail: str = '강의 영상을 찾을 수 없습니다'
     ) -> None:
         super().__init__(detail=detail)
 
-# 수강 등록
+# 수강 등록 도메인
 class AlreadyEnrolledError(ConflictError):
     
     def __init__(
@@ -183,14 +182,14 @@ class EnrollmentRequiredError(ForbiddenError):
         super().__init__(detail=detail)
 
 class EnrollmentExpiredError(GoneError):
-    
+
     def __init__(
         self,
         detail: str = '수강 기간이 만료되었습니다'
     ) -> None:
         super().__init__(detail=detail)
 
-# 미션
+# 미션 도메인
 class MaxAttemptsExceededError(BadRequestError):
     
     def __init__(
@@ -200,14 +199,14 @@ class MaxAttemptsExceededError(BadRequestError):
         super().__init__(detail=detail)
 
 class MissionNotFoundError(NotFoundError):
-    
+
     def __init__(
         self,
         detail: str = '미션을 찾을 수 없습니다'
     ) -> None:
         super().__init__(detail=detail)
 
-# 결제
+# 결제 및 쿠폰 도메인
 class AlreadyPaidError(ConflictError):
     
     def __init__(
@@ -261,7 +260,7 @@ class CouponMaxUsageExceededError(BadRequestError):
     ) -> None:
         super().__init__(detail=detail)
 
-# 수료증
+# 수료증 도메인
 class CertificateNotFoundError(NotFoundError):
     
     def __init__(
@@ -271,14 +270,14 @@ class CertificateNotFoundError(NotFoundError):
         super().__init__(detail=detail)
 
 class CompletionRequirementsNotMetError(BadRequestError):
-    
+
     def __init__(
         self,
         detail: str = '수료 조건을 충족하지 않았습니다'
     ) -> None:
         super().__init__(detail=detail)
 
-# Q&A
+# Q&A 도메인
 class QuestionNotFoundError(NotFoundError):
 
     def __init__(
@@ -295,7 +294,7 @@ class OnlyAuthorCanModifyError(ForbiddenError):
     ) -> None:
         super().__init__(detail=detail)
 
-# 환불 (추가 예외)
+# 환불 도메인
 class InsufficientRefundPeriodError(BadRequestError):
 
     def __init__(
