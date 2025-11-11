@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.schemas.admin import (
     PaymentManagementListParams, PaymentManagementPaginatedResponse,
     RefundManagementListParams, RefundManagementPaginatedResponse
@@ -6,10 +8,13 @@ from app.schemas.admin import (
 from app.schemas.payment import RefundUpdate, RefundResponse
 from app.schemas.common import SuccessResponse
 from app.exceptions.responses import (
-    ADMIN_PAYMENT_MANAGEMENT_RESPONSES,
+    ADMIN_REFUND_LIST_RESPONSES,
+    ADMIN_REFUND_DETAIL_RESPONSES,
     REFUND_UPDATE_RESPONSES,
     ADMIN_RESPONSES,
 )
+from app.core.dependencies import get_current_admin, get_db
+from app.models.user import User
 
 router = APIRouter(prefix="/admin/payments", tags=["관리자 - 결제 및 환불 관리"])
 
@@ -23,7 +28,11 @@ router = APIRouter(prefix="/admin/payments", tags=["관리자 - 결제 및 환�
         **ADMIN_RESPONSES
     }
 )
-async def get_payments(params: PaymentManagementListParams = Depends()):
+async def get_payments(
+    params: PaymentManagementListParams = Depends(),
+    current_admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
     pass
 
 @router.get(
@@ -35,7 +44,11 @@ async def get_payments(params: PaymentManagementListParams = Depends()):
         **ADMIN_RESPONSES
     }
 )
-async def export_payments(params: PaymentManagementListParams = Depends()):
+async def export_payments(
+    params: PaymentManagementListParams = Depends(),
+    current_admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
     pass
 
 @router.get(
@@ -45,10 +58,14 @@ async def export_payments(params: PaymentManagementListParams = Depends()):
     description="환불 요청 목록을 조회합니다.",
     responses={
         200: {"description": "환불 목록 조회 성공"},
-        **ADMIN_RESPONSES
+        **ADMIN_REFUND_LIST_RESPONSES
     }
 )
-async def get_refunds(params: RefundManagementListParams = Depends()):
+async def get_refunds(
+    params: RefundManagementListParams = Depends(),
+    current_admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
     pass
 
 @router.get(
@@ -58,10 +75,14 @@ async def get_refunds(params: RefundManagementListParams = Depends()):
     description="환불 요청의 상세 정보를 조회합니다.",
     responses={
         200: {"description": "환불 상세 조회 성공"},
-        **ADMIN_PAYMENT_MANAGEMENT_RESPONSES
+        **ADMIN_REFUND_DETAIL_RESPONSES
     }
 )
-async def get_refund(refund_id: int):
+async def get_refund(
+    refund_id: int,
+    current_admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
     pass
 
 @router.patch(
@@ -74,7 +95,12 @@ async def get_refund(refund_id: int):
         **REFUND_UPDATE_RESPONSES
     }
 )
-async def update_refund(refund_id: int, data: RefundUpdate):
+async def update_refund(
+    refund_id: int,
+    data: RefundUpdate,
+    current_admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
     pass
 
 @router.get(
@@ -86,5 +112,9 @@ async def update_refund(refund_id: int, data: RefundUpdate):
         **ADMIN_RESPONSES
     }
 )
-async def export_refunds(params: RefundManagementListParams = Depends()):
+async def export_refunds(
+    params: RefundManagementListParams = Depends(),
+    current_admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
     pass

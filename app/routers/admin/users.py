@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.schemas.admin import (
     UserManagementListParams, UserManagementPaginatedResponse,
     UserDetailForAdmin, UserLearningReport
@@ -9,6 +11,8 @@ from app.exceptions.responses import (
     ADMIN_USER_MANAGEMENT_RESPONSES,
     ADMIN_RESPONSES,
 )
+from app.core.dependencies import get_current_admin, get_db
+from app.models.user import User
 
 router = APIRouter(prefix="/admin/users", tags=["관리자 - 사용자 관리"])
 
@@ -22,7 +26,11 @@ router = APIRouter(prefix="/admin/users", tags=["관리자 - 사용자 관리"])
         **ADMIN_RESPONSES
     }
 )
-async def get_users(params: UserManagementListParams = Depends()):
+async def get_users(
+    params: UserManagementListParams = Depends(),
+    current_admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
     pass
 
 @router.get(
@@ -35,7 +43,11 @@ async def get_users(params: UserManagementListParams = Depends()):
         **ADMIN_USER_MANAGEMENT_RESPONSES
     }
 )
-async def get_user(user_id: int):
+async def get_user(
+    user_id: int,
+    current_admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
     pass
 
 @router.patch(
@@ -48,7 +60,11 @@ async def get_user(user_id: int):
         **ADMIN_USER_MANAGEMENT_RESPONSES
     }
 )
-async def activate_user(user_id: int):
+async def activate_user(
+    user_id: int,
+    current_admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
     pass
 
 @router.patch(
@@ -61,7 +77,28 @@ async def activate_user(user_id: int):
         **ADMIN_USER_MANAGEMENT_RESPONSES
     }
 )
-async def deactivate_user(user_id: int):
+async def deactivate_user(
+    user_id: int,
+    current_admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
+    pass
+
+@router.delete(
+    "/{user_id}",
+    response_model=MessageResponse,
+    summary="사용자 삭제",
+    description="사용자를 완전히 삭제합니다.",
+    responses={
+        200: {"description": "사용자 삭제 완료"},
+        **ADMIN_USER_MANAGEMENT_RESPONSES
+    }
+)
+async def delete_user(
+    user_id: int,
+    current_admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
     pass
 
 @router.get(
@@ -74,5 +111,26 @@ async def deactivate_user(user_id: int):
         **ADMIN_USER_MANAGEMENT_RESPONSES
     }
 )
-async def get_user_learning_report(user_id: int, report_period: str):
+async def get_user_learning_report(
+    user_id: int,
+    report_period: str,
+    current_admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
+    pass
+
+@router.get(
+    "/export",
+    summary="사용자 목록 내보내기",
+    description="사용자 목록을 엑셀 파일로 내보냅니다.",
+    responses={
+        200: {"description": "사용자 목록 내보내기 완료"},
+        **ADMIN_RESPONSES
+    }
+)
+async def export_users(
+    params: UserManagementListParams = Depends(),
+    current_admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
     pass
