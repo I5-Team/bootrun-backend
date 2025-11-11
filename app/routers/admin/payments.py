@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Path
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.schemas.admin import (
@@ -15,6 +15,7 @@ from app.exceptions.responses import (
 )
 from app.core.dependencies import get_current_admin, get_db
 from app.models.user import User
+from app.services.payment_service import AdminPaymentService
 
 router = APIRouter(prefix="/admin/payments", tags=["관리자 - 결제 및 환불 관리"])
 
@@ -33,7 +34,21 @@ async def get_payments(
     current_admin: User = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db)
 ):
-    pass
+    """
+    전체 결제 목록 조회 (관리자용)
+    - 필터링: 상태, 결제 방식, 날짜 범위
+    - 검색: 사용자명, 이메일, 강의명
+    - 페이지네이션
+    """
+    service = AdminPaymentService(db)
+    result = await service.get_payments(params)
+    return PaymentManagementPaginatedResponse(
+        total=result["total"],
+        page=result["page"],
+        page_size=result["page_size"],
+        total_pages=result["total_pages"],
+        items=result["items"]
+    )
 
 @router.get(
     "/export",
@@ -49,7 +64,12 @@ async def export_payments(
     current_admin: User = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db)
 ):
-    pass
+    """
+    결제 내역 내보내기 (엑셀용)
+    """
+    service = AdminPaymentService(db)
+    items = await service.export_payments(params)
+    return {"data": items}
 
 @router.get(
     "/refunds",
@@ -66,7 +86,21 @@ async def get_refunds(
     current_admin: User = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db)
 ):
-    pass
+    """
+    전체 환불 목록 조회 (관리자용)
+    - 필터링: 상태, 날짜 범위
+    - 검색: 사용자명, 이메일
+    - 페이지네이션
+    """
+    service = AdminPaymentService(db)
+    result = await service.get_refunds(params)
+    return RefundManagementPaginatedResponse(
+        total=result["total"],
+        page=result["page"],
+        page_size=result["page_size"],
+        total_pages=result["total_pages"],
+        items=result["items"]
+    )
 
 @router.get(
     "/refunds/{refund_id}",
@@ -79,11 +113,16 @@ async def get_refunds(
     }
 )
 async def get_refund(
-    refund_id: int,
+    refund_id: int = Path(..., gt=0, description="환불 ID"),
     current_admin: User = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db)
 ):
-    pass
+    """
+    환불 상세 조회 (관리자용)
+    """
+    service = AdminPaymentService(db)
+    refund = await service.get_refund(refund_id)
+    return SuccessResponse(data=refund)
 
 @router.patch(
     "/refunds/{refund_id}",
@@ -96,12 +135,18 @@ async def get_refund(
     }
 )
 async def update_refund(
-    refund_id: int,
-    data: RefundUpdate,
+    refund_id: int = Path(..., gt=0, description="환불 ID"),
+    data: RefundUpdate = ...,
     current_admin: User = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db)
 ):
-    pass
+    """
+    환불 상태 변경 (관리자용)
+    """
+    service = AdminPaymentService(db)
+    refund = await service.update_refund(refund_id, data)
+    await db.commit()
+    return SuccessResponse(data=refund)
 
 @router.get(
     "/refunds/export",
@@ -117,4 +162,9 @@ async def export_refunds(
     current_admin: User = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db)
 ):
-    pass
+    """
+    환불 내역 내보내기 (엑셀용)
+    """
+    service = AdminPaymentService(db)
+    items = await service.export_refunds(params)
+    return {"data": items}
