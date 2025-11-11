@@ -19,6 +19,10 @@ import logging
 router = APIRouter(prefix="/users", tags=["사용자"])
 logger = logging.getLogger(__name__)
 
+# ============================================================
+# 1. 프로필 조회 및 수정
+# ============================================================
+
 @router.get(
     "/me",
     response_model=SuccessResponse[UserProfileResponse],
@@ -128,103 +132,9 @@ async def update_my_profile(
             detail={"error_code": e.error_code, "message": e.detail}
         )
 
-@router.post(
-    "/me/change-password",
-    response_model=MessageResponse,
-    summary="비밀번호 변경",
-    description="현재 비밀번호를 확인하고 새 비밀번호로 변경합니다.",
-    responses={
-        200: {
-            "description": "비밀번호 변경 완료",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "success": True,
-                        "message": "비밀번호가 변경되었습니다"
-                    }
-                }
-            }
-        },
-        **AUTH_RESPONSES,
-        400: {
-            "description": "현재 비밀번호가 일치하지 않음",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "error": "BAD_REQUEST",
-                        "detail": "현재 비밀번호가 일치하지 않습니다"
-                    }
-                }
-            }
-        }
-    }
-)
-async def change_password(
-    data: PasswordChangeRequest,
-    current_user: User = Depends(get_current_user),
-    user_service: UserService = Depends(get_user_service)
-):
-    try:
-        await user_service.change_password(current_user.id, data)
-        return MessageResponse(
-            success=True,
-            message="비밀번호가 변경되었습니다"
-        )
-    except BaseAPIException as e:
-        raise HTTPException(
-            status_code=e.status_code,
-            detail={"error_code": e.error_code, "message": e.detail}
-        )
-
-
-@router.delete(
-    "/me",
-    response_model=MessageResponse,
-    summary="회원 탈퇴",
-    description="현재 사용자 계정을 삭제합니다. 이 작업은 되돌릴 수 없습니다.",
-    responses={
-        200: {
-            "description": "회원 탈퇴 완료",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "success": True,
-                        "message": "회원 탈퇴가 완료되었습니다"
-                    }
-                }
-            }
-        },
-        **AUTH_RESPONSES,
-        400: {
-            "description": "회원 탈퇴 조건 불충족",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "error": "BAD_REQUEST",
-                        "detail": "진행 중인 강의가 있어 탈퇴할 수 없습니다"
-                    }
-                }
-            }
-        }
-    }
-)
-async def delete_account(
-    password: str = Query(..., description="비밀번호 확인"),
-    confirm_deletion: bool = Query(..., description="탈퇴 확인 (true만 허용)"),
-    current_user: User = Depends(get_current_user),
-    user_service: UserService = Depends(get_user_service)
-):
-    try:
-        await user_service.delete_account(current_user.id, password, confirm_deletion)
-        return MessageResponse(
-            success=True,
-            message="회원 탈퇴가 완료되었습니다"
-        )
-    except BaseAPIException as e:
-        raise HTTPException(
-            status_code=e.status_code,
-            detail={"error_code": e.error_code, "message": e.detail}
-        )
+# ============================================================
+# 2. 프로필 이미지 관리
+# ============================================================
 
 @router.post(
     "/me/profile-image",
@@ -260,12 +170,31 @@ async def delete_account(
                 }
             }
         }
+    },
+    openapi_extra={
+        "requestBody": {
+            "content": {
+                "multipart/form-data": {
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "file": {
+                                "type": "string",
+                                "format": "binary",
+                                "description": "업로드할 프로필 이미지 파일 (JPG, PNG, GIF, WEBP, 최대 5MB)"
+                            }
+                        },
+                        "required": ["file"]
+                    }
+                }
+            }
+        }
     }
 )
 async def upload_profile_image(
-    file: UploadFile = File(..., description="업로드할 프로필 이미지 파일 (JPG, PNG, GIF, WEBP, 최대 5MB)"),
     current_user: User = Depends(get_current_user),
-    user_service: UserService = Depends(get_user_service)
+    user_service: UserService = Depends(get_user_service),
+    file: UploadFile = File(..., description="업로드할 프로필 이미지 파일 (JPG, PNG, GIF, WEBP, 최대 5MB)")
 ):
     try:
         result = await user_service.upload_profile_image(current_user.id, file)
@@ -315,6 +244,62 @@ async def delete_profile_image(
             status_code=e.status_code,
             detail={"error_code": e.error_code, "message": e.detail}
         )
+
+# ============================================================
+# 3. 비밀번호 변경
+# ============================================================
+
+@router.post(
+    "/me/change-password",
+    response_model=MessageResponse,
+    summary="비밀번호 변경",
+    description="현재 비밀번호를 확인하고 새 비밀번호로 변경합니다.",
+    responses={
+        200: {
+            "description": "비밀번호 변경 완료",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "success": True,
+                        "message": "비밀번호가 변경되었습니다"
+                    }
+                }
+            }
+        },
+        **AUTH_RESPONSES,
+        400: {
+            "description": "현재 비밀번호가 일치하지 않음",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": "BAD_REQUEST",
+                        "detail": "현재 비밀번호가 일치하지 않습니다"
+                    }
+                }
+            }
+        }
+    }
+)
+async def change_password(
+    data: PasswordChangeRequest,
+    current_user: User = Depends(get_current_user),
+    user_service: UserService = Depends(get_user_service)
+):
+    try:
+        await user_service.change_password(current_user.id, data)
+        return MessageResponse(
+            success=True,
+            message="비밀번호가 변경되었습니다"
+        )
+    except BaseAPIException as e:
+        raise HTTPException(
+            status_code=e.status_code,
+            detail={"error_code": e.error_code, "message": e.detail}
+        )
+
+# ============================================================
+# 4. 알림
+# ============================================================
 
 @router.get(
     "/me/notifications",
@@ -366,6 +351,59 @@ async def get_my_notifications(
             page_size
         )
         return result
+    except BaseAPIException as e:
+        raise HTTPException(
+            status_code=e.status_code,
+            detail={"error_code": e.error_code, "message": e.detail}
+        )
+
+# ============================================================
+# 5. 회원 탈퇴
+# ============================================================
+
+@router.delete(
+    "/me",
+    response_model=MessageResponse,
+    summary="회원 탈퇴",
+    description="현재 사용자 계정을 삭제합니다. 이 작업은 되돌릴 수 없습니다.",
+    responses={
+        200: {
+            "description": "회원 탈퇴 완료",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "success": True,
+                        "message": "회원 탈퇴가 완료되었습니다"
+                    }
+                }
+            }
+        },
+        **AUTH_RESPONSES,
+        400: {
+            "description": "회원 탈퇴 조건 불충족",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": "BAD_REQUEST",
+                        "detail": "진행 중인 강의가 있어 탈퇴할 수 없습니다"
+                    }
+                }
+            }
+        }
+    }
+)
+async def delete_account(
+    password: str = Query(..., description="비밀번호 확인"),
+    confirm_deletion: bool = Query(..., description="탈퇴 확인 (true만 허용)"),
+    current_user: User = Depends(get_current_user),
+    user_service: UserService = Depends(get_user_service)
+):
+    try:
+        await user_service.delete_account(current_user.id, password, confirm_deletion)
+        return MessageResponse(
+            success=True,
+            message="회원 탈퇴가 완료되었습니다"
+        )
     except BaseAPIException as e:
         raise HTTPException(
             status_code=e.status_code,

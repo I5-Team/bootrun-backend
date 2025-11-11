@@ -17,7 +17,17 @@
       "Bash(docker-compose up:*)",
       "Bash(docker-compose down:*)",
       "Bash(dos2unix:*)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(python:*)",
+      "Bash(Select-Object Id,ProcessName)",
+      "Bash(Format-List)",
+      "Bash(netstat:*)",
+      "Bash(tasklist:*)",
+      "Bash(/tmp/openapi.json)",
+      "Bash(ping:*)",
+      "Bash(nul)",
+      "Bash(openapi_temp.json)",
+      "Bash(del openapi_temp.json)"
     ],
     "deny": [],
     "ask": []

@@ -33,6 +33,10 @@ import logging
 router = APIRouter(prefix="/auth", tags=["인증"])
 logger = logging.getLogger(__name__)
 
+# ============================================================
+# 1. 회원가입 & 이메일 인증
+# ============================================================
+
 @router.post(
     "/register",
     response_model=SuccessResponse[UserResponse],
@@ -80,189 +84,6 @@ async def register(
             success=True,
             message=MSG_USER_REGISTERED,
             data=user
-        )
-    except BaseAPIException as e:
-        raise HTTPException(
-            status_code=e.status_code,
-            detail={"error": e.error_code, "detail": e.detail}
-        )
-
-@router.post(
-    "/login",
-    response_model=SuccessResponse[TokenResponse],
-    summary="로그인",
-    description="이메일과 비밀번호로 로그인하여 액세스 토큰을 발급받습니다.",
-    responses={
-        200: {
-            "description": "로그인 성공",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "success": True,
-                        "message": "로그인에 성공했습니다",
-                        "data": {
-                            "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-                            "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-                            "token_type": "bearer",
-                            "user": {
-                                "id": 1,
-                                "email": "hong@example.com",
-                                "nickname": "홍길동",
-                                "gender": "male",
-                                "birth_date": "1995-01-01",
-                                "profile_image": None,
-                                "role": "student",
-                                "is_active": True,
-                                "is_email_verified": True,
-                                "created_at": "2025-01-01T00:00:00Z",
-                                "updated_at": "2025-01-10T12:00:00Z",
-                                "last_login": "2025-01-10T12:00:00Z",
-                                "social_provider": "email",
-                                "social_id": None
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        **LOGIN_RESPONSES
-    }
-)
-async def login(
-    data: UserLogin,
-    user_service: UserService = Depends(get_user_service)
-):
-    try:
-        token_response = await user_service.login(data)
-        return SuccessResponse(
-            success=True,
-            message=MSG_LOGIN_SUCCESS,
-            data=token_response
-        )
-    except BaseAPIException as e:
-        raise HTTPException(
-            status_code=e.status_code,
-            detail={"error": e.error_code, "detail": e.detail}
-        )
-
-@router.post(
-    "/logout",
-    response_model=MessageResponse,
-    summary="로그아웃",
-    description="현재 세션을 종료하고 토큰을 무효화합니다.",
-    responses={
-        200: {
-            "description": "로그아웃 성공",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "success": True,
-                        "message": "로그아웃이 완료되었습니다"
-                    }
-                }
-            }
-        },
-        **AUTH_RESPONSES
-    }
-)
-async def logout(
-    current_user: User = Depends(get_current_user),
-    user_service: UserService = Depends(get_user_service)
-):
-    try:
-        await user_service.logout(current_user.id)
-        return MessageResponse(
-            success=True,
-            message=MSG_LOGOUT_SUCCESS
-        )
-    except BaseAPIException as e:
-        raise HTTPException(
-            status_code=e.status_code,
-            detail={"error": e.error_code, "detail": e.detail}
-        )
-
-@router.post(
-    "/refresh",
-    response_model=SuccessResponse[TokenResponse],
-    summary="토큰 갱신",
-    description="리프레시 토큰을 사용하여 새로운 액세스 토큰을 발급받습니다.",
-    responses={
-        200: {
-            "description": "토큰 갱신 성공",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "success": True,
-                        "message": "토큰 갱신에 성공했습니다",
-                        "data": {
-                            "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-                            "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-                            "token_type": "bearer",
-                            "user": {
-                                "id": 1,
-                                "email": "hong@example.com",
-                                "nickname": "홍길동",
-                                "gender": "male",
-                                "birth_date": "1995-01-01",
-                                "profile_image": None,
-                                "role": "student",
-                                "is_active": True,
-                                "is_email_verified": True,
-                                "created_at": "2025-01-01T00:00:00Z",
-                                "updated_at": "2025-01-10T12:00:00Z",
-                                "last_login": "2025-01-10T12:00:00Z",
-                                "social_provider": "email",
-                                "social_id": None
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        401: {
-            "description": "리프레시 토큰이 유효하지 않거나 만료됨",
-            "content": {
-                "application/json": {
-                    "examples": {
-                        "token_expired": {
-                            "summary": "토큰 만료",
-                            "value": {
-                                "error": "UNAUTHORIZED",
-                                "detail": "유효하지 않거나 만료된 리프레시 토큰입니다"
-                            }
-                        },
-                        "invalid_format": {
-                            "summary": "잘못된 토큰 형식",
-                            "value": {
-                                "error": "INVALID_TOKEN",
-                                "detail": "잘못된 토큰 형식입니다"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        **{k: v for k, v in AUTH_RESPONSES.items() if k != 401}
-    }
-)
-async def refresh_token(
-    authorization: str = Header(..., description="Bearer {refresh_token}"),
-    user_service: UserService = Depends(get_user_service)
-):
-    try:
-        if not authorization.startswith("Bearer "):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail={"error": "INVALID_TOKEN", "detail": MSG_ERROR_INVALID_TOKEN}
-            )
-
-        token = authorization.replace("Bearer ", "")
-        token_response = await user_service.refresh_access_token(token)
-
-        return SuccessResponse(
-            success=True,
-            message=MSG_TOKEN_REFRESHED,
-            data=token_response
         )
     except BaseAPIException as e:
         raise HTTPException(
@@ -339,6 +160,68 @@ async def confirm_email_verification(
         return MessageResponse(
             success=True,
             message=MSG_EMAIL_VERIFIED
+        )
+    except BaseAPIException as e:
+        raise HTTPException(
+            status_code=e.status_code,
+            detail={"error": e.error_code, "detail": e.detail}
+        )
+
+# ============================================================
+# 2. 로그인
+# ============================================================
+
+@router.post(
+    "/login",
+    response_model=SuccessResponse[TokenResponse],
+    summary="로그인",
+    description="이메일과 비밀번호로 로그인하여 액세스 토큰을 발급받습니다.",
+    responses={
+        200: {
+            "description": "로그인 성공",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "success": True,
+                        "message": "로그인에 성공했습니다",
+                        "data": {
+                            "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                            "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                            "token_type": "bearer",
+                            "user": {
+                                "id": 1,
+                                "email": "hong@example.com",
+                                "nickname": "홍길동",
+                                "gender": "male",
+                                "birth_date": "1995-01-01",
+                                "profile_image": None,
+                                "role": "student",
+                                "is_active": True,
+                                "is_email_verified": True,
+                                "created_at": "2025-01-01T00:00:00Z",
+                                "updated_at": "2025-01-10T12:00:00Z",
+                                "last_login": "2025-01-10T12:00:00Z",
+                                "social_provider": "email",
+                                "social_id": None
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        **LOGIN_RESPONSES
+    }
+)
+async def login(
+    data: UserLogin,
+    user_service: UserService = Depends(get_user_service)
+):
+    try:
+        token_response = await user_service.login(data)
+        return SuccessResponse(
+            success=True,
+            message=MSG_LOGIN_SUCCESS,
+            data=token_response
         )
     except BaseAPIException as e:
         raise HTTPException(
@@ -514,6 +397,198 @@ async def github_login(
             detail={"error": e.error_code, "detail": e.detail}
         )
 
+# ============================================================
+# 3. 토큰 관리
+# ============================================================
+
+@router.get(
+    "/verify",
+    response_model=SuccessResponse[UserResponse],
+    summary="토큰 검증",
+    description="현재 액세스 토큰의 유효성을 검증하고 사용자 정보를 반환합니다.",
+    responses={
+        200: {
+            "description": "토큰 검증 성공",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "success": True,
+                        "message": "토큰이 유효합니다",
+                        "data": {
+                            "id": 1,
+                            "email": "user@example.com",
+                            "nickname": "사용자",
+                            "gender": "male",
+                            "birth_date": "1995-01-01",
+                            "profile_image": None,
+                            "role": "student",
+                            "is_active": True,
+                            "is_email_verified": True,
+                            "created_at": "2025-01-01T00:00:00Z",
+                            "updated_at": "2025-01-01T00:00:00Z",
+                            "last_login": "2025-01-10T12:00:00Z",
+                            "social_provider": "email",
+                            "social_id": None
+                        }
+                    }
+                }
+            }
+        },
+        **AUTH_RESPONSES
+    }
+)
+async def verify_token(current_user: User = Depends(get_current_user)):
+    try:
+        return SuccessResponse(
+            success=True,
+            message="토큰이 유효합니다",
+            data=UserResponse.model_validate(current_user)
+        )
+    except BaseAPIException as e:
+        raise HTTPException(
+            status_code=e.status_code,
+            detail={"error": e.error_code, "detail": e.detail}
+        )
+    except Exception as e:
+        logger.error(f"토큰 검증 중 오류: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"error": "INTERNAL_SERVER_ERROR", "detail": "토큰 검증 중 오류가 발생했습니다"}
+        )
+
+@router.post(
+    "/refresh",
+    response_model=SuccessResponse[TokenResponse],
+    summary="토큰 갱신",
+    description="리프레시 토큰을 사용하여 새로운 액세스 토큰을 발급받습니다.",
+    responses={
+        200: {
+            "description": "토큰 갱신 성공",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "success": True,
+                        "message": "토큰 갱신에 성공했습니다",
+                        "data": {
+                            "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                            "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                            "token_type": "bearer",
+                            "user": {
+                                "id": 1,
+                                "email": "hong@example.com",
+                                "nickname": "홍길동",
+                                "gender": "male",
+                                "birth_date": "1995-01-01",
+                                "profile_image": None,
+                                "role": "student",
+                                "is_active": True,
+                                "is_email_verified": True,
+                                "created_at": "2025-01-01T00:00:00Z",
+                                "updated_at": "2025-01-10T12:00:00Z",
+                                "last_login": "2025-01-10T12:00:00Z",
+                                "social_provider": "email",
+                                "social_id": None
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        401: {
+            "description": "리프레시 토큰이 유효하지 않거나 만료됨",
+            "content": {
+                "application/json": {
+                    "examples": {
+                        "token_expired": {
+                            "summary": "토큰 만료",
+                            "value": {
+                                "error": "UNAUTHORIZED",
+                                "detail": "유효하지 않거나 만료된 리프레시 토큰입니다"
+                            }
+                        },
+                        "invalid_format": {
+                            "summary": "잘못된 토큰 형식",
+                            "value": {
+                                "error": "INVALID_TOKEN",
+                                "detail": "잘못된 토큰 형식입니다"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        **{k: v for k, v in AUTH_RESPONSES.items() if k != 401}
+    }
+)
+async def refresh_token(
+    authorization: str = Header(..., description="Bearer {refresh_token}"),
+    user_service: UserService = Depends(get_user_service)
+):
+    try:
+        if not authorization.startswith("Bearer "):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={"error": "INVALID_TOKEN", "detail": MSG_ERROR_INVALID_TOKEN}
+            )
+
+        token = authorization.replace("Bearer ", "")
+        token_response = await user_service.refresh_access_token(token)
+
+        return SuccessResponse(
+            success=True,
+            message=MSG_TOKEN_REFRESHED,
+            data=token_response
+        )
+    except BaseAPIException as e:
+        raise HTTPException(
+            status_code=e.status_code,
+            detail={"error": e.error_code, "detail": e.detail}
+        )
+
+# ============================================================
+# 4. 로그아웃
+# ============================================================
+
+@router.post(
+    "/logout",
+    response_model=MessageResponse,
+    summary="로그아웃",
+    description="현재 세션을 종료하고 토큰을 무효화합니다.",
+    responses={
+        200: {
+            "description": "로그아웃 성공",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "success": True,
+                        "message": "로그아웃이 완료되었습니다"
+                    }
+                }
+            }
+        },
+        **AUTH_RESPONSES
+    }
+)
+async def logout(
+    current_user: User = Depends(get_current_user),
+    user_service: UserService = Depends(get_user_service)
+):
+    try:
+        await user_service.logout(current_user.id)
+        return MessageResponse(
+            success=True,
+            message=MSG_LOGOUT_SUCCESS
+        )
+    except BaseAPIException as e:
+        raise HTTPException(
+            status_code=e.status_code,
+            detail={"error": e.error_code, "detail": e.detail}
+        )
+
+# ============================================================
+# 5. 비밀번호 재설정
+# ============================================================
+
 @router.post(
     "/password/reset/request",
     response_model=MessageResponse,
@@ -588,59 +663,4 @@ async def confirm_password_reset(
         raise HTTPException(
             status_code=e.status_code,
             detail={"error": e.error_code, "detail": e.detail}
-        )
-
-@router.get(
-    "/verify",
-    response_model=SuccessResponse[UserResponse],
-    summary="토큰 검증",
-    description="현재 액세스 토큰의 유효성을 검증하고 사용자 정보를 반환합니다.",
-    responses={
-        200: {
-            "description": "토큰 검증 성공",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "success": True,
-                        "message": "토큰이 유효합니다",
-                        "data": {
-                            "id": 1,
-                            "email": "user@example.com",
-                            "nickname": "사용자",
-                            "gender": "male",
-                            "birth_date": "1995-01-01",
-                            "profile_image": None,
-                            "role": "student",
-                            "is_active": True,
-                            "is_email_verified": True,
-                            "created_at": "2025-01-01T00:00:00Z",
-                            "updated_at": "2025-01-01T00:00:00Z",
-                            "last_login": "2025-01-10T12:00:00Z",
-                            "social_provider": "email",
-                            "social_id": None
-                        }
-                    }
-                }
-            }
-        },
-        **AUTH_RESPONSES
-    }
-)
-async def verify_token(current_user: User = Depends(get_current_user)):
-    try:
-        return SuccessResponse(
-            success=True,
-            message="토큰이 유효합니다",
-            data=UserResponse.model_validate(current_user)
-        )
-    except BaseAPIException as e:
-        raise HTTPException(
-            status_code=e.status_code,
-            detail={"error": e.error_code, "detail": e.detail}
-        )
-    except Exception as e:
-        logger.error(f"토큰 검증 중 오류: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={"error": "INTERNAL_SERVER_ERROR", "detail": "토큰 검증 중 오류가 발생했습니다"}
         )
