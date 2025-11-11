@@ -195,11 +195,16 @@ class CourseDetailResponse(BaseModel):
 class CourseListParams(BaseModel):
     category_id: Optional[int] = None
     category_type: Optional[CategoryType] = None
+    course_type: Optional[CourseType] = Field(
+        None,
+        description="강의 유형 (vod, boost_community, kdc)",
+        example="vod"
+    )
     difficulty: Optional[Difficulty] = None
     price_type: Optional[PriceType] = None
     keyword: Optional[str] = Field(
         None,
-        description="검색 키워드 (강의명, 강의 설명)", 
+        description="검색 키워드 (강의명, 강의 설명)",
         example="FastAPI"
     )
     is_published: Optional[bool] = True
@@ -270,38 +275,43 @@ class ChapterWithLectures(BaseModel):
 # ============= 강의 영상 =============
 class LectureCreate(BaseModel):
     title: str = Field(
-        ..., 
-        min_length=1, 
+        ...,
+        min_length=1,
         max_length=200,
-        description="강의 제목", 
+        description="강의 제목",
         example="FastAPI 설치하기"
     )
     description: Optional[str] = Field(
         None,
-        description="강의 설명", 
+        description="강의 설명",
         example="FastAPI를 설치하는 방법을 배웁니다."
     )
     video_url: str = Field(
         ...,
-        description="동영상 URL (VOD 또는 유튜브)", 
+        description="동영상 URL (VOD 또는 유튜브)",
         example="https://youtube.com/watch?v=abc123"
     )
     video_type: VideoType = Field(
         ...,
-        description="동영상 타입 (vod 또는 youtube)", 
+        description="동영상 타입 (vod 또는 youtube)",
         example="youtube"
     )
     duration_seconds: int = Field(
-        ..., 
+        ...,
         ge=0,
-        description="재생 시간 (초)", 
+        description="재생 시간 (초)",
         example=600
     )
     order_number: int = Field(
-        ..., 
+        ...,
         ge=1,
-        description="강의 순서 (챕터 내)", 
+        description="강의 순서 (챕터 내)",
         example=1
+    )
+    material_url: Optional[str] = Field(
+        None,
+        description="강의 자료 URL",
+        example="https://example.com/materials/lecture1.pdf"
     )
 
 class LectureUpdate(BaseModel):
@@ -311,6 +321,7 @@ class LectureUpdate(BaseModel):
     video_type: Optional[VideoType] = None
     duration_seconds: Optional[int] = Field(None, ge=0)
     order_number: Optional[int] = Field(None, ge=1)
+    material_url: Optional[str] = None
 
 class LectureResponse(BaseModel):
     id: int
@@ -321,13 +332,14 @@ class LectureResponse(BaseModel):
     video_type: VideoType
     duration_seconds: int
     order_number: int
+    material_url: Optional[str] = None
     # 사용자별 시청 정보 (optional)
     is_completed: Optional[bool] = None
     last_position: Optional[int] = None
     watched_seconds: Optional[int] = None
     created_at: datetime
     updated_at: datetime
-    
+
     class Config:
         from_attributes = True
 

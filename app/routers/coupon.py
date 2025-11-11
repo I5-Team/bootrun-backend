@@ -19,6 +19,7 @@ router = APIRouter(prefix="/coupons", tags=["쿠폰"])
     response_model=SuccessResponse[list[CouponResponse]],
     summary="쿠폰 목록 조회",
     description="사용 가능한 쿠폰 목록을 조회합니다.",
+    operation_id="user_get_coupons",
     responses={
         200: {"description": "쿠폰 목록 조회 성공"},
         **READ_RESPONSES
@@ -32,6 +33,7 @@ async def get_coupons(params: CouponListParams = Depends()):
     response_model=SuccessResponse[CouponResponse],
     summary="쿠폰 상세 조회",
     description="특정 쿠폰의 상세 정보를 조회합니다.",
+    operation_id="user_get_coupon",
     responses={
         200: {"description": "쿠폰 상세 조회 성공"},
         **READ_RESPONSES

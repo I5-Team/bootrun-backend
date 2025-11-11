@@ -25,6 +25,7 @@ router = APIRouter(prefix="/courses", tags=["강의"])
     "",
     response_model=PaginatedResponse[CourseResponse],
     summary="강의 목록 조회",
+    operation_id="user_get_courses",
     responses={200: {"description": "성공"}, **COURSE_LIST_RESPONSES}
 )
 async def get_courses(
@@ -47,6 +48,7 @@ async def get_courses(
     "/{course_id}",
     response_model=SuccessResponse[CourseDetailResponse],
     summary="강의 상세 조회",
+    operation_id="user_get_course",
     responses={200: {"description": "성공"}, **COURSE_DETAIL_RESPONSES}
 )
 async def get_course(

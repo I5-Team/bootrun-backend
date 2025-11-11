@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.schemas.common import SuccessResponse
 from app.schemas.enrollment import (
     EnrollmentCreate, EnrollmentResponse, EnrollmentDetailResponse,
     EnrollmentPaginatedResponse, MyEnrollmentListParams,
-    ProgressCreate, ProgressUpdate, ProgressResponse, 
+    ProgressCreate, ProgressUpdate, ProgressResponse,
     CourseProgressDetail, StudentDashboard
 )
 from app.exceptions.responses import (
@@ -13,8 +15,9 @@ from app.exceptions.responses import (
     AUTH_RESPONSES,
     READ_RESPONSES,
 )
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_current_user, get_db
 from app.models.user import User
+from app.services.enrollment_service import EnrollmentService
 
 router = APIRouter(prefix="/enrollments", tags=["수강 등록 및 학습 진행"])
 
@@ -31,9 +34,12 @@ router = APIRouter(prefix="/enrollments", tags=["수강 등록 및 학습 진행
 )
 async def create_enrollment(
     data: EnrollmentCreate,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ):
-    pass
+    service = EnrollmentService(db)
+    result = await service.create_enrollment(current_user.id, data)
+    return SuccessResponse(data=result)
 
 @router.get(
     "/my",
@@ -47,9 +53,11 @@ async def create_enrollment(
 )
 async def get_my_enrollments(
     params: MyEnrollmentListParams = Depends(),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ):
-    pass
+    service = EnrollmentService(db)
+    return await service.get_my_enrollments(current_user.id, params)
 
 @router.get(
     "/{enrollment_id}",
@@ -64,9 +72,12 @@ async def get_my_enrollments(
 )
 async def get_enrollment(
     enrollment_id: int,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ):
-    pass
+    service = EnrollmentService(db)
+    result = await service.get_enrollment_detail(current_user.id, enrollment_id)
+    return SuccessResponse(data=result)
 
 @router.post(
     "/progress",
@@ -81,9 +92,12 @@ async def get_enrollment(
 )
 async def create_progress(
     data: ProgressCreate,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ):
-    pass
+    service = EnrollmentService(db)
+    result = await service.create_progress(current_user.id, data)
+    return SuccessResponse(data=result)
 
 @router.patch(
     "/progress/lectures/{lecture_id}",
@@ -98,9 +112,12 @@ async def create_progress(
 async def update_progress(
     lecture_id: int,
     data: ProgressUpdate,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ):
-    pass
+    service = EnrollmentService(db)
+    result = await service.update_progress(current_user.id, lecture_id, data)
+    return SuccessResponse(data=result)
 
 @router.get(
     "/progress/course/{course_id}",
@@ -114,9 +131,12 @@ async def update_progress(
 )
 async def get_course_progress(
     course_id: int,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ):
-    pass
+    service = EnrollmentService(db)
+    result = await service.get_course_progress(current_user.id, course_id)
+    return SuccessResponse(data=result)
 
 @router.get(
     "/progress/lecture/{lecture_id}",
@@ -130,9 +150,12 @@ async def get_course_progress(
 )
 async def get_lecture_progress(
     lecture_id: int,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ):
-    pass
+    service = EnrollmentService(db)
+    result = await service.get_lecture_progress(current_user.id, lecture_id)
+    return SuccessResponse(data=result)
 
 @router.get(
     "/dashboard",
@@ -144,5 +167,10 @@ async def get_lecture_progress(
         **AUTH_RESPONSES
     }
 )
-async def get_student_dashboard(current_user: User = Depends(get_current_user)):
-    pass
+async def get_student_dashboard(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    service = EnrollmentService(db)
+    result = await service.get_student_dashboard(current_user.id)
+    return SuccessResponse(data=result)

@@ -65,10 +65,13 @@ class CourseService:
         # 필터링
         if params.category_type:
             query = query.where(Course.category_type == params.category_type)
-        
+
+        if params.course_type:
+            query = query.where(Course.course_type == params.course_type)
+
         if params.difficulty:
             query = query.where(Course.difficulty == params.difficulty)
-        
+
         if params.price_type:
             query = query.where(Course.price_type == params.price_type)
         
