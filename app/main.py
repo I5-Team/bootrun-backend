@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
 from app.core.redis import init_redis, close_redis
+from app.core.config import settings
 from contextlib import asynccontextmanager
 
 # 로거 설정
@@ -9,14 +10,6 @@ from app.core.logging_config import configure_logging
 
 logger = configure_logging()
 
-# 환경 변수에서 설정 읽기
-IS_DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
-
-# CORS 허용 origin 설정 (환경 변수에서 읽기)
-ALLOWED_ORIGINS = os.getenv(
-    'ALLOWED_ORIGINS',
-    'http://localhost:3000,http://localhost:5173'  # 개발 환경 기본값
-).split(',')
 
 # ============= FastAPI 앱 생성 =============
 
@@ -90,11 +83,11 @@ tags_metadata = [
 async def lifespan(app: FastAPI):
     # 시작 시
     logger.info("=" * 60)
-    logger.info("🚀 BootRun API 서버 시작")
+    logger.info(" BootRun API 서버 시작")
     logger.info("=" * 60)
-    logger.info(f"📝 환경: {'개발' if IS_DEBUG else '운영'}")
-    logger.info(f"📚 문서: http://localhost:8000/docs")
-    logger.info(f"📖 ReDoc: http://localhost:8000/redoc")
+    logger.info(f" 환경: {'개발' if settings.debug else '운영'}")
+    logger.info(f" 문서: http://localhost:8000/docs")
+    logger.info(f" ReDoc: http://localhost:8000/redoc")
     logger.info("=" * 60)
     
     # Redis 초기화
@@ -105,7 +98,7 @@ async def lifespan(app: FastAPI):
     # 종료 시
     await close_redis()
     logger.info("=" * 60)
-    logger.info("🛑 BootRun API 서버 종료")
+    logger.info(" BootRun API 서버 종료")
     logger.info("=" * 60)
 
 # FastAPI 앱 인스턴스 생성
@@ -113,59 +106,30 @@ app = FastAPI(
     title="BootRun API",
     description="""
     BootRun - 온라인 교육 플랫폼 API
-    
-    BootRun은 온라인 강의 수강 및 관리를 위한 종합 교육 플랫폼입니다.
-    
-    주요 기능
-    
-    사용자 기능
-    * 인증 - 회원가입, 로그인, 소셜 로그인 (Google, Github)
-    * 강의 관리 - 강의 검색, 필터링, 상세 조회
-    * 수강 - 수강 등록, 학습 진행, 진도율 추적
-    * 미션 - 중간/기말 미션 제출 및 자동 채점
-    * 결제 - 강의 결제, 쿠폰 적용, 환불 요청
-    * 수료증 - 수료증 발급 및 PDF 생성
-    * Q&A - 학습 질문 및 답변
-    
-    관리자 기능
-    * 대시보드 - 전체 통계, 매출 분석, 일별 현황
-    * 사용자 관리 - 회원 조회, 활성화/비활성화, 학습 리포트
-    * 강의 관리 - 강의 생성/수정, 챕터/영상 관리, 공개/비공개 설정
-    * 결제 관리 - 결제 내역 조회, 환불 승인/거절
-    * 쿠폰 관리 - 쿠폰 생성/수정, 사용 현황 조회
-    * 미션 관리 - 미션 생성/수정, 문제 관리
-    
-    기술 스택
-    - Framework: FastAPI 0.120.2+
-    - Language: Python 3.11+
-    - Validation: Pydantic v2
-    - Database: PostgreSQL (계획)
-    - Authentication: JWT Token
 
+    BootRun은 온라인 강의 수강 및 관리를 위한 종합 교육 플랫폼입니다.
+
+    
     인증 방식
     대부분의 API는 JWT 토큰 기반 인증을 사용합니다.
-    
+
     1. 로그인 API로 토큰 발급
     2. Authorization 헤더에 `Bearer {token}` 형식으로 포함
     3. 토큰 만료 시 refresh API로 갱신
-    
-    에러 응답 형식
-    모든 에러는 일관된 JSON 형식으로 반환됩니다:
-    ```json
-    {
-        "error": "ERROR_CODE",
-        "detail": "에러 상세 메시지",
-        "path": "/auth/login"
-    }
-    ```
-    
+
+    Swagger UI에서 테스트하기
+    1. 우측 상단의 'Authorize' 버튼 클릭
+    2. Bearer 토큰 입력 (예: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...)
+    3. 'Authorize' 버튼을 클릭하여 저장
+    4. 이제 인증이 필요한 엔드포인트를 테스트할 수 있습니다
+
     """,
     version="1.0.0",
     openapi_tags=tags_metadata,
     docs_url="/docs",
     redoc_url="/redoc",
     openapi_url="/openapi.json",
-    lifespan=lifespan,  
+    lifespan=lifespan,
     contact={
         "name": "BootRun 개발팀",
         "email": "support@bootrun.com",
@@ -173,6 +137,9 @@ app = FastAPI(
     license_info={
         "name": "MIT License",
     },
+    swagger_ui_parameters={
+        "persistAuthorization": True,
+    }
 )
 
 # ============= CORS 미들웨어 설정 =============
@@ -180,10 +147,19 @@ app = FastAPI(
 # CORS 설정
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization", "Accept", "Origin", "X-Requested-With"],
+    allow_origins=settings.cors_origins,
+    allow_credentials=settings.cors_allow_credentials,
+    allow_methods=settings.cors_allow_methods.split(","),
+    allow_headers=settings.cors_allow_headers.split(","),
+)
+
+# Rate Limiting 미들웨어
+from app.middleware.rate_limit import RateLimitMiddleware
+
+app.add_middleware(
+    RateLimitMiddleware,
+    requests_per_minute=60,
+    burst_size=10
 )
 
 # ============= 예외 핸들러 등록 =============
@@ -250,7 +226,7 @@ logger.info(f"{len(all_routers)}개의 라우터가 등록되었습니다.")
 )
 async def root():
     return {
-        "message": "BootRun API 서버가 정상 작동 중입니다 🚀",
+        "message": "BootRun API 서버가 정상 작동 중입니다",
         "version": "1.0.0",
         "status": "healthy",
         "docs": "/docs",
@@ -279,7 +255,7 @@ if __name__ == "__main__":
         "main:app",
         host="0.0.0.0",
         port=8000,
-        reload=IS_DEBUG,  # 개발 환경에서만 자동 재시작
+        reload=settings.debug,  
         log_level="info",
         log_config=None
     )

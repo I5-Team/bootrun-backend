@@ -1,25 +1,39 @@
 from redis import asyncio as aioredis
+from typing import Optional
+import logging
+
 from app.core.config import settings
 
-# 전역 Redis 클라이언트
-redis_client = aioredis.from_url(
-    settings.redis_url,
-    decode_responses=True,
-)
+logger = logging.getLogger(__name__)
 
-# FastAPI 의존성 주입용 함수
-async def get_redis():
+redis_client: Optional[aioredis.Redis] = None
+
+
+async def get_redis() -> Optional[aioredis.Redis]:
     return redis_client
 
-# 서버 시작 시 연결 테스트
-async def init_redis():
-    try:
-        await redis_client.ping()
-        print("[OK] Redis connection successful")
-    except Exception as e:
-        print(f"[ERROR] Redis connection failed: {e}")
 
-# 서버 종료 시 연결 종료
+async def init_redis():
+    global redis_client
+    try:
+        redis_client = aioredis.from_url(
+            settings.redis_url,
+            decode_responses=True,
+            socket_connect_timeout=5,
+            socket_timeout=5,
+            retry_on_timeout=True,
+            health_check_interval=30,
+        )
+        await redis_client.ping()
+        logger.info('Redis 연결 성공')
+    except Exception as e:
+        logger.error(f'Redis 연결 실패: {e}')
+        redis_client = None
+        logger.warning('Redis 없이 계속 진행합니다 (캐싱 기능 비활성화)')
+
+
 async def close_redis():
-    await redis_client.aclose()
-    print("[OK] Redis connection closed")
+    global redis_client
+    if redis_client:
+        await redis_client.aclose()
+        logger.info('Redis 연결 종료')

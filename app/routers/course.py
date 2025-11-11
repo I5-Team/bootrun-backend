@@ -7,29 +7,19 @@ from app.schemas.course import (
     CourseResponse, CourseDetailResponse,
     CourseListParams, 
     ChapterWithLectures,
-    LectureResponse, CourseMetadataResponse
+    LectureResponse
 )
 from app.exceptions.responses import (
     COURSE_LIST_RESPONSES,
     COURSE_DETAIL_RESPONSES,
     CHAPTER_DETAIL_RESPONSES,      
-    LECTURE_LIST_RESPONSES,          
-    LECTURE_DETAIL_RESPONSES,        
+    LECTURE_LIST_RESPONSES,                 
 )
 from app.core.dependencies import get_current_user_optional, get_current_user, get_db
 from app.models.user import User
 from app.services.course_service import CourseService
 
 router = APIRouter(prefix="/courses", tags=["강의"])
-
-@router.get(
-    "/metadata",
-    response_model=SuccessResponse[CourseMetadataResponse],
-    summary="강의 필터링 메타데이터 조회",
-    responses={200: {"description": "성공"}, **COURSE_LIST_RESPONSES}
-)
-async def get_course_metadata():
-    return CourseService.get_course_metadata()
 
 @router.get(
     "",
@@ -111,24 +101,3 @@ async def get_lectures(
 ):
     service = CourseService(db)
     return await service.get_lectures_by_chapter(course_id, chapter_id)
-
-@router.get(
-    "/{course_id}/chapters/{chapter_id}/lectures/{lecture_id}",
-    response_model=SuccessResponse[LectureResponse],
-    summary="강의 영상 상세 조회",
-    responses={200: {"description": "성공"}, **LECTURE_DETAIL_RESPONSES}
-)
-async def get_lecture(
-    course_id: int,
-    chapter_id: int,
-    lecture_id: int,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    service = CourseService(db)
-    return await service.get_lecture_by_id(
-        course_id, 
-        chapter_id, 
-        lecture_id, 
-        current_user.id
-    )

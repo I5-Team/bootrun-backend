@@ -10,9 +10,9 @@ class UserRole(str, Enum):
     ADMIN = "admin"
 
 class Gender(str, Enum):
-    MALE = "MALE"
-    FEMALE = "FEMALE"
-    OTHER = "OTHER"
+    MALE = "male"
+    FEMALE = "female"
+    OTHER = "other"
 
 class SocialProvider(str, Enum):
     EMAIL = "email"
@@ -47,8 +47,8 @@ class UserCreate(BaseModel):
     )
     gender: Gender = Field(
         ...,
-        description="성별 (MALE, FEMALE, OTHER)", 
-        example="MALE"
+        description="성별 (male, female, other)", 
+        example="male"
     )
     birth_date: date = Field(
         ...,
@@ -63,6 +63,13 @@ class UserCreate(BaseModel):
     # provider와 social_id는 소셜 로그인 시에만 제공됨 (기본값 제거)
     provider: Optional[SocialProvider] = None
     social_id: Optional[str] = None
+
+    @field_validator('gender', mode='before')
+    @classmethod
+    def normalize_gender(cls, v):
+        if isinstance(v, str):
+            return v.lower()
+        return v
 
     @field_validator('password')
     @classmethod
@@ -138,7 +145,7 @@ class UserUpdate(BaseModel):
     gender: Optional[Gender] = Field(
         None,
         description="성별", 
-        example="MALE"
+        example="male"
     )
     birth_date: Optional[date] = Field(
         None,
@@ -162,6 +169,13 @@ class UserUpdate(BaseModel):
         description="새 비밀번호 확인", 
         example="NewPass1234!@"
     )
+
+    @field_validator('gender', mode='before')
+    @classmethod
+    def validate_gender(cls, v):
+        if v is not None and isinstance(v, str):
+            return v.lower()
+        return v
 
     @field_validator('password')
     @classmethod

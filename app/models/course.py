@@ -42,20 +42,20 @@ class Course(Base):
 
     # 기본 정보
     id = Column(Integer, primary_key=True, autoincrement=True, comment="강의 고유 ID")
-    category_type = Column(SQLEnum(CategoryType), nullable=False, comment="카테고리 유형")
-    course_type = Column(SQLEnum(CourseType), nullable=False, default=CourseType.VOD, comment="강의 유형")
+    category_type = Column(SQLEnum(CategoryType, values_callable=lambda obj: [e.value for e in obj]), nullable=False, comment="카테고리 유형")
+    course_type = Column(SQLEnum(CourseType, values_callable=lambda obj: [e.value for e in obj]), nullable=False, default=CourseType.VOD, comment="강의 유형")
     title = Column(String(200), nullable=False, index=True, comment="강의 제목")
     description = Column(Text, nullable=False, comment="강의 설명")
     thumbnail_url = Column(String(500), nullable=False, comment="썸네일 이미지 URL")
-    
+
     # 강사 정보
     instructor_name = Column(String(100), nullable=False, comment="강사명")
     instructor_bio = Column(Text, nullable=False, comment="강사 소개")
     instructor_image = Column(String(500), nullable=False, comment="강사 프로필 이미지 URL")
-    
+
     # 강의 속성
-    difficulty = Column(SQLEnum(Difficulty), nullable=False, comment="난이도")
-    price_type = Column(SQLEnum(PriceType), nullable=False, default=PriceType.PAID, comment="가격 유형")
+    difficulty = Column(SQLEnum(Difficulty, values_callable=lambda obj: [e.value for e in obj]), nullable=False, comment="난이도")
+    price_type = Column(SQLEnum(PriceType, values_callable=lambda obj: [e.value for e in obj]), nullable=False, default=PriceType.PAID, comment="가격 유형")
     price = Column(Integer, nullable=False, default=50000, comment="실제 가격 (원)")
     total_duration = Column(Integer, nullable=False, default=0, comment="전체 강의 시간 (초)")
     
@@ -109,7 +109,7 @@ class Lecture(Base):
     title = Column(String(200), nullable=False, comment="강의 제목")
     description = Column(Text, nullable=True, comment="강의 설명")
     video_url = Column(String(500), nullable=False, comment="동영상 URL")
-    video_type = Column(SQLEnum(VideoType), nullable=False, comment="동영상 타입")
+    video_type = Column(SQLEnum(VideoType, values_callable=lambda obj: [e.value for e in obj]), nullable=False, comment="동영상 타입")
     duration_seconds = Column(Integer, nullable=False, default=0, comment="재생 시간 (초)")
     order_number = Column(Integer, nullable=False, comment="강의 순서")
     

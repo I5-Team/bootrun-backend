@@ -291,3 +291,45 @@ async def delete_lecture(
     db: AsyncSession = Depends(get_db)
 ):
     pass
+async def delete_lecture(course_id: int, chapter_id: int, lecture_id: int):
+    pass
+
+
+@router.post(
+    "/{course_id}/publish",
+    response_model=MessageResponse,
+    summary="강의 공개",
+    description="강의를 공개 상태로 변경합니다.",
+    responses={
+        200: {"description": "강의 공개 완료"},
+        **ADMIN_COURSE_MANAGEMENT_RESPONSES
+    }
+)
+async def publish_course(course_id: int):
+    pass
+
+@router.post(
+    "/{course_id}/unpublish",
+    response_model=MessageResponse,
+    summary="강의 비공개",
+    description="강의를 비공개 상태로 변경합니다.",
+    responses={
+        200: {"description": "강의 비공개 완료"},
+        **ADMIN_COURSE_MANAGEMENT_RESPONSES
+    }
+)
+async def unpublish_course(course_id: int):
+    pass
+
+@router.get(
+    "/{course_id}/analytics",
+    response_model=SuccessResponse[CourseAnalyticsResponse],
+    summary="강의 분석",
+    description="강의의 상세 분석 데이터를 조회합니다.",
+    responses={
+        200: {"description": "강의 분석 조회 성공"},
+        **ADMIN_COURSE_MANAGEMENT_RESPONSES
+    }
+)
+async def get_course_analytics(course_id: int):
+    pass

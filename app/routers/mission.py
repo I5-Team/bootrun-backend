@@ -97,19 +97,3 @@ async def get_mission_progress(
     current_user: User = Depends(get_current_user)
 ):
     pass
-
-@router.get(
-    "/{mission_id}/stats",
-    response_model=SuccessResponse[MissionStats],
-    summary="미션 통계",
-    description="미션의 전체 통계 정보를 조회합니다. (수강생 전체 대상)",
-    responses={
-        200: {"description": "통계 조회 성공"},
-        **ENROLLMENT_ACCESS_RESPONSES
-    }
-)
-async def get_mission_stats(
-    mission_id: int,
-    current_user: User = Depends(get_current_user)
-):
-    pass

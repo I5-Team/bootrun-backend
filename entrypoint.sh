@@ -27,3 +27,8 @@ echo "Migrations completed!"
 # Start the application
 echo "Starting application..."
 exec "$@"
+
+COPY ./entrypoint.sh ./entrypoint.sh
+RUN chmod +x ./entrypoint.sh
+ENTRYPOINT ["./entrypoint.sh"]
+
