@@ -1,19 +1,17 @@
 from fastapi import APIRouter, Depends, status
-from app.schemas.common import MessageResponse, SuccessResponse
+from app.schemas.common import SuccessResponse
 from app.schemas.enrollment import (
     EnrollmentCreate, EnrollmentResponse, EnrollmentDetailResponse,
     EnrollmentPaginatedResponse, MyEnrollmentListParams,
     ProgressCreate, ProgressUpdate, ProgressResponse, 
-    CourseProgressDetail, StudentDashboard, LearningStats
+    CourseProgressDetail, StudentDashboard
 )
 from app.exceptions.responses import (
     ENROLLMENT_CREATE_RESPONSES,
     ENROLLMENT_ACCESS_RESPONSES,
-    ENROLLMENT_CANCEL_RESPONSES,
     PROGRESS_UPDATE_RESPONSES,
     AUTH_RESPONSES,
     READ_RESPONSES,
-    MODIFY_RESPONSES,
 )
 from app.core.dependencies import get_current_user
 from app.models.user import User
@@ -65,34 +63,6 @@ async def get_my_enrollments(
     }
 )
 async def get_enrollment(
-    enrollment_id: int,
-    current_user: User = Depends(get_current_user)
-):
-    pass
-
-@router.delete(
-    "/{enrollment_id}",
-    response_model=MessageResponse,
-    summary="수강 취소",
-    description="수강 등록을 취소합니다. 환불 가능 기간 내에만 취소할 수 있습니다.",
-    responses={
-        200: {"description": "수강 취소 성공"},
-        **ENROLLMENT_CANCEL_RESPONSES,
-        400: {
-            "description": "수강 취소 불가",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "error": "CANCELLATION_NOT_ALLOWED",
-                        "detail": "환불 가능 기간이 지났습니다"
-                    }
-                }
-            }
-        },
-        **READ_RESPONSES
-    }
-)
-async def cancel_enrollment(
     enrollment_id: int,
     current_user: User = Depends(get_current_user)
 ):
@@ -175,17 +145,4 @@ async def get_lecture_progress(
     }
 )
 async def get_student_dashboard(current_user: User = Depends(get_current_user)):
-    pass
-
-@router.get(
-    "/stats",
-    response_model=SuccessResponse[LearningStats],
-    summary="학습 통계",
-    description="학습 시간, 출석 등의 통계 정보를 조회합니다.",
-    responses={
-        200: {"description": "통계 조회 성공"},
-        **AUTH_RESPONSES
-    }
-)
-async def get_learning_stats(current_user: User = Depends(get_current_user)):
     pass

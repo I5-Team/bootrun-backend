@@ -27,8 +27,8 @@ class Mission(Base):
     course_id = Column(Integer, ForeignKey("courses.id", ondelete="CASCADE"), nullable=False, index=True, comment="강의 ID")
     title = Column(String(200), nullable=False, comment="미션 제목")
     description = Column(Text, nullable=False, comment="미션 설명")
-    mission_type = Column(SQLEnum(MissionType), nullable=False, comment="미션 유형")
-    question_type = Column(SQLEnum(QuestionType), nullable=False, comment="문제 유형")
+    mission_type = Column(SQLEnum(MissionType, values_callable=lambda obj: [e.value for e in obj]), nullable=False, comment="미션 유형")
+    question_type = Column(SQLEnum(QuestionType, values_callable=lambda obj: [e.value for e in obj]), nullable=False, comment="문제 유형")
     
     # 문제 데이터
     question_data = Column(JSON, nullable=False, comment="문제 데이터 (JSON 형태)")

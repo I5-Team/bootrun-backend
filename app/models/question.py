@@ -31,10 +31,10 @@ class CourseQuestion(Base):
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now(), comment="수정일시")
 
     # Relationships
-    user = relationship("User", foreign_keys=[user_id], back_populates="course_questions")
+    user = relationship("User", foreign_keys="CourseQuestion.user_id", back_populates="course_questions")
     course = relationship("Course", back_populates="course_questions")
     comments = relationship("Comment", back_populates="question", cascade="all, delete-orphan")
-    deleter = relationship("User", foreign_keys=[deleted_by], back_populates="deleted_questions")
+    deleter = relationship("User", foreign_keys="CourseQuestion.deleted_by", back_populates="deleted_questions")
 
     def __repr__(self):
         return f"<CourseQuestion(id={self.id}, title='{self.title}', answered={self.is_answered})>"
@@ -63,10 +63,10 @@ class Comment(Base):
 
     # Relationships
     question = relationship("CourseQuestion", back_populates="comments")
-    user = relationship("User", foreign_keys=[user_id], back_populates="comments")
-    parent = relationship("Comment", remote_side=[id], back_populates="replies")
+    user = relationship("User", foreign_keys="Comment.user_id", back_populates="comments")
+    parent = relationship("Comment", remote_side="Comment.id", back_populates="replies")
     replies = relationship("Comment", back_populates="parent", cascade="all, delete-orphan")
-    deleter = relationship("User", foreign_keys=[deleted_by], back_populates="deleted_comments")
+    deleter = relationship("User", foreign_keys="Comment.deleted_by", back_populates="deleted_comments")
 
     def __repr__(self):
         return f"<Comment(id={self.id}, question_id={self.question_id}, instructor_answer={self.is_instructor_answer})>"

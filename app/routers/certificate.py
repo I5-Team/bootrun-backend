@@ -81,39 +81,6 @@ async def generate_certificate_pdf(
 ):
     pass
 
-@router.delete(
-    "/{certificate_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-    summary="수료증 삭제",
-    description="수료증을 삭제합니다. 관리자만 가능합니다.",
-    responses={
-        204: {"description": "수료증 삭제 완료"},
-        **AUTH_RESPONSES,
-        **READ_RESPONSES
-    }
-)
-async def delete_certificate(
-    certificate_id: int,
-    admin: User = Depends(get_current_admin)
-):
-    pass
-
-@router.post(
-    "/check-eligibility",
-    response_model=SuccessResponse[CompletionCheckResponse],
-    summary="수료 조건 확인",
-    description="수강 중인 강의의 수료 가능 여부를 확인합니다.",
-    responses={
-        200: {"description": "수료 조건 확인 완료"},
-        **AUTH_RESPONSES
-    }
-)
-async def check_completion_eligibility(
-    data: CompletionCheckRequest,
-    current_user: User = Depends(get_current_user)
-):
-    pass
-
 @router.post(
     "/verify",
     response_model=SuccessResponse[CertificateVerifyResponse],

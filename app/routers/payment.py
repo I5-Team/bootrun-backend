@@ -2,10 +2,8 @@ from fastapi import APIRouter, Depends, status, Path
 from sqlalchemy.orm import Session
 
 from app.schemas.payment import (
-    # Payment schemas
     PaymentCreate, PaymentResponse, PaymentDetailResponse,
     PaymentPaginatedResponse, PaymentListParams, PaymentConfirmRequest,
-    # Refund schemas
     RefundCreate, RefundResponse, RefundCheckResponse
 )
 from app.schemas.common import MessageResponse, SuccessResponse
