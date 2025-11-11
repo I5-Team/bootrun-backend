@@ -1,7 +1,23 @@
 {
   "permissions": {
     "allow": [
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(Get-Process -Name python,uvicorn -ErrorAction SilentlyContinue)",
+      "Bash(Stop-Process -Force -ErrorAction SilentlyContinue)",
+      "Bash(python -m uvicorn:*)",
+      "Bash(timeout:*)",
+      "Bash(exit 0)",
+      "Bash(curl:*)",
+      "Bash(docker restart:*)",
+      "Bash(docker logs:*)",
+      "Bash(python -m json.tool:*)",
+      "Bash(cat:*)",
+      "Bash(docker exec:*)",
+      "Bash(docker-compose build:*)",
+      "Bash(docker-compose up:*)",
+      "Bash(docker-compose down:*)",
+      "Bash(dos2unix:*)",
+      "Bash(sed:*)"
     ],
     "deny": [],
     "ask": []

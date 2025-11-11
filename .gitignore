@@ -108,6 +108,9 @@ secrets/
 *.iws
 .idea_modules/
 
+# Claude Code
+.claude/
+
 
 # =====================================================
 # Docker

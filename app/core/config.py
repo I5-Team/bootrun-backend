@@ -68,7 +68,7 @@ class Settings(BaseSettings):
     # =====================================================
     # JWT 인증 설정
     # =====================================================
-    jwt_secret_key: str = "your_super_secret_jwt_key_change_in_production"
+    jwt_secret_key: str = "your_secret_jwt_key_change_in_production"
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 60
     jwt_refresh_token_expire_days: int = 7
