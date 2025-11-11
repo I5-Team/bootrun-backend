@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.schemas.admin import (
-    CourseManagementListParams, CourseAnalyticsResponse, CourseManagementPaginatedResponse,
+    CourseManagementListParams, CourseManagementPaginatedResponse,
 )
 from app.schemas.common import MessageResponse, SuccessResponse
 from app.schemas.course import (
@@ -126,57 +126,6 @@ async def publish_course(
 )
 async def unpublish_course(
     course_id: int,
-    current_admin: User = Depends(get_current_admin),
-    db: AsyncSession = Depends(get_db)
-):
-    pass
-
-@router.get(
-    "/{course_id}/analytics",
-    response_model=SuccessResponse[CourseAnalyticsResponse],
-    summary="강의 분석",
-    description="강의의 상세 분석 데이터를 조회합니다.",
-    operation_id="admin_get_course_analytics",
-    responses={
-        200: {"description": "강의 분석 조회 성공"},
-        **ADMIN_COURSE_MANAGEMENT_RESPONSES
-    }
-)
-async def get_course_analytics(
-    course_id: int,
-    current_admin: User = Depends(get_current_admin),
-    db: AsyncSession = Depends(get_db)
-):
-    pass
-
-@router.post(
-    "/{course_id}/duplicate",
-    response_model=SuccessResponse[CourseResponse],
-    summary="강의 복제",
-    description="기존 강의를 복제하여 새 강의를 생성합니다.",
-    responses={
-        200: {"description": "강의 복제 성공"},
-        **ADMIN_COURSE_MANAGEMENT_RESPONSES
-    }
-)
-async def duplicate_course(
-    course_id: int,
-    current_admin: User = Depends(get_current_admin),
-    db: AsyncSession = Depends(get_db)
-):
-    pass
-
-@router.get(
-    "/export",
-    summary="강의 목록 내보내기",
-    description="강의 목록을 엑셀 파일로 내보냅니다.",
-    responses={
-        200: {"description": "강의 목록 내보내기 완료"},
-        **ADMIN_RESPONSES
-    }
-)
-async def export_courses(
-    params: CourseManagementListParams = Depends(),
     current_admin: User = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db)
 ):

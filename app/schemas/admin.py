@@ -207,44 +207,6 @@ class CourseManagementResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-class CourseAnalyticsResponse(BaseModel):
-    course_id: int
-    course_title: str
-    
-    # 수강생 통계
-    total_enrollments: int
-    active_enrollments: int
-    completed_enrollments: int
-    
-    # 진도 통계
-    avg_progress_rate: float
-    completion_rate: float  # 수료율 (%)
-    
-    # 학습 시간 통계
-    total_study_time: int  # 전체 학생 합계 (분)
-    avg_study_time: float  # 학생당 평균 (분)
-    
-    # 미션 통계
-    total_missions: int
-    avg_mission_pass_rate: float  # 평균 미션 통과율
-    
-    # 매출 통계
-    total_revenue: int
-    refund_count: int
-    refund_amount: int
-    net_revenue: int
-    
-    # Q&A 통계
-    total_questions: int
-    answered_questions: int
-    answer_rate: float
-    
-    # 기간별 통계 (선택)
-    daily_stats: Optional[List[dict[str, Any]]] = None
-    
-    class Config:
-        from_attributes = True
-
 # ============= 결제 관리 =============
 class PaymentManagementListParams(BaseModel):
     status: Optional[str] = Field(
