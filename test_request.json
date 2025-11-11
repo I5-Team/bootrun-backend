@@ -1,0 +1,8 @@
+{
+  "email": "test@example.com",
+  "password": "Test1234!@",
+  "password_confirm": "Test1234!@",
+  "nickname": "테스터",
+  "gender": "male",
+  "birth_date": "1995-01-01"
+}

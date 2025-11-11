@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Query, Depends, HTTPException
+from fastapi import APIRouter, Query, Depends, HTTPException, UploadFile, File
 
 from app.schemas.user import (
     UserResponse, UserUpdate, PasswordChangeRequest,
     NotificationResponse,
     UserProfileResponse
 )
-from app.schemas.common import MessageResponse, PaginatedResponse, SuccessResponse
+from app.schemas.common import MessageResponse, PaginatedResponse, SuccessResponse, ProfileImageUploadResponse
 from app.exceptions.responses import (
     USER_UPDATE_RESPONSES,
     AUTH_RESPONSES,
@@ -219,6 +219,96 @@ async def delete_account(
         return MessageResponse(
             success=True,
             message="회원 탈퇴가 완료되었습니다"
+        )
+    except BaseAPIException as e:
+        raise HTTPException(
+            status_code=e.status_code,
+            detail={"error_code": e.error_code, "message": e.detail}
+        )
+
+@router.post(
+    "/me/profile-image",
+    response_model=SuccessResponse[ProfileImageUploadResponse],
+    summary="프로필 이미지 업로드",
+    description="현재 로그인한 사용자의 프로필 이미지를 업로드합니다.",
+    responses={
+        200: {
+            "description": "프로필 이미지 업로드 성공",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "success": True,
+                        "message": "프로필 이미지가 업로드되었습니다",
+                        "data": {
+                            "image_url": "/uploads/profiles/abc123.jpg",
+                            "file_size": 102400,
+                            "uploaded_at": "2025-01-10T12:00:00Z"
+                        }
+                    }
+                }
+            }
+        },
+        **AUTH_RESPONSES,
+        400: {
+            "description": "잘못된 요청 (파일 크기 초과, 지원하지 않는 형식)",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": "BAD_REQUEST",
+                        "detail": "파일 크기는 5MB를 초과할 수 없습니다"
+                    }
+                }
+            }
+        }
+    }
+)
+async def upload_profile_image(
+    file: UploadFile = File(..., description="업로드할 프로필 이미지 파일 (JPG, PNG, GIF, WEBP, 최대 5MB)"),
+    current_user: User = Depends(get_current_user),
+    user_service: UserService = Depends(get_user_service)
+):
+    try:
+        result = await user_service.upload_profile_image(current_user.id, file)
+        return SuccessResponse(
+            success=True,
+            message="프로필 이미지가 업로드되었습니다",
+            data=result
+        )
+    except BaseAPIException as e:
+        raise HTTPException(
+            status_code=e.status_code,
+            detail={"error_code": e.error_code, "message": e.detail}
+        )
+
+@router.delete(
+    "/me/profile-image",
+    response_model=MessageResponse,
+    summary="프로필 이미지 삭제",
+    description="현재 로그인한 사용자의 프로필 이미지를 삭제하고 기본 이미지로 변경합니다.",
+    responses={
+        200: {
+            "description": "프로필 이미지 삭제 성공",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "success": True,
+                        "message": "프로필 이미지가 삭제되었습니다"
+                    }
+                }
+            }
+        },
+        **AUTH_RESPONSES
+    }
+)
+async def delete_profile_image(
+    current_user: User = Depends(get_current_user),
+    user_service: UserService = Depends(get_user_service)
+):
+    try:
+        await user_service.delete_profile_image(current_user.id)
+        return MessageResponse(
+            success=True,
+            message="프로필 이미지가 삭제되었습니다"
         )
     except BaseAPIException as e:
         raise HTTPException(
