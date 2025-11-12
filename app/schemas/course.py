@@ -181,14 +181,14 @@ class CourseDetailResponse(BaseModel):
     total_duration: int
     faq: Optional[str]
     is_published: bool
-    enrollment_count: int
+    enrollment_count: int = 0
     created_at: datetime
     updated_at: datetime
     # 추가 정보
     chapters: List['ChapterWithLectures'] = []
     is_enrolled: bool = False
     my_progress: Optional[float] = None
-    
+
     class Config:
         from_attributes = True
 
@@ -266,9 +266,9 @@ class ChapterWithLectures(BaseModel):
     title: str
     description: Optional[str]
     order_number: int
-    total_duration: int
+    total_duration: int = 0
     lectures: List['LectureResponse'] = []
-    
+
     class Config:
         from_attributes = True
 
