@@ -11,11 +11,14 @@ from pydantic import ValidationError
 
 from .base import BaseAPIException
 
+
+# 환경 변수 
+from app.core.config import settings
+IS_DEBUG = settings.debug
+
 # 로거 설정
 logger = logging.getLogger('bootrun')
 
-# 환경 변수 (개발/운영 환경 구분)
-IS_DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
 
 # ============= 1. 커스텀 예외 핸들러 =============
 

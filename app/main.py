@@ -257,5 +257,4 @@ if __name__ == "__main__":
         port=8000,
         reload=settings.debug,  
         log_level="info",
-        log_config=None
-    )
+        )

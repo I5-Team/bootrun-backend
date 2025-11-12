@@ -166,15 +166,31 @@ class LectureNotFoundError(NotFoundError):
 
 # 수강 등록 도메인
 class AlreadyEnrolledError(ConflictError):
-    
+
     def __init__(
         self,
         detail: str = '이미 등록한 강의입니다'
     ) -> None:
         super().__init__(detail=detail)
 
+class EnrollmentAlreadyExistsError(ConflictError):
+
+    def __init__(
+        self,
+        detail: str = '이미 수강 등록된 강의입니다'
+    ) -> None:
+        super().__init__(detail=detail)
+
+class EnrollmentNotFoundError(NotFoundError):
+
+    def __init__(
+        self,
+        detail: str = '수강 등록 정보를 찾을 수 없습니다'
+    ) -> None:
+        super().__init__(detail=detail)
+
 class EnrollmentRequiredError(ForbiddenError):
-    
+
     def __init__(
         self,
         detail: str = '수강 등록이 필요합니다'
@@ -186,6 +202,14 @@ class EnrollmentExpiredError(GoneError):
     def __init__(
         self,
         detail: str = '수강 기간이 만료되었습니다'
+    ) -> None:
+        super().__init__(detail=detail)
+
+class ProgressNotFoundError(NotFoundError):
+
+    def __init__(
+        self,
+        detail: str = '학습 진행 기록을 찾을 수 없습니다'
     ) -> None:
         super().__init__(detail=detail)
 

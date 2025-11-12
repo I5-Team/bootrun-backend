@@ -7,18 +7,27 @@ from cryptography.fernet import Fernet
 
 from app.core.config import settings
 
-# bcrypt를 사용하는 비밀번호 해싱 컨텍스트
-pwd_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
+import bcrypt
+
+# bcrypt를 직접 사용 (passlib 우회)
+def _hash_with_bcrypt(password: str) -> str:
+    """bcrypt로 직접 해싱"""
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')       
+
+def _verify_with_bcrypt(plain_password: str, hashed_password: str) -> bool:    
+    """bcrypt로 직접 검증"""
+    return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
 
 def hash_password(password: str) -> str:
     if len(password.encode('utf-8')) > 72:
         raise ValueError("비밀번호는 72바이트를 초과할 수 없습니다.")
-    return pwd_context.hash(password)
+    return _hash_with_bcrypt(password)
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
+def verify_password(plain_password: str, hashed_password: str) -> bool:        
     if len(plain_password.encode('utf-8')) > 72:
         return False
-    return pwd_context.verify(plain_password, hashed_password)
+    return _verify_with_bcrypt(plain_password, hashed_password)
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
@@ -103,7 +112,7 @@ def decode_token(token: str, token_type: str) -> Optional[dict]:
         return None
 
 def create_email_verification_token(user_id: int) -> str:
-    to_encode = {'sub': user_id}
+    to_encode = {'sub': str(user_id)}
     expire = datetime.now(timezone.utc) + timedelta(hours=24)
 
     to_encode.update({
@@ -138,12 +147,12 @@ def verify_email_verification_token(token: str) -> Optional[int]:
         if user_id is None:
             return None
 
-        return user_id
+        return int(user_id)
     except JWTError:
         return None
 
 def create_password_reset_token(user_id: int) -> str:
-    to_encode = {'sub': user_id}
+    to_encode = {'sub': str(user_id)}
     expire = datetime.now(timezone.utc) + timedelta(
         minutes=settings.jwt_reset_password_token_expire_minutes
     )
@@ -180,7 +189,7 @@ def verify_password_reset_token(token: str) -> Optional[int]:
         if user_id is None:
             return None
 
-        return user_id
+        return int(user_id)
     except JWTError:
         return None
 

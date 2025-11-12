@@ -112,6 +112,7 @@ class Lecture(Base):
     video_type = Column(SQLEnum(VideoType, values_callable=lambda obj: [e.value for e in obj]), nullable=False, comment="동영상 타입")
     duration_seconds = Column(Integer, nullable=False, default=0, comment="재생 시간 (초)")
     order_number = Column(Integer, nullable=False, comment="강의 순서")
+    material_url = Column(String(500), nullable=True, comment="강의 자료 URL")
     
     # 타임스탬프
     created_at = Column(DateTime, nullable=False, server_default=func.now(), comment="생성일시")

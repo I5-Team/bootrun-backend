@@ -24,6 +24,7 @@ router = APIRouter(prefix="/admin/payments", tags=["관리자 - 결제 및 환�
     response_model=PaymentManagementPaginatedResponse,
     summary="결제 목록 조회",
     description="전체 결제 내역을 조회합니다.",
+    operation_id="admin_get_payments",
     responses={
         200: {"description": "결제 목록 조회 성공"},
         **ADMIN_RESPONSES
@@ -107,6 +108,7 @@ async def get_refunds(
     response_model=SuccessResponse[RefundResponse],
     summary="환불 상세 조회",
     description="환불 요청의 상세 정보를 조회합니다.",
+    operation_id="admin_get_refund",
     responses={
         200: {"description": "환불 상세 조회 성공"},
         **ADMIN_REFUND_DETAIL_RESPONSES

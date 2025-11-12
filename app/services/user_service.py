@@ -97,11 +97,11 @@ class UserService:
             email=data.email,
             password_hash=hashed_pwd,
             nickname=data.nickname,
-            gender=data.gender,
+            gender=data.gender.value,
             birth_date=data.birth_date,
             profile_image=data.profile_image,
-            role=UserRole.STUDENT,
-            social_provider=data.provider if data.provider else SocialProvider.EMAIL,
+            role=UserRole.STUDENT.value,
+            social_provider=(data.provider.value if data.provider else SocialProvider.EMAIL.value),
             social_id=data.social_id,
             is_active=True,
             is_email_verified=False,
@@ -287,12 +287,12 @@ class UserService:
                 user = User(
                     email=email,
                     nickname=generated_nickname,
-                    social_provider=provider,
+                    social_provider=provider.value,
                     social_id=social_id,
-                    role=UserRole.STUDENT,
+                    role=UserRole.STUDENT.value,
                     is_active=True,
                     is_email_verified=True,
-                    gender=Gender.OTHER,
+                    gender=Gender.OTHER.value,
                     birth_date=datetime(2000, 1, 1).date(),
                     created_at=get_current_utc_datetime(),
                     updated_at=get_current_utc_datetime(),
@@ -374,7 +374,7 @@ class UserService:
             user.nickname = data.nickname
 
         if data.gender:
-            user.gender = data.gender
+            user.gender = data.gender.value
 
         if data.birth_date:
             user.birth_date = data.birth_date

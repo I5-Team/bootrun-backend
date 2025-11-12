@@ -25,6 +25,7 @@ router = APIRouter(prefix="/courses", tags=["강의"])
     "",
     response_model=PaginatedResponse[CourseResponse],
     summary="강의 목록 조회",
+    operation_id="user_get_courses",
     responses={200: {"description": "성공"}, **COURSE_LIST_RESPONSES}
 )
 async def get_courses(
@@ -47,6 +48,7 @@ async def get_courses(
     "/{course_id}",
     response_model=SuccessResponse[CourseDetailResponse],
     summary="강의 상세 조회",
+    operation_id="user_get_course",
     responses={200: {"description": "성공"}, **COURSE_DETAIL_RESPONSES}
 )
 async def get_course(
@@ -56,7 +58,12 @@ async def get_course(
 ):
     service = CourseService(db)
     user_id = current_user.id if current_user else None
-    return await service.get_course_by_id(course_id, user_id)
+    course = await service.get_course_by_id(course_id, user_id)
+    return SuccessResponse(
+        success=True,
+        message="강의 상세 조회 성공",
+        data=course
+    )
 
 @router.get(
     "/{course_id}/chapters",
@@ -71,7 +78,11 @@ async def get_chapters(
 ):
     service = CourseService(db)
     course_detail = await service.get_course_by_id(course_id, None)
-    return course_detail.chapters
+    return SuccessResponse(
+        success=True,
+        message="챕터 목록 조회 성공",
+        data=course_detail.chapters
+    )
 
 @router.get(
     "/{course_id}/chapters/{chapter_id}",
@@ -85,7 +96,12 @@ async def get_chapter(
     db: AsyncSession = Depends(get_db)
 ):
     service = CourseService(db)
-    return await service.get_chapter_by_id(course_id, chapter_id)
+    chapter = await service.get_chapter_by_id(course_id, chapter_id)
+    return SuccessResponse(
+        success=True,
+        message="챕터 상세 조회 성공",
+        data=chapter
+    )
 
 @router.get(
     "/{course_id}/chapters/{chapter_id}/lectures",
@@ -100,4 +116,9 @@ async def get_lectures(
     current_user: Optional[User] = Depends(get_current_user_optional)
 ):
     service = CourseService(db)
-    return await service.get_lectures_by_chapter(course_id, chapter_id)
+    lectures = await service.get_lectures_by_chapter(course_id, chapter_id)
+    return SuccessResponse(
+        success=True,
+        message="강의 영상 목록 조회 성공",
+        data=lectures
+    )

@@ -61,6 +61,7 @@ async def create_payment(
     response_model=PaymentPaginatedResponse,
     summary="결제 목록 조회",
     description="사용자의 결제 내역을 조회합니다.",
+    operation_id="user_get_payments",
     responses={
         200: {"description": "결제 목록 조회 성공"},
         **AUTH_RESPONSES
@@ -248,6 +249,7 @@ async def get_my_refunds(
     response_model=SuccessResponse[RefundResponse],
     summary="환불 상세 조회",
     description="특정 환불 요청의 상세 정보를 조회합니다.",
+    operation_id="user_get_refund",
     responses={
         200: {"description": "환불 상세 조회 성공"},
         **AUTH_PERMISSION_RESPONSES

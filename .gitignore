@@ -108,6 +108,9 @@ secrets/
 *.iws
 .idea_modules/
 
+# Claude Code
+.claude/
+
 
 # =====================================================
 # Docker
@@ -271,3 +274,6 @@ certs/
 # Keep important files (exceptions to ignore rules)
 # If you need to track specific files, use:
 # !path/to/important/file
+
+.cluderc
+.claude/

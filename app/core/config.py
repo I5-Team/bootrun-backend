@@ -68,7 +68,7 @@ class Settings(BaseSettings):
     # =====================================================
     # JWT 인증 설정
     # =====================================================
-    jwt_secret_key: str = "your_super_secret_jwt_key_change_in_production"
+    jwt_secret_key: str = "your_secret_jwt_key_change_in_production"
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 60
     jwt_refresh_token_expire_days: int = 7
@@ -77,6 +77,13 @@ class Settings(BaseSettings):
 
     # Fernet 암호화 키 (환경변수 필수)
     fernet_key: str = Field(...)
+
+    # =====================================================
+    # 초기 관리자 계정 설정 (환경변수 필수)
+    # =====================================================
+    initial_admin_email: str = Field(...)
+    initial_admin_password: str = Field(...)
+    initial_admin_nickname: str = Field(default="관리자")
 
     # =====================================================
     # OpenAI / LangChain 챗봇 설정
