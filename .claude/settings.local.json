@@ -27,7 +27,9 @@
       "Bash(ping:*)",
       "Bash(nul)",
       "Bash(openapi_temp.json)",
-      "Bash(del openapi_temp.json)"
+      "Bash(del openapi_temp.json)",
+      "Bash(del nul)",
+      "Bash(rm:*)"
     ],
     "deny": [],
     "ask": []
