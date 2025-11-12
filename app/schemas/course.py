@@ -194,14 +194,26 @@ class CourseDetailResponse(BaseModel):
 
 class CourseListParams(BaseModel):
     category_id: Optional[int] = None
-    category_type: Optional[CategoryType] = None
-    course_type: Optional[CourseType] = Field(
+    category_types: Optional[List[CategoryType]] = Field(
         None,
-        description="강의 유형 (vod, boost_community, kdc)",
-        example="vod"
+        description="강의 카테고리 (여러 개 선택 가능)",
+        example=["frontend", "backend"]
     )
-    difficulty: Optional[Difficulty] = None
-    price_type: Optional[PriceType] = None
+    course_types: Optional[List[CourseType]] = Field(
+        None,
+        description="강의 유형 (여러 개 선택 가능)",
+        example=["vod", "kdc"]
+    )
+    difficulties: Optional[List[Difficulty]] = Field(
+        None,
+        description="난이도 (여러 개 선택 가능)",
+        example=["beginner", "intermediate"]
+    )
+    price_types: Optional[List[PriceType]] = Field(
+        None,
+        description="가격 유형 (여러 개 선택 가능)",
+        example=["free", "paid"]
+    )
     keyword: Optional[str] = Field(
         None,
         description="검색 키워드 (강의명, 강의 설명)",

@@ -63,17 +63,17 @@ class CourseService:
         )
         
         # 필터링
-        if params.category_type:
-            query = query.where(Course.category_type == params.category_type)
+        if params.category_types:
+            query = query.where(Course.category_type.in_(params.category_types))
 
-        if params.course_type:
-            query = query.where(Course.course_type == params.course_type)
+        if params.course_types:
+            query = query.where(Course.course_type.in_(params.course_types))
 
-        if params.difficulty:
-            query = query.where(Course.difficulty == params.difficulty)
+        if params.difficulties:
+            query = query.where(Course.difficulty.in_(params.difficulties))
 
-        if params.price_type:
-            query = query.where(Course.price_type == params.price_type)
+        if params.price_types:
+            query = query.where(Course.price_type.in_(params.price_types))
         
         if params.is_published is not None:
             query = query.where(Course.is_published == params.is_published)
