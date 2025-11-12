@@ -521,7 +521,7 @@ async def verify_token(current_user: User = Depends(get_current_user)):
     }
 )
 async def refresh_token(
-    authorization: str = Header(..., description="Bearer {refresh_token}"),
+    authorization: str = Header(..., alias="Authorization", description="Bearer {refresh_token}"),
     user_service: UserService = Depends(get_user_service)
 ):
     try:
