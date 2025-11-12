@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, status, Path
 from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.schemas.payment import (
     PaymentCreate, PaymentResponse, PaymentDetailResponse,
@@ -18,6 +19,7 @@ from app.exceptions.responses import (
 from app.core.dependencies import get_current_user, get_current_active_user
 from app.core.database import get_db
 from app.models.user import User
+from app.services.payment_service import PaymentService, RefundService
 
 router = APIRouter(prefix="/payments", tags=["결제 및 환불"])
 
@@ -37,10 +39,22 @@ router = APIRouter(prefix="/payments", tags=["결제 및 환불"])
 async def create_payment(
     data: PaymentCreate,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
-    # TODO: 서비스 로직 구현
-    pass
+    """
+    강의 결제 생성
+    - 강의 존재 여부 확인
+    - 이미 결제한 강의인지 확인
+    - 결제 레코드 생성
+    """
+    service = PaymentService(db)
+    payment = await service.create_payment(
+        user_id=current_user.id,
+        data=data,
+        current_user_id=current_user.id
+    )
+    await db.commit()
+    return SuccessResponse(data=payment)
 
 @router.get(
     "",
@@ -55,10 +69,16 @@ async def create_payment(
 async def get_payments(
     params: PaymentListParams = Depends(),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
-    # TODO: 서비스 로직 구현
-    pass
+    """
+    사용자의 결제 내역 조회
+    - 필터링: 상태, 결제 방식, 날짜 범위
+    - 검색: 강의명
+    - 페이지네이션
+    """
+    service = PaymentService(db)
+    return await service.get_payments(current_user.id, params)
 
 @router.get(
     "/{payment_id}",
@@ -73,10 +93,16 @@ async def get_payments(
 async def get_payment(
     payment_id: int = Path(..., gt=0, description="결제 ID"),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
-    # TODO: 서비스 로직 구현
-    pass
+    """
+    결제 상세 조회
+    - 사용자 권한 확인
+    - 환불 가능 여부 계산
+    """
+    service = PaymentService(db)
+    payment = await service.get_payment(payment_id, current_user.id)
+    return SuccessResponse(data=payment)
 
 @router.post(
     "/{payment_id}/confirm",
@@ -89,13 +115,25 @@ async def get_payment(
     }
 )
 async def confirm_payment(
+    data: PaymentConfirmRequest,
     payment_id: int = Path(..., gt=0, description="결제 ID"),
-    data: PaymentConfirmRequest = ...,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
-    # TODO: 서비스 로직 구현
-    pass
+    """
+    결제 확인
+    - 결제 상태를 COMPLETED로 변경
+    - transaction_id 저장
+    - enrollment 생성
+    """
+    service = PaymentService(db)
+    payment = await service.confirm_payment(
+        payment_id,
+        current_user.id,
+        data
+    )
+    await db.commit()
+    return SuccessResponse(data=payment)
 
 @router.post(
     "/{payment_id}/cancel",
@@ -121,10 +159,16 @@ async def confirm_payment(
 async def cancel_payment(
     payment_id: int = Path(..., gt=0, description="결제 ID"),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
-    # TODO: 서비스 로직 구현
-    pass
+    """
+    결제 취소
+    - 완료되지 않은 결제만 취소 가능
+    """
+    service = PaymentService(db)
+    result = await service.cancel_payment(payment_id, current_user.id)
+    await db.commit()
+    return MessageResponse(message=result["message"])
 
 @router.get(
     "/{payment_id}/refund-check",
@@ -139,10 +183,16 @@ async def cancel_payment(
 async def check_refund_eligibility(
     payment_id: int = Path(..., gt=0, description="결제 ID"),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
-    # TODO: 서비스 로직 구현
-    pass
+    """
+    환불 가능 여부 확인
+    - 구매일 1주 이내
+    - 진도율 10% 미만
+    """
+    service = PaymentService(db)
+    refund_check = await service.check_refund_eligibility(payment_id, current_user.id)
+    return SuccessResponse(data=refund_check)
 
 # ============= 환불 API =============
 
@@ -160,10 +210,17 @@ async def check_refund_eligibility(
 async def create_refund(
     data: RefundCreate,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
-    # TODO: 서비스 로직 구현
-    pass
+    """
+    환불 요청 생성
+    - 환불 가능 여부 확인
+    - 환불 요청 레코드 생성
+    """
+    service = RefundService(db)
+    refund = await service.create_refund(current_user.id, data)
+    await db.commit()
+    return SuccessResponse(data=refund, status_code=status.HTTP_201_CREATED)
 
 @router.get(
     "/refunds/my",
@@ -177,10 +234,14 @@ async def create_refund(
 )
 async def get_my_refunds(
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
-    # TODO: 서비스 로직 구현
-    pass
+    """
+    사용자의 환불 요청 목록 조회
+    """
+    service = RefundService(db)
+    refunds = await service.get_my_refunds(current_user.id)
+    return SuccessResponse(data=refunds)
 
 @router.get(
     "/refunds/{refund_id}",
@@ -195,10 +256,15 @@ async def get_my_refunds(
 async def get_refund(
     refund_id: int = Path(..., gt=0, description="환불 ID"),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
-    # TODO: 서비스 로직 구현
-    pass
+    """
+    환불 상세 조회
+    - 사용자 권한 확인
+    """
+    service = RefundService(db)
+    refund = await service.get_refund(refund_id, current_user.id)
+    return SuccessResponse(data=refund)
 
 @router.delete(
     "/refunds/{refund_id}",
@@ -224,7 +290,13 @@ async def get_refund(
 async def cancel_refund(
     refund_id: int = Path(..., gt=0, description="환불 ID"),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
-    # TODO: 서비스 로직 구현
-    pass
+    """
+    환불 요청 취소
+    - 대기 중인 환불만 취소 가능
+    """
+    service = RefundService(db)
+    result = await service.cancel_refund(refund_id, current_user.id)
+    await db.commit()
+    return MessageResponse(message=result["message"])
