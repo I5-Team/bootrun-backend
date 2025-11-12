@@ -229,9 +229,11 @@ class EnrollmentService:
     ) -> ProgressResponse:
         """학습 진행 생성"""
 
-        # 강의 영상 존재 확인
+        # 강의 영상 존재 확인 (chapter와 course_id도 함께 로드)
         lecture_result = await self.db.execute(
-            select(Lecture).where(Lecture.id == data.lecture_id)
+            select(Lecture)
+            .options(joinedload(Lecture.chapter))
+            .where(Lecture.id == data.lecture_id)
         )
         lecture = lecture_result.scalar_one_or_none()
 
@@ -284,10 +286,13 @@ class EnrollmentService:
     ) -> ProgressResponse:
         """학습 진행 업데이트"""
 
-        # 진행 기록 조회
+        # 진행 기록 조회 (lecture와 chapter도 함께 로드)
         result = await self.db.execute(
             select(Progress)
-            .options(joinedload(Progress.lecture))
+            .options(
+                joinedload(Progress.lecture)
+                .joinedload(Lecture.chapter)
+            )
             .where(
                 Progress.user_id == user_id,
                 Progress.lecture_id == lecture_id

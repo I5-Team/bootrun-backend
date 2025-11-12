@@ -79,6 +79,13 @@ class Settings(BaseSettings):
     fernet_key: str = Field(...)
 
     # =====================================================
+    # 초기 관리자 계정 설정 (환경변수 필수)
+    # =====================================================
+    initial_admin_email: str = Field(...)
+    initial_admin_password: str = Field(...)
+    initial_admin_nickname: str = Field(default="관리자")
+
+    # =====================================================
     # OpenAI / LangChain 챗봇 설정
     # =====================================================
     openai_api_key: str = "sk-your_openai_api_key_here"

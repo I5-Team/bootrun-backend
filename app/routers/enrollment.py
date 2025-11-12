@@ -60,6 +60,24 @@ async def get_my_enrollments(
     return await service.get_my_enrollments(current_user.id, params)
 
 @router.get(
+    "/dashboard",
+    response_model=SuccessResponse[StudentDashboard],
+    summary="학습자 대시보드",
+    description="학습자의 전체 학습 현황을 요약하여 보여줍니다.",
+    responses={
+        200: {"description": "대시보드 조회 성공"},
+        **AUTH_RESPONSES
+    }
+)
+async def get_student_dashboard(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    service = EnrollmentService(db)
+    result = await service.get_student_dashboard(current_user.id)
+    return SuccessResponse(data=result)
+
+@router.get(
     "/{enrollment_id}",
     response_model=SuccessResponse[EnrollmentDetailResponse],
     summary="수강 상세 조회",
@@ -155,22 +173,4 @@ async def get_lecture_progress(
 ):
     service = EnrollmentService(db)
     result = await service.get_lecture_progress(current_user.id, lecture_id)
-    return SuccessResponse(data=result)
-
-@router.get(
-    "/dashboard",
-    response_model=SuccessResponse[StudentDashboard],
-    summary="학습자 대시보드",
-    description="학습자의 전체 학습 현황을 요약하여 보여줍니다.",
-    responses={
-        200: {"description": "대시보드 조회 성공"},
-        **AUTH_RESPONSES
-    }
-)
-async def get_student_dashboard(
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
-):
-    service = EnrollmentService(db)
-    result = await service.get_student_dashboard(current_user.id)
     return SuccessResponse(data=result)

@@ -112,7 +112,7 @@ def decode_token(token: str, token_type: str) -> Optional[dict]:
         return None
 
 def create_email_verification_token(user_id: int) -> str:
-    to_encode = {'sub': user_id}
+    to_encode = {'sub': str(user_id)}
     expire = datetime.now(timezone.utc) + timedelta(hours=24)
 
     to_encode.update({
@@ -147,12 +147,12 @@ def verify_email_verification_token(token: str) -> Optional[int]:
         if user_id is None:
             return None
 
-        return user_id
+        return int(user_id)
     except JWTError:
         return None
 
 def create_password_reset_token(user_id: int) -> str:
-    to_encode = {'sub': user_id}
+    to_encode = {'sub': str(user_id)}
     expire = datetime.now(timezone.utc) + timedelta(
         minutes=settings.jwt_reset_password_token_expire_minutes
     )
@@ -189,7 +189,7 @@ def verify_password_reset_token(token: str) -> Optional[int]:
         if user_id is None:
             return None
 
-        return user_id
+        return int(user_id)
     except JWTError:
         return None
 
