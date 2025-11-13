@@ -12,6 +12,8 @@ from app.exceptions.responses import (
     PAYMENT_CREATE_RESPONSES,
     PAYMENT_CONFIRM_RESPONSES,
     REFUND_CREATE_RESPONSES,
+    REFUND_GET_RESPONSES,
+    REFUND_CANCEL_RESPONSES,
     AUTH_RESPONSES,
     AUTH_PERMISSION_RESPONSES,
     MODIFY_RESPONSES,
@@ -290,6 +292,55 @@ async def get_refund(
     }
 )
 async def cancel_refund(
+    refund_id: int = Path(..., gt=0, description="환불 ID"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    환불 요청 취소
+    - 대기 중인 환불만 취소 가능
+    """
+    service = RefundService(db)
+    result = await service.cancel_refund(refund_id, current_user.id)
+    await db.commit()
+    return MessageResponse(message=result["message"])
+
+@router.get(
+    "/refunds/{refund_id}/details",
+    response_model=SuccessResponse[RefundResponse],
+    summary="환불 상세 조회 (v2)",
+    description="특정 환불 요청의 상세 정보를 조회합니다.",
+    operation_id="user_get_refund_details",
+    responses={
+        200: {"description": "환불 상세 조회 성공"},
+        **REFUND_GET_RESPONSES
+    }
+)
+async def get_refund_details(
+    refund_id: int = Path(..., gt=0, description="환불 ID"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    환불 상세 조회
+    - 사용자 권한 확인
+    """
+    service = RefundService(db)
+    refund = await service.get_refund(refund_id, current_user.id)
+    return SuccessResponse(data=refund)
+
+@router.delete(
+    "/refunds/{refund_id}/cancel",
+    response_model=MessageResponse,
+    summary="환불 요청 취소 (v2)",
+    description="대기 중인 환불 요청을 취소합니다.",
+    operation_id="user_cancel_refund_v2",
+    responses={
+        200: {"description": "환불 요청 취소 완료"},
+        **REFUND_CANCEL_RESPONSES
+    }
+)
+async def cancel_refund_v2(
     refund_id: int = Path(..., gt=0, description="환불 ID"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)

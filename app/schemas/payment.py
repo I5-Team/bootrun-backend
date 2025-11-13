@@ -7,7 +7,7 @@ from enum import Enum
 class PaymentMethod(str, Enum):
     CARD = "card"
     TRANSFER = "transfer"
-    EASY = "easy"
+    TOSS = "toss"
 
 class PaymentStatus(str, Enum):
     PENDING = "pending"
