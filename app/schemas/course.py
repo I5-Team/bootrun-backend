@@ -1,7 +1,8 @@
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Annotated
 from datetime import datetime
 from enum import Enum
+from fastapi import Query
 
 # Enums
 class CategoryType(str, Enum):
@@ -192,36 +193,38 @@ class CourseDetailResponse(BaseModel):
     class Config:
         from_attributes = True
 
-class CourseListParams(BaseModel):
-    category_id: Optional[int] = None
-    category_types: Optional[List[CategoryType]] = Field(
-        None,
-        description="강의 카테고리 (여러 개 선택 가능)",
-        example=["frontend", "backend"]
-    )
-    course_types: Optional[List[CourseType]] = Field(
-        None,
-        description="강의 유형 (여러 개 선택 가능)",
-        example=["vod", "kdc"]
-    )
-    difficulties: Optional[List[Difficulty]] = Field(
-        None,
-        description="난이도 (여러 개 선택 가능)",
-        example=["beginner", "intermediate"]
-    )
-    price_types: Optional[List[PriceType]] = Field(
-        None,
-        description="가격 유형 (여러 개 선택 가능)",
-        example=["free", "paid"]
-    )
-    keyword: Optional[str] = Field(
-        None,
-        description="검색 키워드 (강의명, 강의 설명)",
-        example="FastAPI"
-    )
-    is_published: Optional[bool] = True
-    page: int = Field(default=1, ge=1)
-    page_size: int = Field(default=20, ge=1, le=100)
+class CourseListParams:
+    def __init__(
+        self,
+        category_id: Optional[int] = None,
+        category_types: Annotated[Optional[List[CategoryType]], Query(
+            description="강의 카테고리 (여러 개 선택 가능)"
+        )] = None,
+        course_types: Annotated[Optional[List[CourseType]], Query(
+            description="강의 유형 (여러 개 선택 가능)"
+        )] = None,
+        difficulties: Annotated[Optional[List[Difficulty]], Query(
+            description="난이도 (여러 개 선택 가능)"
+        )] = None,
+        price_types: Annotated[Optional[List[PriceType]], Query(
+            description="가격 유형 (여러 개 선택 가능)"
+        )] = None,
+        keyword: Annotated[Optional[str], Query(
+            description="검색 키워드 (강의명, 강의 설명)"
+        )] = None,
+        is_published: Optional[bool] = True,
+        page: int = Query(default=1, ge=1),
+        page_size: int = Query(default=20, ge=1, le=100)
+    ):
+        self.category_id = category_id
+        self.category_types = category_types
+        self.course_types = course_types
+        self.difficulties = difficulties
+        self.price_types = price_types
+        self.keyword = keyword
+        self.is_published = is_published
+        self.page = page
+        self.page_size = page_size
 
 class CoursePaginatedResponse(BaseModel):
     items: List[CourseResponse]
