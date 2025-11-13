@@ -97,7 +97,7 @@ class UserService:
             email=data.email,
             password_hash=hashed_pwd,
             nickname=data.nickname,
-            gender=data.gender.value,
+            gender=data.gender.value if data.gender else None,
             birth_date=data.birth_date,
             profile_image=data.profile_image,
             role=UserRole.STUDENT.value,
