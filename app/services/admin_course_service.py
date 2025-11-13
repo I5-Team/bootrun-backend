@@ -107,8 +107,8 @@ class AdminCourseService:
         )
 
         # 필터링
-        if params.category_id:
-            query = query.where(Course.category_type == params.category_id)
+        if params.category_type:
+            query = query.where(Course.category_type == params.category_type)
 
         if params.difficulty:
             query = query.where(Course.difficulty == params.difficulty)

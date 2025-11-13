@@ -170,24 +170,24 @@ class UserLearningReport(BaseModel):
 
 # ============= 강의 관리 =============
 class CourseManagementListParams(BaseModel):
-    category_id: Optional[int] = Field(
+    category_type: Optional[str] = Field(
         None,
-        description="카테고리 ID로 필터링", 
-        example=1
+        description="카테고리 타입으로 필터링 (web, app, data, ai, design, etc.)",
+        example="web"
     )
     difficulty: Optional[str] = Field(
         None,
-        description="난이도로 필터링", 
+        description="난이도로 필터링",
         example="beginner"
     )
     is_published: Optional[bool] = Field(
         None,
-        description="공개 상태로 필터링", 
+        description="공개 상태로 필터링",
         example=True
     )
     keyword: Optional[str] = Field(
         None,
-        description="검색 키워드 (강의명, 강사명)", 
+        description="검색 키워드 (강의명, 강사명)",
         example="FastAPI"
     )
     page: int = Field(default=1, ge=1)
@@ -316,19 +316,19 @@ class StatsQueryParams(BaseModel):
     )
 
 class CourseStatsQueryParams(BaseModel):
-    category_id: Optional[int] = Field(
+    category_type: Optional[str] = Field(
         None,
-        description="카테고리 ID로 필터링", 
-        example=1
+        description="카테고리 타입으로 필터링 (web, app, data, ai, design, etc.)",
+        example="web"
     )
     start_date: Optional[date] = Field(
         None,
-        description="시작 날짜", 
+        description="시작 날짜",
         example="2025-01-01"
     )
     end_date: Optional[date] = Field(
         None,
-        description="종료 날짜", 
+        description="종료 날짜",
         example="2025-12-31"
     )
 
