@@ -55,7 +55,7 @@ async def get_courses(
     response_model=SuccessResponse[CourseResponse],
     summary="강의 상세 조회",
     description="관리자용 강의 상세 정보를 조회합니다. 비공개 강의도 조회할 수 있습니다.",
-    operation_id="admin_get_course",
+    operation_id="admin_get_course_detail",
     responses={
         200: {"description": "강의 상세 조회 성공"},
         **ADMIN_COURSE_MANAGEMENT_RESPONSES
