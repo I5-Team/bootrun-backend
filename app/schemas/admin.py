@@ -3,6 +3,8 @@ from typing import Optional, List, Any
 from datetime import datetime, date
 from enum import Enum
 
+from app.schemas.course import CategoryType, Difficulty
+
 # Enums
 class StatsPeriod(str, Enum):
     DAY = "day"
@@ -170,14 +172,14 @@ class UserLearningReport(BaseModel):
 
 # ============= 강의 관리 =============
 class CourseManagementListParams(BaseModel):
-    category_type: Optional[str] = Field(
+    category_type: Optional[CategoryType] = Field(
         None,
-        description="카테고리 타입으로 필터링 (web, app, data, ai, design, etc.)",
-        example="web"
+        description="카테고리 타입으로 필터링 (frontend, backend, data_analysis, ai, design, other)",
+        example="backend"
     )
-    difficulty: Optional[str] = Field(
+    difficulty: Optional[Difficulty] = Field(
         None,
-        description="난이도로 필터링",
+        description="난이도로 필터링 (beginner, intermediate, advanced)",
         example="beginner"
     )
     is_published: Optional[bool] = Field(
@@ -316,10 +318,10 @@ class StatsQueryParams(BaseModel):
     )
 
 class CourseStatsQueryParams(BaseModel):
-    category_type: Optional[str] = Field(
+    category_type: Optional[CategoryType] = Field(
         None,
-        description="카테고리 타입으로 필터링 (web, app, data, ai, design, etc.)",
-        example="web"
+        description="카테고리 타입으로 필터링 (frontend, backend, data_analysis, ai, design, other)",
+        example="backend"
     )
     start_date: Optional[date] = Field(
         None,
