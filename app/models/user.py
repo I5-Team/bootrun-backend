@@ -28,8 +28,8 @@ class User(Base):
     email = Column(String(255), unique=True, nullable=False, index=True, comment="이메일")
     password_hash = Column(String(255), nullable=True, comment="비밀번호 해시 (소셜 로그인 시 NULL)")
     nickname = Column(String(18), unique=True, nullable=False, index=True, comment="닉네임 (2~18자)")
-    gender = Column(SQLEnum(Gender, values_callable=lambda obj: [e.value for e in obj]), nullable=False, comment="성별")
-    birth_date = Column(Date, nullable=False, comment="생년월일")
+    gender = Column(SQLEnum(Gender, values_callable=lambda obj: [e.value for e in obj]), nullable=True, comment="성별")
+    birth_date = Column(Date, nullable=True, comment="생년월일")
     profile_image = Column(String(500), nullable=True, comment="프로필 이미지 URL")
 
     # 역할 및 권한

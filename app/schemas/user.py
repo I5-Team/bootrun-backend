@@ -40,24 +40,24 @@ class UserCreate(BaseModel):
     )
     nickname: str = Field(
         ...,
-        min_length=2, 
+        min_length=2,
         max_length=18,
-        description="닉네임 (2~18자)", 
+        description="닉네임 (2~18자)",
         example="홍길동"
     )
-    gender: Gender = Field(
-        ...,
-        description="성별 (male, female, other)", 
+    gender: Optional[Gender] = Field(
+        None,
+        description="성별 (male, female, other) - 선택",
         example="male"
     )
-    birth_date: date = Field(
-        ...,
-        description="생년월일 (YYYY-MM-DD)", 
+    birth_date: Optional[date] = Field(
+        None,
+        description="생년월일 (YYYY-MM-DD) - 선택",
         example="1995-01-01"
     )
     profile_image: Optional[str] = Field(
         None,
-        description="프로필 이미지 URL (선택)", 
+        description="프로필 이미지 URL (선택)",
         example="https://example.com/profile.jpg"
     )
     # provider와 social_id는 소셜 로그인 시에만 제공됨 (기본값 제거)
@@ -67,7 +67,7 @@ class UserCreate(BaseModel):
     @field_validator('gender', mode='before')
     @classmethod
     def normalize_gender(cls, v):
-        if isinstance(v, str):
+        if v is not None and isinstance(v, str):
             return v.lower()
         return v
 
@@ -198,8 +198,8 @@ class UserResponse(BaseModel):
     id: int
     email: str
     nickname: str
-    gender: Gender
-    birth_date: date
+    gender: Optional[Gender]
+    birth_date: Optional[date]
     profile_image: Optional[str]
     role: UserRole
     is_active: bool
