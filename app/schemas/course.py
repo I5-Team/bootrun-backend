@@ -196,7 +196,6 @@ class CourseDetailResponse(BaseModel):
 class CourseListParams:
     def __init__(
         self,
-        category_id: Optional[int] = None,
         category_types: Annotated[Optional[List[CategoryType]], Query(
             description="강의 카테고리 (여러 개 선택 가능)"
         )] = None,
@@ -216,7 +215,6 @@ class CourseListParams:
         page: int = Query(default=1, ge=1),
         page_size: int = Query(default=20, ge=1, le=100)
     ):
-        self.category_id = category_id
         self.category_types = category_types
         self.course_types = course_types
         self.difficulties = difficulties
