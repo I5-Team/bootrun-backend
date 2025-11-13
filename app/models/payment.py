@@ -9,7 +9,9 @@ from .base import Base
 # ==================== Enums ====================
 
 class PaymentMethod(str, enum.Enum):
-    TOSS = "toss"
+    CARD = "card"
+    TRANSFER = "transfer"
+    EASY = "easy"
 
 class PaymentStatus(str, enum.Enum):
     PENDING = "pending"
