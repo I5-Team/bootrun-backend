@@ -154,7 +154,7 @@ class AdminUserService:
 
     async def activate_user(self, user_id: int) -> None:
         """사용자 활성화"""
-        user = await self._get_user(user_id)
+        user = await self._get_user(user_id)  # NotFoundError 발생 가능
 
         if user.is_active:
             raise ValueError("이미 활성화된 사용자입니다")
@@ -172,6 +172,13 @@ class AdminUserService:
 
         user.is_active = False
         user.updated_at = datetime.utcnow()
+        await self.db.commit()
+
+    async def delete_user(self, user_id: int) -> None:
+        """사용자 완전 삭제"""
+        user = await self._get_user(user_id)
+
+        await self.db.delete(user)
         await self.db.commit()
 
     async def get_user_learning_report(
