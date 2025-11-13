@@ -1,8 +1,8 @@
-"""category ENUM 수정
+"""팀원 변경사항 포함
 
-Revision ID: 32ca1446816a
+Revision ID: 0f91e26a0ee6
 Revises: ace990837f3d
-Create Date: 2025-11-13 18:24:37.017126
+Create Date: 2025-11-13 23:57:52.826593
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '32ca1446816a'
+revision: str = '0f91e26a0ee6'
 down_revision: Union[str, Sequence[str], None] = 'ace990837f3d'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
