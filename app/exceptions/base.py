@@ -240,10 +240,18 @@ class AlreadyPaidError(ConflictError):
         super().__init__(detail=detail)
 
 class PaymentNotFoundError(NotFoundError):
-    
+
     def __init__(
         self,
         detail: str = '결제 내역을 찾을 수 없습니다'
+    ) -> None:
+        super().__init__(detail=detail)
+
+class PaymentConfirmFailedError(BadRequestError):
+
+    def __init__(
+        self,
+        detail: str = '결제 확인에 실패했습니다'
     ) -> None:
         super().__init__(detail=detail)
 

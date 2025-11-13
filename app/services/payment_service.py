@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, or_
 from sqlalchemy.orm import selectinload
 import math
+import uuid
 
 from app.models.payment import Payment, Refund, PaymentStatus, PaymentMethod, RefundStatus
 from app.models.course import Course
@@ -22,6 +23,7 @@ from app.schemas.payment import (
 )
 from app.exceptions.base import (
     PaymentNotFoundError,
+    PaymentConfirmFailedError,
     CourseNotFoundError,
     AlreadyPaidError,
     BadRequestError,
@@ -95,7 +97,7 @@ class PaymentService:
             final_amount=final_amount,
             payment_method=data.payment_method,
             status=PaymentStatus.PENDING,
-            transaction_id=None,  # PG사 거래 후 업데이트
+            transaction_id=str(uuid.uuid4()),  # 임시 거래 ID 발급
         )
 
         self.db.add(payment)
@@ -111,7 +113,7 @@ class PaymentService:
             final_amount=payment.final_amount,
             payment_method=payment.payment_method,
             status=payment.status,
-            transaction_id=payment.transaction_id or "",
+            transaction_id=payment.transaction_id,
             receipt_url=payment.receipt_url,
             paid_at=payment.paid_at,
             created_at=payment.created_at,
@@ -295,7 +297,7 @@ class PaymentService:
             raise PaymentNotFoundError()
 
         if payment.status != PaymentStatus.PENDING:
-            raise BadRequestError("결제 상태가 올바르지 않습니다")
+            raise PaymentConfirmFailedError("결제 상태가 올바르지 않습니다")
 
         # 결제 상태 업데이트
         payment.status = PaymentStatus.COMPLETED
@@ -308,8 +310,7 @@ class PaymentService:
             user_id=user_id,
             course_id=payment.course_id,
             is_active=True,
-            start_date=datetime.utcnow(),
-            end_date=datetime.utcnow() + timedelta(days=365*2),
+            expires_at=datetime.utcnow() + timedelta(days=365*2),
         )
         self.db.add(enrollment)
 

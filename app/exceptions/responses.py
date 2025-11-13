@@ -593,6 +593,35 @@ REFUND_CREATE_RESPONSES = {
     500: COMMON_500,
 }
 
+REFUND_GET_RESPONSES = {
+    401: COMMON_401,
+    403: COMMON_403,
+    404: _make_error_response(
+        'REFUND_NOT_FOUND',
+        '환불 요청을 찾을 수 없습니다',
+        '환불 조회 실패'
+    ),
+    422: COMMON_422,
+    500: COMMON_500,
+}
+
+REFUND_CANCEL_RESPONSES = {
+    400: _make_error_response(
+        'REFUND_CANCEL_NOT_ALLOWED',
+        '처리 중이거나 완료된 환불은 취소할 수 없습니다',
+        '환불 취소 실패'
+    ),
+    401: COMMON_401,
+    403: COMMON_403,
+    404: _make_error_response(
+        'REFUND_NOT_FOUND',
+        '환불 요청을 찾을 수 없습니다',
+        '환불 취소 실패'
+    ),
+    422: COMMON_422,
+    500: COMMON_500,
+}
+
 REFUND_UPDATE_RESPONSES = {
     400: _make_error_response(
         'INVALID_REFUND_STATUS',
