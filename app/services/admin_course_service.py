@@ -172,6 +172,33 @@ class AdminCourseService:
             total_pages=total_pages,
         )
 
+    async def get_course_by_id(self, course_id: int) -> CourseResponse:
+        """관리자용 강의 상세 조회"""
+
+        # 강의 조회
+        result = await self.db.execute(
+            select(Course).where(Course.id == course_id)
+        )
+        course = result.scalar_one_or_none()
+
+        if not course:
+            raise CourseNotFoundError(f'ID {course_id}인 강의를 찾을 수 없습니다')
+
+        # 수강 인원 수 조회
+        enrollment_result = await self.db.execute(
+            select(func.count(Enrollment.id))
+            .where(
+                Enrollment.course_id == course_id,
+                Enrollment.is_active == True
+            )
+        )
+        enrollment_count = enrollment_result.scalar() or 0
+
+        course_response = CourseResponse.model_validate(course)
+        course_response.enrollment_count = enrollment_count
+
+        return course_response
+
     async def create_course(self, data: CourseCreate) -> CourseResponse:
         """강의 생성"""
 

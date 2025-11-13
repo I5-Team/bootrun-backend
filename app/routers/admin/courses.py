@@ -50,6 +50,37 @@ async def get_courses(
     service = AdminCourseService(db)
     return await service.get_courses_for_admin(params)
 
+@router.get(
+    "/{course_id}",
+    response_model=SuccessResponse[CourseResponse],
+    summary="강의 상세 조회",
+    description="관리자용 강의 상세 정보를 조회합니다. 비공개 강의도 조회할 수 있습니다.",
+    operation_id="admin_get_course",
+    responses={
+        200: {"description": "강의 상세 조회 성공"},
+        **ADMIN_COURSE_MANAGEMENT_RESPONSES
+    }
+)
+async def get_course(
+    course_id: int,
+    current_admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
+    """관리자용 강의 상세 조회
+
+    - 강의의 모든 상세 정보를 조회합니다
+    - 비공개 강의도 조회 가능합니다
+    - 수강 인원 수가 포함됩니다
+    """
+    service = AdminCourseService(db)
+    course = await service.get_course_by_id(course_id)
+
+    return SuccessResponse(
+        success=True,
+        message="강의 상세 조회 성공",
+        data=course
+    )
+
 @router.post(
     "",
     response_model=SuccessResponse[CourseResponse],
