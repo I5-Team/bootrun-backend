@@ -224,7 +224,7 @@ def upgrade() -> None:
     sa.Column('amount', sa.Integer(), nullable=False, comment='원래 가격'),
     sa.Column('discount_amount', sa.Integer(), nullable=False, comment='할인 금액'),
     sa.Column('final_amount', sa.Integer(), nullable=False, comment='최종 결제 금액'),
-    sa.Column('payment_method', sa.Enum('card', 'transfer', 'easy', name='paymentmethod'), nullable=False, comment='결제 방식'),
+    sa.Column('payment_method', sa.Enum('card', 'transfer', 'toss', name='paymentmethod'), nullable=False, comment='결제 방식'),
     sa.Column('status', sa.Enum('pending', 'completed', 'failed', 'refunded', name='paymentstatus'), nullable=False, comment='결제 상태'),
     sa.Column('transaction_id', sa.String(length=100), nullable=True, comment='PG사 거래 ID'),
     sa.Column('receipt_url', sa.String(length=500), nullable=True, comment='영수증 URL'),
