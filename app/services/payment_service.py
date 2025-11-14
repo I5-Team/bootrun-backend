@@ -32,6 +32,7 @@ from app.exceptions.base import (
     InsufficientRefundPeriodError,
     RefundAlreadyProcessedError,
     InvalidRefundStatusError,
+    CancelNotAllowedError,
 )
 
 class PaymentService:
@@ -68,7 +69,7 @@ class PaymentService:
                 and_(
                     Payment.user_id == user_id,
                     Payment.course_id == data.course_id,
-                    Payment.status.in_([PaymentStatus.PENDING, PaymentStatus.COMPLETED])
+                    Payment.status.in_([PaymentStatus.PENDING.value, PaymentStatus.COMPLETED.value])
                 )
             )
         )
@@ -95,12 +96,24 @@ class PaymentService:
             amount=amount,
             discount_amount=discount_amount,
             final_amount=final_amount,
-            payment_method=data.payment_method,
-            status=PaymentStatus.PENDING,
+            payment_method=data.payment_method.value if isinstance(data.payment_method, PaymentMethod) else data.payment_method,
+            status=PaymentStatus.COMPLETED.value,  # 즉시 완료 상태로 설정
             transaction_id=str(uuid.uuid4()),  # 임시 거래 ID 발급
+            paid_at=datetime.utcnow(),  # 결제 완료 시간 설정
         )
 
         self.db.add(payment)
+        await self.db.flush()
+
+        # enrollment 생성 (수강 등록)
+        # 수강 기간: 결제일로부터 2년
+        enrollment = Enrollment(
+            user_id=user_id,
+            course_id=payment.course_id,
+            is_active=True,
+            expires_at=datetime.utcnow() + timedelta(days=365*2),
+        )
+        self.db.add(enrollment)
         await self.db.flush()
 
         return PaymentResponse(
@@ -282,9 +295,8 @@ class PaymentService:
     ) -> PaymentResponse:
         """
         결제 확인
-        - 결제 상태를 COMPLETED로 변경
-        - transaction_id 저장
-        - enrollment 생성
+        - 결제가 이미 완료되어 있으므로 transaction_id만 업데이트
+        - enrollment은 이미 생성됨
         """
         payment = await self.db.execute(
             select(Payment).where(
@@ -296,23 +308,12 @@ class PaymentService:
         if not payment:
             raise PaymentNotFoundError()
 
-        if payment.status != PaymentStatus.PENDING:
+        if payment.status != PaymentStatus.COMPLETED.value:
             raise PaymentConfirmFailedError("결제 상태가 올바르지 않습니다")
 
-        # 결제 상태 업데이트
-        payment.status = PaymentStatus.COMPLETED
-        payment.transaction_id = data.transaction_id
-        payment.paid_at = datetime.utcnow()
-
-        # enrollment 생성 (수강 등록)
-        # 수강 기간: 결제일로부터 2년
-        enrollment = Enrollment(
-            user_id=user_id,
-            course_id=payment.course_id,
-            is_active=True,
-            expires_at=datetime.utcnow() + timedelta(days=365*2),
-        )
-        self.db.add(enrollment)
+        # transaction_id 업데이트 (있는 경우)
+        if data.transaction_id:
+            payment.transaction_id = data.transaction_id
 
         await self.db.flush()
 
@@ -345,7 +346,7 @@ class PaymentService:
     ) -> dict:
         """
         결제 취소
-        - 완료되지 않은 결제만 취소 가능
+        - 완료된 결제 중 생성 후 1분 이내만 취소 가능
         """
         payment = await self.db.execute(
             select(Payment).where(
@@ -357,16 +358,59 @@ class PaymentService:
         if not payment:
             raise PaymentNotFoundError()
 
-        if payment.status == PaymentStatus.COMPLETED:
-            raise BadRequestError("완료된 결제는 취소할 수 없습니다")
-
-        if payment.status == PaymentStatus.FAILED:
+        if payment.status == PaymentStatus.FAILED.value:
             raise BadRequestError("이미 취소된 결제입니다")
 
-        payment.status = PaymentStatus.FAILED
+        # 결제 취소 가능 여부 확인 (1분 이내만 가능)
+        if not payment.can_cancel():
+            await self._raise_cancel_timeout_error(payment)
+
+        payment.status = PaymentStatus.FAILED.value
         await self.db.flush()
 
         return {"message": "결제가 취소되었습니다"}
+
+    async def _raise_cancel_timeout_error(self, payment: Payment) -> None:
+        """
+        결제 취소 시간 초과 에러 발생
+        Swagger에 정의된 형식으로 에러 발생
+        """
+        raise CancelNotAllowedError()
+
+    async def get_payment_cancel_status(
+        self,
+        payment_id: int,
+        user_id: int
+    ) -> dict:
+        """
+        결제 취소 가능 여부 및 시간 정보 조회
+        """
+        payment = await self.db.execute(
+            select(Payment).where(
+                and_(Payment.id == payment_id, Payment.user_id == user_id)
+            )
+        )
+        payment = payment.scalar_one_or_none()
+
+        if not payment:
+            raise PaymentNotFoundError()
+
+        elapsed_seconds = (datetime.utcnow() - payment.created_at).total_seconds()
+        remaining_seconds = max(0, 60 - int(elapsed_seconds))
+        can_cancel = payment.can_cancel()
+
+        return {
+            "payment_id": payment.id,
+            "can_cancel": can_cancel,
+            "elapsed_seconds": int(elapsed_seconds),
+            "remaining_seconds": remaining_seconds,
+            "status": payment.status,
+            "message": (
+                "취소 가능합니다" if can_cancel
+                else f"취소 불가능합니다. 남은 취소 가능 시간: {remaining_seconds}초" if remaining_seconds > 0
+                else "취소 시간이 만료되었습니다"
+            )
+        }
 
     # ==================== 환불 가능 여부 확인 ====================
 
@@ -401,7 +445,7 @@ class PaymentService:
                 and_(
                     Payment.id == payment_id,
                     Payment.user_id == user_id,
-                    Payment.status == PaymentStatus.COMPLETED
+                    Payment.status == PaymentStatus.COMPLETED.value
                 )
             )
         )
@@ -419,8 +463,8 @@ class PaymentService:
         existing_refund = existing_refund.scalar_one_or_none()
 
         if existing_refund and existing_refund.status in [
-            RefundStatus.APPROVED,
-            RefundStatus.PENDING
+            RefundStatus.APPROVED.value,
+            RefundStatus.PENDING.value
         ]:
             return False, "이미 환불 요청이 있습니다"
 
@@ -529,7 +573,7 @@ class RefundService:
             user_id=user_id,
             amount=payment.final_amount,
             reason=data.reason,
-            status=RefundStatus.PENDING,
+            status=RefundStatus.PENDING.value,
         )
 
         self.db.add(refund)
@@ -608,7 +652,7 @@ class RefundService:
         if not refund:
             raise RefundNotFoundError()
 
-        if refund.status != RefundStatus.PENDING:
+        if refund.status != RefundStatus.PENDING.value:
             raise BadRequestError("대기 중인 환불만 취소할 수 있습니다")
 
         await self.db.delete(refund)
@@ -859,11 +903,11 @@ class AdminPaymentService:
         if not refund:
             raise RefundNotFoundError()
 
-        if refund.status != RefundStatus.PENDING:
+        if refund.status != RefundStatus.PENDING.value:
             raise RefundAlreadyProcessedError()
 
         # 상태 업데이트
-        refund.status = data.status
+        refund.status = data.status.value if hasattr(data.status, 'value') else data.status
         refund.admin_note = data.admin_note
         refund.processed_at = datetime.utcnow()
 

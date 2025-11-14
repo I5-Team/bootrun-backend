@@ -358,3 +358,11 @@ class InvalidRefundStatusError(BadRequestError):
         detail: str = '유효하지 않은 환불 상태입니다'
     ) -> None:
         super().__init__(detail=detail)
+
+class CancelNotAllowedError(BadRequestError):
+
+    def __init__(
+        self,
+        detail: str = '완료된 결제는 취소할 수 없습니다'
+    ) -> None:
+        super().__init__(detail=detail)
