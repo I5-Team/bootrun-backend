@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List, Any, Generic, TypeVar
-from datetime import datetime, timezone
+from datetime import datetime
+from app.utils.helpers import get_current_utc_datetime
 
 T = TypeVar('T')
 
@@ -96,7 +97,7 @@ class FileUploadResponse(BaseModel):
     file_name: str
     file_size: int  # bytes
     content_type: str
-    uploaded_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))  
+    uploaded_at: datetime = Field(default_factory=get_current_utc_datetime)
 
 class ImageUploadResponse(BaseModel):
     image_url: str
@@ -104,7 +105,7 @@ class ImageUploadResponse(BaseModel):
     width: Optional[int] = None
     height: Optional[int] = None
     file_size: int
-    uploaded_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))  
+    uploaded_at: datetime = Field(default_factory=get_current_utc_datetime)
 
 class ProfileImageUploadResponse(BaseModel):
     image_url: str

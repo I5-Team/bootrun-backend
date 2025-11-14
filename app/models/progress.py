@@ -18,8 +18,9 @@ class Enrollment(Base):
     expires_at = Column(DateTime, nullable=False, comment="만료일시 (등록일 + 2년)")
     is_active = Column(Boolean, nullable=False, default=True, comment="활성화 여부")
     progress_rate = Column(Float, nullable=False, default=0.0, comment="전체 진행률 0~100")
-    
+
     # 타임스탬프
+    created_at = Column(DateTime, nullable=False, server_default=func.now(), comment="생성일시")
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now(), comment="수정일시")
 
     # Relationships

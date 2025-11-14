@@ -90,6 +90,27 @@ class UserService:
         if existing_nickname:
             raise BadRequestError('이미 사용 중인 닉네임입니다')
 
+        # 이메일 인증 완료 여부 확인
+        is_email_verified = False
+        verified_key = f"email_verified:{data.email}"
+
+        if self.redis:
+            verified_status = await self.redis.get(verified_key)
+
+            if verified_status:
+                # bytes를 string으로 변환
+                if isinstance(verified_status, bytes):
+                    verified_status = verified_status.decode('utf-8')
+
+                if verified_status == "verified":
+                    is_email_verified = True
+                    # 인증 완료 플래그 삭제 (일회성 사용)
+                    await self.redis.delete(verified_key)
+
+        # 이메일 인증을 하지 않은 경우 회원가입 불가
+        if not is_email_verified:
+            raise BadRequestError('이메일 인증이 필요합니다')
+
         hashed_pwd = hash_password(data.password)
 
         new_user = User(
@@ -103,7 +124,7 @@ class UserService:
             social_provider=(data.provider.value if data.provider else SocialProvider.EMAIL.value),
             social_id=data.social_id,
             is_active=True,
-            is_email_verified=False,
+            is_email_verified=True,  # 회원가입 전 인증 완료했으므로 True
             created_at=get_current_utc_datetime(),
             updated_at=get_current_utc_datetime(),
         )
@@ -118,20 +139,31 @@ class UserService:
 
         return UserResponse.model_validate(new_user)
 
+    async def check_email_availability(
+        self,
+        email: str
+    ) -> bool:
+        """이메일이 사용 가능한지 확인합니다."""
+        user = await self._get_user_by_email(email)
+        return user is None
+
     async def send_verification_code(
         self,
         email: str
     ) -> str:
-        user = await self._get_user_by_email(email)
-        if not user:
-            raise NotFoundError('사용자를 찾을 수 없습니다')
-
-        if user.is_email_verified:
-            raise BadRequestError('이미 인증된 이메일입니다')
+        """
+        회원가입 전 이메일 인증 코드를 발송합니다.
+        사용자가 DB에 없어도 인증 코드를 발송합니다.
+        """
+        # 이메일 중복 체크
+        existing_user = await self._get_user_by_email(email)
+        if existing_user:
+            raise EmailAlreadyExistsError('이미 가입된 이메일입니다')
 
         code = self._generate_verification_code()
 
         if self.redis:
+            # 회원가입 전 인증을 위한 Redis 키
             key = REDIS_KEY_EMAIL_VERIFICATION.format(email=email)
             await self.redis.setex(
                 key,
@@ -139,7 +171,7 @@ class UserService:
                 code
             )
 
-        logger.info(f'이메일 인증 코드 생성: {email}')
+        logger.info(f'회원가입 전 이메일 인증 코드 생성: {email}')
 
         return code
 
@@ -148,31 +180,37 @@ class UserService:
         email: str,
         code: str
     ) -> None:
-        user = await self._get_user_by_email(email)
-        if not user:
-            raise NotFoundError('사용자를 찾을 수 없습니다')
+        """
+        회원가입 전 이메일 인증을 확인합니다.
+        Redis에 인증 완료 플래그를 저장하여 회원가입 시 확인할 수 있도록 합니다.
+        """
+        if not self.redis:
+            raise BadRequestError('이메일 인증 기능을 사용할 수 없습니다')
 
-        if user.is_email_verified:
-            raise BadRequestError('이미 인증된 이메일입니다')
+        key = REDIS_KEY_EMAIL_VERIFICATION.format(email=email)
+        stored_code = await self.redis.get(key)
 
-        if self.redis:
-            key = REDIS_KEY_EMAIL_VERIFICATION.format(email=email)
-            stored_code = await self.redis.get(key)
+        # bytes를 string으로 변환
+        if isinstance(stored_code, bytes):
+            stored_code = stored_code.decode('utf-8')
 
-            if not stored_code or stored_code != code:
-                raise VerificationCodeInvalidError(
-                    '인증 코드가 올바르지 않습니다'
-                )
+        if not stored_code or stored_code != code:
+            raise VerificationCodeInvalidError(
+                '인증 코드가 올바르지 않습니다'
+            )
 
-            await self.redis.delete(key)
+        # 인증 코드 삭제하고, 인증 완료 플래그 저장
+        await self.redis.delete(key)
 
-        user.is_email_verified = True
-        user.updated_at = get_current_utc_datetime()
+        # 인증 완료 플래그 저장 (30분 유효)
+        verified_key = f"email_verified:{email}"
+        await self.redis.setex(
+            verified_key,
+            EMAIL_VERIFICATION_CODE_EXPIRY_MINUTES * 60,
+            "verified"
+        )
 
-        await self.db.commit()
-        await self.db.refresh(user)
-
-        logger.info(f'이메일 인증 완료: {email}')
+        logger.info(f'회원가입 전 이메일 인증 완료: {email}')
 
     async def login(
         self,

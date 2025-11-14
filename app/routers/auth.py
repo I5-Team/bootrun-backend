@@ -37,6 +37,59 @@ logger = logging.getLogger(__name__)
 # 1. 회원가입 & 이메일 인증
 # ============================================================
 
+@router.get(
+    "/email/check",
+    response_model=MessageResponse,
+    summary="이메일 중복 체크",
+    description="이메일 주소가 이미 사용 중인지 확인합니다.",
+    responses={
+        200: {
+            "description": "이메일 사용 가능",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "success": True,
+                        "message": "사용 가능한 이메일입니다",
+                        "detail": None
+                    }
+                }
+            }
+        },
+        400: {
+            "description": "이메일 이미 사용 중",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": "EMAIL_ALREADY_EXISTS",
+                        "detail": "이미 사용 중인 이메일입니다"
+                    }
+                }
+            }
+        }
+    }
+)
+async def check_email_availability(
+    email: str,
+    user_service: UserService = Depends(get_user_service)
+):
+    try:
+        is_available = await user_service.check_email_availability(email)
+        if is_available:
+            return MessageResponse(
+                success=True,
+                message="사용 가능한 이메일입니다"
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"error": "EMAIL_ALREADY_EXISTS", "detail": "이미 사용 중인 이메일입니다"}
+            )
+    except BaseAPIException as e:
+        raise HTTPException(
+            status_code=e.status_code,
+            detail={"error": e.error_code, "detail": e.detail}
+        )
+
 @router.post(
     "/register",
     response_model=SuccessResponse[UserResponse],

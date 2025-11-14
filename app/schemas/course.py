@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import Optional, List, Dict, Any, Annotated
 from datetime import datetime
 from enum import Enum
@@ -162,6 +162,14 @@ class CourseCreate(BaseModel):
         example='[{"question":"환불이 가능한가요?","answer":"구매일로부터 7일 이내, 진도율 10% 미만일 경우 환불 가능합니다."}]'
     )
 
+    @field_validator('recruitment_start_date', 'recruitment_end_date', 'course_start_date', 'course_end_date', mode='after')
+    @classmethod
+    def remove_timezone(cls, v):
+        """timezone-aware datetime을 timezone-naive로 변환"""
+        if v is not None and v.tzinfo is not None:
+            return v.replace(tzinfo=None)
+        return v
+
 class CourseUpdate(BaseModel):
     category_type: Optional[CategoryType] = None
     course_type: Optional[CourseType] = None
@@ -188,6 +196,14 @@ class CourseUpdate(BaseModel):
         description="강의 공개 여부 (false: 준비 중, true: 공개)",
         example=True
     )
+
+    @field_validator('recruitment_start_date', 'recruitment_end_date', 'course_start_date', 'course_end_date', mode='after')
+    @classmethod
+    def remove_timezone(cls, v):
+        """timezone-aware datetime을 timezone-naive로 변환"""
+        if v is not None and v.tzinfo is not None:
+            return v.replace(tzinfo=None)
+        return v
 
 class CourseResponse(BaseModel):
     id: int

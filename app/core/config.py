@@ -54,7 +54,8 @@ class Settings(BaseSettings):
     @property
     def redis_url(self) -> str:
         # Handle Redis with or without password
-        if self.redis_password:
+        # Treat empty string as no password
+        if self.redis_password and self.redis_password.strip():
             return (
                 f"redis://:{self.redis_password}@{self.redis_host}:"
                 f"{self.redis_port}/{self.redis_db}"

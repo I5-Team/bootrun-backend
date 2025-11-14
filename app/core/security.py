@@ -6,6 +6,7 @@ from passlib.context import CryptContext
 from cryptography.fernet import Fernet
 
 from app.core.config import settings
+from app.utils.helpers import get_current_utc_datetime
 
 import bcrypt
 
@@ -34,9 +35,9 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 
     # 만료 시간 설정
     if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
+        expire = get_current_utc_datetime() + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(
+        expire = get_current_utc_datetime() + timedelta(
             minutes=settings.jwt_access_token_expire_minutes
         )
 
@@ -63,9 +64,9 @@ def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None) 
 
     # 만료 시간 설정
     if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
+        expire = get_current_utc_datetime() + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(
+        expire = get_current_utc_datetime() + timedelta(
             days=settings.jwt_refresh_token_expire_days
         )
 
@@ -113,7 +114,7 @@ def decode_token(token: str, token_type: str) -> Optional[dict]:
 
 def create_email_verification_token(user_id: int) -> str:
     to_encode = {'sub': str(user_id)}
-    expire = datetime.now(timezone.utc) + timedelta(hours=24)
+    expire = get_current_utc_datetime() + timedelta(hours=24)
 
     to_encode.update({
         'exp': expire,
@@ -153,7 +154,7 @@ def verify_email_verification_token(token: str) -> Optional[int]:
 
 def create_password_reset_token(user_id: int) -> str:
     to_encode = {'sub': str(user_id)}
-    expire = datetime.now(timezone.utc) + timedelta(
+    expire = get_current_utc_datetime() + timedelta(
         minutes=settings.jwt_reset_password_token_expire_minutes
     )
 

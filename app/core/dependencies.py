@@ -180,11 +180,10 @@ async def verify_enrollment_access(
             detail="수강 등록이 필요합니다"
         )
     
-    current_time_utc = datetime.now(timezone.utc)
-    expired_at_utc = enrollment.expires_at.replace(tzinfo=timezone.utc) \
-        if enrollment.expires_at.tzinfo is None else enrollment.expires_at
-    
-    if expired_at_utc < current_time_utc:
+    from app.utils.helpers import get_current_utc_datetime
+    current_time_utc = get_current_utc_datetime()
+
+    if enrollment.expires_at and enrollment.expires_at < current_time_utc:
         raise HTTPException(
             status_code=status.HTTP_410_GONE,
             detail="수강 기간이 만료되었습니다"
@@ -273,11 +272,10 @@ async def verify_lecture_access(
             detail="수강 등록이 필요합니다"
         )
     
-    current_time_utc = datetime.now(timezone.utc)
-    expires_at_utc = enrollment.expires_at.replace(tzinfo=timezone.utc) \
-        if enrollment.expires_at.tzinfo is None else enrollment.expires_at
-    
-    if expires_at_utc < current_time_utc:
+    from app.utils.helpers import get_current_utc_datetime
+    current_time_utc = get_current_utc_datetime()
+
+    if enrollment.expires_at and enrollment.expires_at < current_time_utc:
         raise HTTPException(
             status_code=status.HTTP_410_GONE,
             detail="수강 기간이 만료되었습니다"
