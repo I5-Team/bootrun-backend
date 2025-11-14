@@ -51,6 +51,7 @@ class Course(Base):
     # 강사 정보
     instructor_name = Column(String(100), nullable=False, comment="강사명")
     instructor_bio = Column(Text, nullable=False, comment="강사 소개")
+    instructor_description = Column(Text, nullable=True, comment="강사 상세 설명")
     instructor_image = Column(String(500), nullable=False, comment="강사 프로필 이미지 URL")
 
     # 강의 속성
@@ -58,8 +59,17 @@ class Course(Base):
     price_type = Column(SQLEnum(PriceType, values_callable=lambda obj: [e.value for e in obj]), nullable=False, default=PriceType.PAID, comment="가격 유형")
     price = Column(Integer, nullable=False, default=50000, comment="실제 가격 (원)")
     total_duration = Column(Integer, nullable=False, default=0, comment="전체 강의 시간 (초)")
-    
+    access_duration_days = Column(Integer, nullable=True, comment="수강 기한 (일 수, 예: 365)")
+
+    # 모집 및 교육 정보
+    max_students = Column(Integer, nullable=True, comment="모집 인원")
+    recruitment_start_date = Column(DateTime, nullable=True, comment="모집 시작일")
+    recruitment_end_date = Column(DateTime, nullable=True, comment="모집 종료일")
+    course_start_date = Column(DateTime, nullable=True, comment="교육 시작일")
+    course_end_date = Column(DateTime, nullable=True, comment="교육 종료일")
+
     # 추가 정보
+    student_reviews = Column(Text, nullable=True, comment="수강생 후기 (JSON 형태 또는 텍스트)")
     faq = Column(Text, nullable=True, comment="자주 묻는 질문 (JSON 형태)")
     is_published = Column(Boolean, nullable=False, default=False, comment="공개 여부")
     
@@ -70,11 +80,7 @@ class Course(Base):
     # Relationships
     chapters = relationship("Chapter", back_populates="course", cascade="all, delete-orphan")
     enrollments = relationship("Enrollment", back_populates="course", cascade="all, delete-orphan")
-    missions = relationship("Mission", back_populates="course", cascade="all, delete-orphan")
-    course_questions = relationship("CourseQuestion", back_populates="course", cascade="all, delete-orphan")
-    certificates = relationship("Certificate", back_populates="course", cascade="all, delete-orphan")
     payments = relationship("Payment", back_populates="course", cascade="all, delete-orphan")
-    coupons = relationship("Coupon", back_populates="course")
 
     def __repr__(self):
         return f"<Course(id={self.id}, title='{self.title}', category='{self.category_type.value}')>"

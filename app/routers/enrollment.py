@@ -6,7 +6,10 @@ from app.schemas.enrollment import (
     EnrollmentCreate, EnrollmentResponse, EnrollmentDetailResponse,
     EnrollmentPaginatedResponse, MyEnrollmentListParams,
     ProgressCreate, ProgressUpdate, ProgressResponse,
-    CourseProgressDetail, StudentDashboard
+    CourseProgressDetail, StudentDashboard,
+    MyCourseListParams,
+    MyCoursePaginatedResponse,
+    MyCourseDetail,
 )
 from app.exceptions.responses import (
     ENROLLMENT_CREATE_RESPONSES,
@@ -43,21 +46,21 @@ async def create_enrollment(
 
 @router.get(
     "/my",
-    response_model=EnrollmentPaginatedResponse,
+    response_model=MyCoursePaginatedResponse,
     summary="내 수강 목록 조회",
-    description="현재 사용자가 수강 중인 강의 목록을 조회합니다.",
+    description="현재 사용자가 수강 중인 강의 목록을 조회합니다. 상태, 학습 진행도, 유형별로 필터링할 수 있습니다.",
     responses={
         200: {"description": "수강 목록 조회 성공"},
         **AUTH_RESPONSES
     }
 )
 async def get_my_enrollments(
-    params: MyEnrollmentListParams = Depends(),
+    params: MyCourseListParams = Depends(),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     service = EnrollmentService(db)
-    return await service.get_my_enrollments(current_user.id, params)
+    return await service.get_my_courses(current_user.id, params)
 
 @router.get(
     "/dashboard",
@@ -79,9 +82,9 @@ async def get_student_dashboard(
 
 @router.get(
     "/{enrollment_id}",
-    response_model=SuccessResponse[EnrollmentDetailResponse],
+    response_model=SuccessResponse[MyCourseDetail],
     summary="수강 상세 조회",
-    description="특정 수강 등록의 상세 정보를 조회합니다.",
+    description="특정 수강 등록의 상세 정보를 조회합니다. 챕터별 강의 영상 목록과 각 영상의 시청 진행 상태를 확인할 수 있습니다.",
     responses={
         200: {"description": "수강 상세 조회 성공"},
         **AUTH_RESPONSES,
@@ -93,9 +96,14 @@ async def get_enrollment(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
+    # enrollment_id를 course_id로 해석하여 처리
     service = EnrollmentService(db)
-    result = await service.get_enrollment_detail(current_user.id, enrollment_id)
-    return SuccessResponse(data=result)
+    course = await service.get_my_course_detail(current_user.id, enrollment_id)
+    return SuccessResponse(
+        success=True,
+        message="수강 상세 조회 성공",
+        data=course
+    )
 
 @router.post(
     "/progress",

@@ -213,24 +213,7 @@ class ProgressNotFoundError(NotFoundError):
     ) -> None:
         super().__init__(detail=detail)
 
-# 미션 도메인
-class MaxAttemptsExceededError(BadRequestError):
-    
-    def __init__(
-        self,
-        detail: str = '최대 제출 횟수를 초과했습니다'
-    ) -> None:
-        super().__init__(detail=detail)
-
-class MissionNotFoundError(NotFoundError):
-
-    def __init__(
-        self,
-        detail: str = '미션을 찾을 수 없습니다'
-    ) -> None:
-        super().__init__(detail=detail)
-
-# 결제 및 쿠폰 도메인
+# 결제 도메인
 class AlreadyPaidError(ConflictError):
     
     def __init__(
@@ -256,73 +239,10 @@ class PaymentConfirmFailedError(BadRequestError):
         super().__init__(detail=detail)
 
 class RefundNotAllowedError(BadRequestError):
-    
+
     def __init__(
         self,
         detail: str = '환불 가능 기간이 지났습니다'
-    ) -> None:
-        super().__init__(detail=detail)
-
-class CouponNotFoundError(NotFoundError):
-    
-    def __init__(
-        self,
-        detail: str = '쿠폰을 찾을 수 없습니다'
-    ) -> None:
-        super().__init__(detail=detail)
-
-class CouponExpiredError(BadRequestError):
-
-    def __init__(self, detail: str = '쿠폰이 만료되었습니다') -> None:
-        super().__init__(detail=detail)
-
-class CouponCodeDuplicateError(ConflictError):
-
-    def __init__(
-        self,
-        detail: str = '이미 존재하는 쿠폰 코드입니다'
-    ) -> None:
-        super().__init__(detail=detail)
-
-class CouponMaxUsageExceededError(BadRequestError):
-
-    def __init__(
-        self,
-        detail: str = '쿠폰 사용 한도에 도달했습니다'
-    ) -> None:
-        super().__init__(detail=detail)
-
-# 수료증 도메인
-class CertificateNotFoundError(NotFoundError):
-    
-    def __init__(
-        self,
-        detail: str = '수료증을 찾을 수 없습니다'
-    ) -> None:
-        super().__init__(detail=detail)
-
-class CompletionRequirementsNotMetError(BadRequestError):
-
-    def __init__(
-        self,
-        detail: str = '수료 조건을 충족하지 않았습니다'
-    ) -> None:
-        super().__init__(detail=detail)
-
-# Q&A 도메인
-class QuestionNotFoundError(NotFoundError):
-
-    def __init__(
-        self,
-        detail: str = '질문을 찾을 수 없습니다'
-    ) -> None:
-        super().__init__(detail=detail)
-
-class OnlyAuthorCanModifyError(ForbiddenError):
-
-    def __init__(
-        self,
-        detail: str = '본인이 작성한 글만 수정할 수 있습니다'
     ) -> None:
         super().__init__(detail=detail)
 

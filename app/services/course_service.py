@@ -223,9 +223,7 @@ class CourseService:
         course_detail = CourseDetailResponse.model_validate(course)
         course_detail.enrollment_count = enrollment_count
         course_detail.chapters = chapters_data
-        course_detail.is_enrolled = is_enrolled
-        course_detail.my_progress = my_progress
-        
+
         return course_detail
     
     async def get_course_metadata(self) -> CourseMetadataResponse:

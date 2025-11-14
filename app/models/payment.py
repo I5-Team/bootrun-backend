@@ -33,8 +33,8 @@ class Payment(Base):
     id = Column(Integer, primary_key=True, autoincrement=True, comment="결제 고유 ID")
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True, comment="사용자 ID")
     course_id = Column(Integer, ForeignKey("courses.id", ondelete="CASCADE"), nullable=False, index=True, comment="강의 ID")
-    coupon_id = Column(Integer, ForeignKey("coupons.id"), nullable=True, comment="쿠폰 ID")
-
+    coupon_id = Column(Integer, nullable=True, comment="쿠폰 ID (미사용)")
+    
     # 결제 금액
     amount = Column(Integer, nullable=False, comment="원래 가격")
     discount_amount = Column(Integer, nullable=False, default=0, comment="할인 금액")
@@ -53,7 +53,6 @@ class Payment(Base):
     # Relationships
     user = relationship("User", back_populates="payments")
     course = relationship("Course", back_populates="payments")
-    coupon = relationship("Coupon", back_populates="payments")
     refund = relationship("Refund", back_populates="payment", uselist=False)
 
     def __repr__(self):
@@ -70,39 +69,6 @@ class Payment(Base):
         from datetime import timedelta, datetime as dt
         elapsed = dt.utcnow() - self.created_at
         return elapsed <= timedelta(minutes=1)
-
-class Coupon(Base):
-    __tablename__ = "coupons"
-
-    # 기본 정보
-    id = Column(Integer, primary_key=True, autoincrement=True, comment="쿠폰 고유 ID")
-    course_id = Column(Integer, ForeignKey("courses.id"), nullable=True, comment="강의 ID (NULL이면 전체 강의)")
-    code = Column(String(50), unique=True, nullable=False, index=True, comment="쿠폰 코드")
-    name = Column(String(100), nullable=False, comment="쿠폰 이름")
-    description = Column(Text, nullable=False, comment="쿠폰 설명")
-    
-    # 할인 정보
-    discount_rate = Column(Integer, nullable=True, comment="할인율 (%)")
-    discount_amount = Column(Integer, nullable=True, comment="할인 금액 (원)")
-    
-    # 유효 기간
-    valid_from = Column(DateTime, nullable=False, comment="유효 시작일")
-    valid_until = Column(DateTime, nullable=False, comment="유효 종료일")
-    
-    # 사용 제한
-    max_usage = Column(Integer, nullable=False, default=0, comment="최대 사용 인원 (0이면 무제한)")
-    used_count = Column(Integer, nullable=False, default=0, comment="사용된 인원 수")
-    is_active = Column(Boolean, nullable=False, default=True, comment="활성화 여부")
-    
-    # 타임스탬프
-    created_at = Column(DateTime, nullable=False, server_default=func.now(), comment="생성일시")
-
-    # Relationships
-    course = relationship("Course", back_populates="coupons")
-    payments = relationship("Payment", back_populates="coupon")
-
-    def __repr__(self):
-        return f"<Coupon(id={self.id}, code='{self.code}', used={self.used_count}/{self.max_usage})>"
 
 class Refund(Base):
     __tablename__ = "refunds"

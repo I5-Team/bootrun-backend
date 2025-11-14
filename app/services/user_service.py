@@ -13,7 +13,6 @@ import aiofiles
 from app.models.user import User, UserRole, Gender, SocialProvider
 from app.models.progress import Enrollment, Progress
 from app.models.payment import Payment
-from app.models.certificate import Certificate
 from app.schemas.user import (
     UserCreate,
     UserLogin,
@@ -859,12 +858,6 @@ class UserService:
         completed_result = await self.db.execute(completed_query)
         completed_courses = completed_result.scalar() or 0
 
-        certificates_query = select(func.count(Certificate.id)).where(
-            Certificate.user_id == user_id
-        )
-        certificates_result = await self.db.execute(certificates_query)
-        total_certificates = certificates_result.scalar() or 0
-
         payments_query = select(func.count(Payment.id)).where(
             Payment.user_id == user_id
         )
@@ -876,7 +869,6 @@ class UserService:
             'total_study_time_minutes': total_study_time,
             'total_enrollments': total_enrollments,
             'completed_courses': completed_courses,
-            'total_certificates': total_certificates,
             'total_payments': total_payments,
             'member_since': user.created_at,
             'last_login': user.last_login,

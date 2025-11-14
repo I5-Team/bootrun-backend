@@ -121,10 +121,6 @@ class AdminUserService:
         total_spent = await self._calculate_total_spent(user_id)
         total_refunds = await self._calculate_total_refunds(user_id)
 
-        # 활동 정보
-        total_questions = await self._count_questions(user_id)
-        total_comments = await self._count_comments(user_id)
-
         # 수강 정보
         enrollments = await self._get_enrollment_details(user_id)
 
@@ -147,8 +143,6 @@ class AdminUserService:
             total_payments=total_payments,
             total_spent=total_spent,
             total_refunds=total_refunds,
-            total_questions=total_questions,
-            total_comments=total_comments,
             enrollments=enrollments
         )
 
@@ -356,24 +350,6 @@ class AdminUserService:
         from app.models.payment import Refund
         query = select(func.sum(Refund.amount)).where(
             Refund.user_id == user_id
-        )
-        result = await self.db.execute(query)
-        return result.scalar() or 0
-
-    async def _count_questions(self, user_id: int) -> int:
-        """작성한 질문 수"""
-        from app.models.question import CourseQuestion
-        query = select(func.count(CourseQuestion.id)).where(
-            CourseQuestion.user_id == user_id
-        )
-        result = await self.db.execute(query)
-        return result.scalar() or 0
-
-    async def _count_comments(self, user_id: int) -> int:
-        """작성한 답변/댓글 수"""
-        from app.models.question import Comment
-        query = select(func.count(Comment.id)).where(
-            Comment.user_id == user_id
         )
         result = await self.db.execute(query)
         return result.scalar() or 0

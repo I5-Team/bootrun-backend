@@ -353,19 +353,19 @@ class PasswordResetConfirm(BaseModel):
 
 class ActivityResponse(BaseModel):
     id: int
-    activity_type: str  # 'question', 'comment', 'enrollment', 'payment'
+    activity_type: str  # 'enrollment', 'payment'
     title: str
     description: Optional[str]
     created_at: datetime
     related_id: int  # 관련 리소스 ID
-    
+
     class Config:
         from_attributes = True
 
 class NotificationResponse(BaseModel):
     id: int
     user_id: int
-    type: str  # 'expiry_warning', 'mission_deadline', 'question_answered'
+    type: str  # 'expiry_warning', 'system'
     title: str
     content: str
     is_read: bool = False

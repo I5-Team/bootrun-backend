@@ -52,12 +52,6 @@ class User(Base):
     enrollments = relationship("Enrollment", back_populates="user", cascade="all, delete-orphan")
     payments = relationship("Payment", back_populates="user", cascade="all, delete-orphan")
     progresses = relationship("Progress", back_populates="user", cascade="all, delete-orphan")
-    course_questions = relationship("CourseQuestion", foreign_keys="CourseQuestion.user_id", back_populates="user", cascade="all, delete-orphan")
-    deleted_questions = relationship("CourseQuestion", foreign_keys="CourseQuestion.deleted_by", back_populates="deleter")
-    comments = relationship("Comment", foreign_keys="Comment.user_id", back_populates="user", cascade="all, delete-orphan")
-    deleted_comments = relationship("Comment", foreign_keys="Comment.deleted_by", back_populates="deleter")
-    mission_submissions = relationship("MissionSubmission", back_populates="user", cascade="all, delete-orphan")
-    certificates = relationship("Certificate", back_populates="user", cascade="all, delete-orphan")
     refunds = relationship("Refund", back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self):

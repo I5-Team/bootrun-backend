@@ -29,27 +29,11 @@ tags_metadata = [
     },
     {
         "name": "수강 등록 및 학습 진행",
-        "description": "수강 등록, 학습 진행 기록, 진행률 조회, 학습 통계 등 수강 관련 API",
-    },
-    {
-        "name": "미션",
-        "description": "미션 조회, 제출, 제출 내역 조회, 진행 현황 등 미션 관련 API",
+        "description": "수강 등록, 내 강의실, 학습 진행 기록, 진행률 조회, 학습 통계 등 수강 관련 API",
     },
     {
         "name": "결제 및 환불",
         "description": "결제 생성/확인, 환불 요청, 결제 내역 조회 등 결제 관련 API",
-    },
-    {
-        "name": "쿠폰",
-        "description": "쿠폰 조회, 유효성 검증 등 쿠폰 관련 API",
-    },
-    {
-        "name": "수료증",
-        "description": "수료증 발급, 조회, PDF 생성, 진위 확인 등 수료증 관련 API",
-    },
-    {
-        "name": "학습 Q&A",
-        "description": "질문 작성, 답변 작성, 질문/답변 수정 및 삭제 등 학습 Q&A 관련 API",
     },
     {
         "name": "관리자 - 대시보드",
@@ -66,14 +50,6 @@ tags_metadata = [
     {
         "name": "관리자 - 결제 및 환불 관리",
         "description": "결제 내역 조회, 환불 승인/거절 등 관리자 결제 관리 API",
-    },
-    {
-        "name": "관리자 - 쿠폰 관리",
-        "description": "쿠폰 생성, 수정, 삭제 등 관리자 쿠폰 관리 API",
-    },
-    {
-        "name": "관리자 - 미션 관리",
-        "description": "미션 생성, 수정, 삭제 등 관리자 미션 관리 API",
     },
 ]
 
@@ -175,19 +151,13 @@ from app.routers.auth import router as auth_router
 from app.routers.user import router as user_router
 from app.routers.course import router as course_router
 from app.routers.enrollment import router as enrollment_router
-from app.routers.mission import router as mission_router
 from app.routers.payment import router as payment_router
-from app.routers.coupon import router as coupon_router
-from app.routers.certificate import router as certificate_router
-from app.routers.question import router as question_router
 
 # 관리자 라우터 import
 from app.routers.admin.dashboard import router as dashboard_router
 from app.routers.admin.users import router as users_router
 from app.routers.admin.courses import router as courses_router
 from app.routers.admin.payments import router as payments_router
-from app.routers.admin.coupons import router as coupons_router
-from app.routers.admin.missions import router as missions_router
 
 # 모든 라우터 등록
 all_routers = [
@@ -197,18 +167,12 @@ all_routers = [
     # 일반 사용자 API
     course_router,
     enrollment_router,
-    mission_router,
     payment_router,
-    coupon_router,
-    certificate_router,
-    question_router,
     # 관리자 API
     dashboard_router,
     users_router,
     courses_router,
     payments_router,
-    coupons_router,
-    missions_router,
 ]
 
 for router in all_routers:

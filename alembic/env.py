@@ -16,11 +16,9 @@ from app.core.config import settings
 from app.models.base import Base
 from app.models.user import User
 from app.models.course import Course, Chapter, Lecture
-from app.models.mission import Mission, MissionSubmission
 from app.models.progress import Enrollment, Progress
-from app.models.payment import Payment, Coupon, Refund
-from app.models.certificate import Certificate
-from app.models.question import CourseQuestion, Comment
+from app.models.payment import Payment, Refund
+
 
 target_metadata = Base.metadata
 

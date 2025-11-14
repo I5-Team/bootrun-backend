@@ -83,6 +83,16 @@ class AdminCourseService:
             .subquery()
         )
 
+        # 서브쿼리: 강의별 챕터 개수
+        chapter_subquery = (
+            select(
+                Chapter.course_id,
+                func.count(Chapter.id).label('chapter_count')
+            )
+            .group_by(Chapter.course_id)
+            .subquery()
+        )
+
         # 메인 쿼리
         query = (
             select(
@@ -90,7 +100,8 @@ class AdminCourseService:
                 func.coalesce(enrollment_subquery.c.enrollment_count, 0).label('enrollment_count'),
                 func.coalesce(enrollment_subquery.c.avg_progress, 0.0).label('avg_progress'),
                 func.coalesce(payment_subquery.c.total_revenue, 0).label('total_revenue'),
-                func.coalesce(completion_subquery.c.completion_count, 0).label('completion_count')
+                func.coalesce(completion_subquery.c.completion_count, 0).label('completion_count'),
+                func.coalesce(chapter_subquery.c.chapter_count, 0).label('chapter_count')
             )
             .outerjoin(
                 enrollment_subquery,
@@ -103,6 +114,10 @@ class AdminCourseService:
             .outerjoin(
                 completion_subquery,
                 Course.id == completion_subquery.c.course_id
+            )
+            .outerjoin(
+                chapter_subquery,
+                Course.id == chapter_subquery.c.course_id
             )
         )
 
@@ -140,7 +155,7 @@ class AdminCourseService:
 
         # 응답 데이터 생성
         items = []
-        for course, enrollment_count, avg_progress, total_revenue, completion_count in rows:
+        for course, enrollment_count, avg_progress, total_revenue, completion_count, chapter_count in rows:
             # 완료율 계산 (완료한 수강생 수 / 전체 수강생 수 * 100)
             completion_rate = 0.0
             if enrollment_count > 0:
@@ -148,17 +163,19 @@ class AdminCourseService:
 
             item = CourseManagementResponse(
                 id=course.id,
-                category_name=course.category_type.value,
                 title=course.title,
+                category_name=course.category_type.value,
                 instructor_name=course.instructor_name,
                 difficulty=course.difficulty.value,
-                is_published=course.is_published,
+                price=course.price,
+                total_duration=course.total_duration,
+                chapter_count=chapter_count,
                 enrollment_count=enrollment_count,
+                is_published=course.is_published,
+                created_at=course.created_at,
                 total_revenue=total_revenue,
                 avg_progress=round(avg_progress, 2),
-                completion_rate=round(completion_rate, 2),
-                created_at=course.created_at,
-                updated_at=course.updated_at
+                completion_rate=round(completion_rate, 2)
             )
             items.append(item)
 
@@ -211,10 +228,18 @@ class AdminCourseService:
             thumbnail_url=data.thumbnail_url,
             instructor_name=data.instructor_name,
             instructor_bio=data.instructor_bio,
+            instructor_description=data.instructor_description,
             instructor_image=data.instructor_image,
             difficulty=data.difficulty,
             price_type=data.price_type,
             price=data.price,
+            access_duration_days=data.access_duration_days,
+            max_students=data.max_students,
+            recruitment_start_date=data.recruitment_start_date,
+            recruitment_end_date=data.recruitment_end_date,
+            course_start_date=data.course_start_date,
+            course_end_date=data.course_end_date,
+            student_reviews=data.student_reviews,
             faq=data.faq,
             is_published=False,  # 기본값: 비공개
             total_duration=0  # 초기값: 0초
