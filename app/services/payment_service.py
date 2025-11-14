@@ -654,6 +654,44 @@ class AdminPaymentService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
+    # ==================== 파라미터 변환 헬퍼 ====================
+
+    def _convert_refund_status_filter(self, status_str: Optional[str]) -> Optional[RefundStatus]:
+        """
+        문자열 상태 값을 RefundStatus ENUM으로 변환
+        지원 값: pending, approved, rejected
+        """
+        if not status_str:
+            return None
+
+        status_lower = status_str.lower()
+
+        # RefundStatus ENUM 값과 매칭
+        for enum_member in RefundStatus:
+            if enum_member.value == status_lower:
+                return enum_member
+
+        # 매칭되는 값이 없으면 None 반환
+        return None
+
+    def _convert_payment_status_filter(self, status_str: Optional[str]) -> Optional[PaymentStatus]:
+        """
+        문자열 상태 값을 PaymentStatus ENUM으로 변환
+        지원 값: pending, completed, failed, refunded
+        """
+        if not status_str:
+            return None
+
+        status_lower = status_str.lower()
+
+        # PaymentStatus ENUM 값과 매칭
+        for enum_member in PaymentStatus:
+            if enum_member.value == status_lower:
+                return enum_member
+
+        # 매칭되는 값이 없으면 None 반환
+        return None
+
     # ==================== 결제 관리 ====================
 
     async def get_payments(self, params) -> dict:
@@ -667,7 +705,9 @@ class AdminPaymentService:
 
         # 필터링
         if hasattr(params, 'status') and params.status:
-            query = query.where(Payment.status == params.status)
+            converted_status = self._convert_payment_status_filter(params.status)
+            if converted_status:
+                query = query.where(Payment.status == converted_status)
 
         if hasattr(params, 'payment_method') and params.payment_method:
             query = query.where(Payment.payment_method == params.payment_method)
@@ -688,10 +728,9 @@ class AdminPaymentService:
                 )
             )
 
-        # 전체 개수
-        count_result = await self.db.execute(
-            select(func.count(Payment.id)).select_from(Payment)
-        )
+        # 전체 개수 (필터링 조건 포함)
+        count_query = query.with_only_columns(func.count(Payment.id))
+        count_result = await self.db.execute(count_query)
         total = count_result.scalar() or 0
 
         # 페이지네이션
@@ -719,8 +758,9 @@ class AdminPaymentService:
 
             items.append({
                 "id": payment.id,
+                "transaction_id": payment.transaction_id or "",
                 "user_id": payment.user_id,
-                "user_name": user.nickname or user.email.split("@")[0],
+                "user_nickname": user.nickname or user.email.split("@")[0],
                 "user_email": user.email,
                 "course_id": payment.course_id,
                 "course_title": course.title,
@@ -763,7 +803,9 @@ class AdminPaymentService:
 
         # 필터링
         if hasattr(params, 'status') and params.status:
-            query = query.where(Refund.status == params.status)
+            converted_status = self._convert_refund_status_filter(params.status)
+            if converted_status:
+                query = query.where(Refund.status == converted_status)
 
         if hasattr(params, 'start_date') and params.start_date:
             query = query.where(Refund.requested_at >= params.start_date)
