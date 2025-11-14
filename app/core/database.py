@@ -4,7 +4,6 @@ from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker
 )
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.pool import AsyncAdaptedQueuePool
 from sqlalchemy import text
 import redis.asyncio as redis
@@ -38,7 +37,8 @@ async_session_maker = async_sessionmaker(
     autoflush=False,
 )
 
-Base = declarative_base()
+# Import Base from models
+from app.models.base import Base
 
 # =====================================================
 # Redis 비동기 클라이언트

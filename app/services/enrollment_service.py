@@ -762,8 +762,16 @@ class EnrollmentService:
         )
 
         # 필터링: 강의 유형
-        if params.course_types:
-            query = query.where(Course.course_type.in_(params.course_types))
+        if params.course_type:
+            query = query.where(Course.course_type == params.course_type)
+
+        # 필터링: 카테고리
+        if params.category_type:
+            query = query.where(Course.category_type == params.category_type)
+
+        # 필터링: 난이도
+        if params.difficulty:
+            query = query.where(Course.difficulty == params.difficulty)
 
         # 필터링: 수강 상태 (학습 가능 / 만료)
         from datetime import timezone
