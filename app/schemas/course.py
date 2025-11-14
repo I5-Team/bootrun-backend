@@ -60,67 +60,105 @@ class CourseMetadataResponse(BaseModel):
 class CourseCreate(BaseModel):
     category_type: CategoryType = Field(
         ...,
-        description="강의 카테고리 (frontend, backend, data_analysis, ai, design, other)", 
+        description="강의 카테고리 (frontend, backend, data_analysis, ai, design, other)",
         example="backend"
     )
     course_type: CourseType = Field(
         default=CourseType.VOD,
-        description="강의 유형", 
+        description="강의 유형",
         example="vod"
     )
     title: str = Field(
-        ..., 
-        min_length=1, 
+        ...,
+        min_length=1,
         max_length=200,
-        description="강의 제목", 
+        description="강의 제목",
         example="FastAPI 완벽 가이드"
     )
     description: str = Field(
         ...,
-        description="강의 설명 (HTML 가능)", 
+        description="강의 설명 (HTML 가능)",
         example="FastAPI를 활용한 백엔드 개발 완벽 마스터 과정입니다."
     )
     thumbnail_url: str = Field(
         ...,
-        description="썸네일 이미지 URL", 
+        description="썸네일 이미지 URL",
         example="https://example.com/thumbnail.jpg"
     )
     instructor_name: str = Field(
-        ..., 
-        min_length=1, 
+        ...,
+        min_length=1,
         max_length=100,
-        description="강사명", 
+        description="강사명",
         example="김철수"
     )
     instructor_bio: str = Field(
         ...,
-        description="강사 소개", 
+        description="강사 소개",
         example="10년 경력의 백엔드 개발자입니다."
+    )
+    instructor_description: Optional[str] = Field(
+        None,
+        description="강사 상세 설명",
+        example="주요 경력: 네이버, 카카오 등에서 백엔드 개발을 담당했으며..."
     )
     instructor_image: str = Field(
         ...,
-        description="강사 프로필 이미지 URL", 
+        description="강사 프로필 이미지 URL",
         example="https://example.com/instructor.jpg"
     )
     difficulty: Difficulty = Field(
         ...,
-        description="난이도 (beginner, intermediate, advanced)", 
+        description="난이도 (beginner, intermediate, advanced)",
         example="beginner"
     )
     price_type: PriceType = Field(
         default=PriceType.PAID,
-        description="가격 유형", 
+        description="가격 유형",
         example="paid"
     )
     price: int = Field(
-        default=50000, 
+        default=50000,
         ge=0,
-        description="가격 (원)", 
+        description="가격 (원)",
         example=50000
+    )
+    access_duration_days: Optional[int] = Field(
+        None,
+        ge=1,
+        description="수강 기한 (일 수)",
+        example=365
+    )
+    max_students: Optional[int] = Field(
+        None,
+        ge=1,
+        description="모집 인원",
+        example=100
+    )
+    recruitment_start_date: Optional[datetime] = Field(
+        None,
+        description="모집 시작일"
+    )
+    recruitment_end_date: Optional[datetime] = Field(
+        None,
+        description="모집 종료일"
+    )
+    course_start_date: Optional[datetime] = Field(
+        None,
+        description="교육 시작일"
+    )
+    course_end_date: Optional[datetime] = Field(
+        None,
+        description="교육 종료일"
+    )
+    student_reviews: Optional[str] = Field(
+        None,
+        description="수강생 후기 (JSON 형식 또는 텍스트)",
+        example='[{"student":"홍길동","review":"정말 유익한 강의였습니다!"}]'
     )
     faq: Optional[str] = Field(
         None,
-        description="자주 묻는 질문 (JSON 형식)", 
+        description="자주 묻는 질문 (JSON 형식)",
         example='[{"question":"환불이 가능한가요?","answer":"구매일로부터 7일 이내, 진도율 10% 미만일 경우 환불 가능합니다."}]'
     )
 
@@ -132,14 +170,22 @@ class CourseUpdate(BaseModel):
     thumbnail_url: Optional[str] = None
     instructor_name: Optional[str] = Field(None, min_length=1, max_length=100)
     instructor_bio: Optional[str] = None
+    instructor_description: Optional[str] = None
     instructor_image: Optional[str] = None
     difficulty: Optional[Difficulty] = None
     price_type: Optional[PriceType] = None
     price: Optional[int] = Field(None, ge=0)
+    access_duration_days: Optional[int] = Field(None, ge=1)
+    max_students: Optional[int] = Field(None, ge=1)
+    recruitment_start_date: Optional[datetime] = None
+    recruitment_end_date: Optional[datetime] = None
+    course_start_date: Optional[datetime] = None
+    course_end_date: Optional[datetime] = None
+    student_reviews: Optional[str] = None
     faq: Optional[str] = None
     is_published: Optional[bool] = Field(
         None,
-        description="강의 공개 여부 (false: 준비 중, true: 공개)", 
+        description="강의 공개 여부 (false: 준비 중, true: 공개)",
         example=True
     )
 
@@ -157,12 +203,13 @@ class CourseResponse(BaseModel):
     price: int
     difficulty: Difficulty
     total_duration: int  # 초 단위
-    faq: Optional[str]
+    student_reviews: Optional[str] = None
+    faq: Optional[str] = None
     is_published: bool
     enrollment_count: int = 0
     created_at: datetime
     updated_at: datetime
-    
+
     class Config:
         from_attributes = True
 
@@ -175,20 +222,26 @@ class CourseDetailResponse(BaseModel):
     thumbnail_url: str
     instructor_name: str
     instructor_bio: str
+    instructor_description: Optional[str] = None
     instructor_image: str
     price_type: PriceType
     price: int
     difficulty: Difficulty
     total_duration: int
-    faq: Optional[str]
+    access_duration_days: Optional[int] = None
+    max_students: Optional[int] = None
+    recruitment_start_date: Optional[datetime] = None
+    recruitment_end_date: Optional[datetime] = None
+    course_start_date: Optional[datetime] = None
+    course_end_date: Optional[datetime] = None
+    student_reviews: Optional[str] = None
+    faq: Optional[str] = None
     is_published: bool
     enrollment_count: int = 0
     created_at: datetime
     updated_at: datetime
     # 추가 정보
     chapters: List['ChapterWithLectures'] = []
-    is_enrolled: bool = False
-    my_progress: Optional[float] = None
 
     class Config:
         from_attributes = True
@@ -356,159 +409,7 @@ class LectureResponse(BaseModel):
     class Config:
         from_attributes = True
 
-# ============= 학습 Q&A =============
-class QuestionCreate(BaseModel):
-    course_id: int = Field(
-        ..., 
-        gt=1,
-        description="질문할 강의 ID", 
-        example=1
-    )
-    title: str = Field(
-        ..., 
-        min_length=1, 
-        max_length=200,
-        description="질문 제목", 
-        example="FastAPI 설치 중 에러가 발생합니다"
-    )
-    content: str = Field(
-        ..., 
-        min_length=1,
-        description="질문 내용", 
-        example="pip install fastapi 실행 시 ModuleNotFoundError가 발생합니다. 어떻게 해결하나요?"
-    )
-
-class QuestionUpdate(BaseModel):
-    title: Optional[str] = Field(None, min_length=1, max_length=200)
-    content: Optional[str] = Field(None, min_length=1)
-
-class QuestionResponse(BaseModel):
-    id: int
-    user_id: int
-    user_nickname: str
-    course_id: int
-    course_title: str
-    title: str
-    content: str
-    view_count: int = 0
-    is_answered: bool = False
-    comment_count: int = 0
-    created_at: datetime
-    updated_at: datetime
-    is_deleted: bool = False 
-    deleted_at: Optional[datetime]
-    deleted_by: Optional[int]
-    
-    class Config:
-        from_attributes = True
-
-class QuestionDetailResponse(BaseModel):
-    id: int
-    user_id: int
-    user_nickname: str
-    course_id: int
-    course_title: str
-    title: str
-    content: str
-    view_count: int
-    is_answered: bool
-    created_at: datetime
-    updated_at: datetime
-    comments: List['CommentResponse'] = []
-    
-    class Config:
-        from_attributes = True
-
-class QuestionListParams(BaseModel):
-    course_id: Optional[int] = Field(
-        None,
-        description="강의 ID로 필터링", 
-        example=1
-    )
-    is_answered: Optional[bool] = Field(
-        None,
-        description="답변 완료 여부로 필터링", 
-        example=False
-    )
-    keyword: Optional[str] = Field(
-        None,
-        description="검색 키워드 (제목, 내용)", 
-        example="설치"
-    )
-    page: int = Field(default=1, ge=1)
-    page_size: int = Field(default=20, ge=1, le=100)
-
-class QuestionPaginatedResponse(BaseModel):
-    items: List[QuestionResponse]
-    total: int
-    page: int
-    page_size: int
-    total_pages: int
-    
-    class Config:
-        from_attributes = True
-
-# ============= 댓글 =============
-class CommentCreate(BaseModel):
-    question_id: int = Field(
-        ..., 
-        gt=1,
-        description="댓글을 달 질문 ID", 
-        example=1
-    )
-    content: str = Field(
-        ..., 
-        min_length=1,
-        description="댓글 내용", 
-        example="Python 버전을 확인해보세요. FastAPI는 Python 3.7 이상이 필요합니다."
-    )
-    parent_id: int | None = Field(
-        None, 
-        ge=1,
-        description="부모 댓글 ID (대댓글인 경우)", 
-        example=None
-    )
-
-class CommentUpdate(BaseModel):
-    content: str = Field(
-        ..., 
-        min_length=1,
-        description="수정할 댓글 내용"
-    )
-
-class CommentSummary(BaseModel):
-    id: int
-    user_id: int
-    user_nickname: str
-    user_role: str
-    content: str
-    is_instructor_answer: bool = False
-    created_at: datetime
-    reply_count: int = 0  # 대대댓글 개수만 표시
-    
-    class Config:
-        from_attributes = True
-
-class CommentResponse(BaseModel):
-    id: int
-    question_id: int
-    user_id: int
-    user_nickname: str
-    user_role: str
-    parent_id: Optional[int]
-    content: str
-    is_instructor_answer: bool = False
-    created_at: datetime
-    updated_at: datetime
-    replies: List[CommentSummary] = []  
-    reply_count: int = 0  # 전체 대댓글 수
-    
-    class Config:
-        from_attributes = True
-
 # ============= Forward References 업데이트 =============
 # 순환 참조 문제 해결을 위해 모델 재빌드
 CourseDetailResponse.model_rebuild()
 ChapterWithLectures.model_rebuild()
-QuestionDetailResponse.model_rebuild()
-CommentResponse.model_rebuild()

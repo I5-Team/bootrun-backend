@@ -10,10 +10,7 @@ from .base import Base
 from .user import User, UserRole, Gender, SocialProvider
 from .course import Course, Chapter, Lecture, CategoryType, CourseType, Difficulty, PriceType, VideoType
 from .progress import Enrollment, Progress
-from .mission import Mission, MissionSubmission, MissionType, QuestionType
-from .question import CourseQuestion, Comment
-from .certificate import Certificate
-from .payment import Payment, Coupon, Refund, PaymentMethod, PaymentStatus, RefundStatus
+from .payment import Payment, Refund, PaymentMethod, PaymentStatus, RefundStatus
 
 __all__ = [
     # Base
@@ -39,22 +36,8 @@ __all__ = [
     "Enrollment",
     "Progress",
 
-    # Mission models and enums
-    "Mission",
-    "MissionSubmission",
-    "MissionType",
-    "QuestionType",
-
-    # Question models
-    "CourseQuestion",
-    "Comment",
-
-    # Certificate model
-    "Certificate",
-
     # Payment models and enums
     "Payment",
-    "Coupon",
     "Refund",
     "PaymentMethod",
     "PaymentStatus",

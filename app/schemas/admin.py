@@ -125,9 +125,6 @@ class UserDetailForAdmin(BaseModel):
     total_payments: int
     total_spent: int
     total_refunds: int
-    # 활동 정보
-    total_questions: int
-    total_comments: int
     enrollments: List[dict[str, Any]] = []
     
     class Config:
@@ -197,17 +194,19 @@ class CourseManagementListParams(BaseModel):
 
 class CourseManagementResponse(BaseModel):
     id: int
-    category_name: str
     title: str
+    category_name: str
     instructor_name: str
     difficulty: str
-    is_published: bool
+    price: int
+    total_duration: int
+    chapter_count: int
     enrollment_count: int
+    is_published: bool
+    created_at: datetime
     total_revenue: int
     avg_progress: float
     completion_rate: float
-    created_at: datetime
-    updated_at: datetime
 
 # ============= 결제 관리 =============
 class PaymentManagementListParams(BaseModel):

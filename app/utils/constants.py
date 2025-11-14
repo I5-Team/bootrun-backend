@@ -94,12 +94,6 @@ MIME_TYPE_MAPPING = {
 }
 
 # =====================================================
-# 인증서 관련 상수
-# =====================================================
-CERTIFICATE_NUMBER_PATTERN = r'^WNIV-\d{4}-\d{6}$'
-CERTIFICATE_PREFIX = "WNIV"
-
-# =====================================================
 # 이메일 관련 상수
 # =====================================================
 EMAIL_VERIFICATION_CODE_LENGTH = 6
@@ -176,11 +170,7 @@ AUTH_PREFIX = "/auth"
 USER_PREFIX = "/user"
 COURSE_PREFIX = "/course"
 ENROLLMENT_PREFIX = "/enrollment"
-MISSION_PREFIX = "/mission"
 PAYMENT_PREFIX = "/payment"
-COUPON_PREFIX = "/coupon"
-CERTIFICATE_PREFIX_API = "/certificate"
-QUESTION_PREFIX = "/question"
 CHATBOT_PREFIX = "/chatbot"
 
 # =====================================================
@@ -220,7 +210,6 @@ REFUND_ALLOWED_DAYS = 7
 # 진행률 관련 상수
 # =====================================================
 PROGRESS_COMPLETION_THRESHOLD = 100  # 100%
-MISSION_MAX_ATTEMPTS = 3
 
 # =====================================================
 # 정규 표현식 패턴

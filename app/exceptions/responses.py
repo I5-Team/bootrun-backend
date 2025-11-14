@@ -323,47 +323,6 @@ LECTURE_DETAIL_RESPONSES = {
     500: COMMON_500,
 }
 
-# ============= Q&A 관련 =============
-
-QNA_CREATE_RESPONSES = {
-    401: COMMON_401,
-    403: _make_error_response(
-        'ENROLLMENT_REQUIRED',
-        '수강 중인 강의에만 질문할 수 있습니다',
-        '질문 작성 권한 없음'
-    ),
-    422: COMMON_422,
-    500: COMMON_500,
-}
-
-QNA_UPDATE_RESPONSES = {
-    401: COMMON_401,
-    403: _make_error_response(
-        'ONLY_AUTHOR_CAN_MODIFY',
-        '본인이 작성한 질문만 수정할 수 있습니다',
-        '수정 권한 없음'
-    ),
-    404: COMMON_404,
-    422: COMMON_422,
-    500: COMMON_500,
-}
-
-COMMENT_CREATE_RESPONSES = {
-    401: COMMON_401,
-    403: _make_error_response(
-        'ADMIN_ONLY',
-        '관리자만 답변할 수 있습니다',
-        '답변 권한 없음'
-    ),
-    404: _make_error_response(
-        'QUESTION_NOT_FOUND',
-        '질문을 찾을 수 없습니다',
-        '질문 조회 실패'
-    ),
-    422: COMMON_422,
-    500: COMMON_500,
-}
-
 # ============= 수강 등록 관련 =============
 
 ENROLLMENT_CREATE_RESPONSES = {
@@ -399,6 +358,17 @@ ENROLLMENT_ACCESS_RESPONSES = {
     500: COMMON_500,
 }
 
+ENROLLMENT_NOT_FOUND_RESPONSES = {
+    401: COMMON_401,
+    404: _make_error_response(
+        'ENROLLMENT_NOT_FOUND',
+        '수강 등록 정보를 찾을 수 없습니다',
+        '수강 정보 없음'
+    ),
+    422: COMMON_422,
+    500: COMMON_500,
+}
+
 ENROLLMENT_CANCEL_RESPONSES = {
     400: _make_error_response(
         'CANCELLATION_NOT_ALLOWED',
@@ -423,41 +393,6 @@ PROGRESS_UPDATE_RESPONSES = {
         'LECTURE_NOT_FOUND',
         '강의를 찾을 수 없습니다',
         '학습 진행 실패'
-    ),
-    422: COMMON_422,
-    500: COMMON_500,
-}
-
-# ============= 미션 관련 =============
-
-MISSION_CREATE_RESPONSES = {
-    401: COMMON_401,
-    403: COMMON_403,
-    404: _make_error_response(
-        'COURSE_NOT_FOUND',
-        '강의를 찾을 수 없습니다',
-        '미션 생성 실패'
-    ),
-    422: COMMON_422,
-    500: COMMON_500,
-}
-
-MISSION_SUBMIT_RESPONSES = {
-    400: _make_error_response(
-        'MAX_ATTEMPTS_EXCEEDED',
-        '최대 제출 횟수를 초과했습니다',
-        '미션 제출 실패'
-    ),
-    401: COMMON_401,
-    403: _make_error_response(
-        'ENROLLMENT_REQUIRED',
-        '해당 강의를 수강하지 않았습니다',
-        '미션 제출 권한 없음'
-    ),
-    404: _make_error_response(
-        'MISSION_NOT_FOUND',
-        '미션을 찾을 수 없습니다',
-        '미션 제출 실패'
     ),
     422: COMMON_422,
     500: COMMON_500,
@@ -513,64 +448,6 @@ PAYMENT_DETAIL_RESPONSES = {
         'PAYMENT_NOT_FOUND',
         '결제 내역을 찾을 수 없습니다',
         '결제 조회 실패'
-    ),
-    422: COMMON_422,
-    500: COMMON_500,
-}
-
-COUPON_VALIDATE_RESPONSES = {
-    400: _make_error_response(
-        'COUPON_INVALID',
-        '사용할 수 없는 쿠폰입니다',
-        '쿠폰 검증 실패'
-    ),
-    401: COMMON_401,
-    403: COMMON_403,
-    404: _make_error_response(
-        'COUPON_NOT_FOUND',
-        '쿠폰을 찾을 수 없습니다',
-        '쿠폰 조회 실패'
-    ),
-    422: COMMON_422,
-    500: COMMON_500,
-}
-
-COUPON_CREATE_RESPONSES = {
-    400: _make_error_response(
-        'COUPON_CODE_DUPLICATE',
-        '이미 존재하는 쿠폰 코드입니다',
-        '쿠폰 생성 실패'
-    ),
-    401: COMMON_401,
-    403: COMMON_403,
-    422: COMMON_422,
-    500: COMMON_500,
-}
-
-COUPON_UPDATE_RESPONSES = {
-    400: _make_error_response(
-        'COUPON_CODE_DUPLICATE',
-        '이미 존재하는 쿠폰 코드입니다',
-        '쿠폰 수정 실패'
-    ),
-    401: COMMON_401,
-    403: COMMON_403,
-    404: _make_error_response(
-        'COUPON_NOT_FOUND',
-        '쿠폰을 찾을 수 없습니다',
-        '쿠폰 수정 실패'
-    ),
-    422: COMMON_422,
-    500: COMMON_500,
-}
-
-COUPON_DELETE_RESPONSES = {
-    401: COMMON_401,
-    403: COMMON_403,
-    404: _make_error_response(
-        'COUPON_NOT_FOUND',
-        '쿠폰을 찾을 수 없습니다',
-        '쿠폰 삭제 실패'
     ),
     422: COMMON_422,
     500: COMMON_500,
@@ -644,47 +521,6 @@ REFUND_UPDATE_RESPONSES = {
     500: COMMON_500,
 }
 
-# ============= 수료증 관련 =============
-
-CERTIFICATE_ISSUE_RESPONSES = {
-    400: _make_error_response(
-        'COMPLETION_REQUIREMENTS_NOT_MET',
-        '수료 조건을 충족하지 않았습니다',
-        '수료증 발급 실패'
-    ),
-    401: COMMON_401,
-    403: COMMON_403,
-    404: _make_error_response(
-        'ENROLLMENT_NOT_FOUND',
-        '수강 정보를 찾을 수 없습니다',
-        '수료증 발급 실패'
-    ),
-    422: COMMON_422,
-    500: COMMON_500,
-}
-
-CERTIFICATE_VERIFY_RESPONSES = {
-    404: _make_error_response(
-        'CERTIFICATE_NOT_FOUND',
-        '유효하지 않은 수료증 번호입니다',
-        '수료증 조회 실패'
-    ),
-    500: COMMON_500,
-}
-
-CERTIFICATE_GENERATE_RESPONSES = {
-    400: _make_error_response(
-        'PDF_GENERATE_FAILED',
-        'PDF 생성에 실패했습니다',
-        'PDF 생성 실패'
-    ),
-    401: COMMON_401,
-    403: COMMON_403,
-    404: COMMON_404,
-    422: COMMON_422,
-    500: COMMON_500,
-}
-
 # ============= 관리자 관련 =============
 
 # 관리자 기본 응답 (목록 조회, 내보내기 등)
@@ -751,25 +587,6 @@ ADMIN_REFUND_DETAIL_RESPONSES = {
         'REFUND_NOT_FOUND',
         '환불 요청을 찾을 수 없습니다',
         '환불 상세 조회 실패'
-    ),
-    422: COMMON_422,
-    500: COMMON_500,
-}
-
-ADMIN_COUPON_LIST_RESPONSES = {
-    401: COMMON_401,
-    403: COMMON_403,
-    422: COMMON_422,
-    500: COMMON_500,
-}
-
-ADMIN_COUPON_DETAIL_RESPONSES = {
-    401: COMMON_401,
-    403: COMMON_403,
-    404: _make_error_response(
-        'COUPON_NOT_FOUND',
-        '쿠폰을 찾을 수 없습니다',
-        '쿠폰 상세 조회 실패'
     ),
     422: COMMON_422,
     500: COMMON_500,

@@ -79,19 +79,11 @@ class PaymentService:
         amount = course.price
         discount_amount = 0
         final_amount = amount
-        coupon_id = None
-
-        # 쿠폰 적용 (쿠폰 로직은 별도 폴더에서 관리하므로 여기서는 선택적)
-        # coupon_code가 제공되면 쿠폰 검증 및 할인 계산
-        if data.coupon_code:
-            # 쿠폰 검증 로직은 coupon 폴더에서 구현
-            # 여기서는 coupon_id와 discount_amount를 받는다고 가정
-            pass
 
         payment = Payment(
             user_id=user_id,
             course_id=data.course_id,
-            coupon_id=coupon_id,
+            coupon_id=None,
             amount=amount,
             discount_amount=discount_amount,
             final_amount=final_amount,
@@ -245,12 +237,6 @@ class PaymentService:
             payment_id, user_id
         )
 
-        # 쿠폰 정보
-        coupon_used = None
-        if payment.coupon_id:
-            # 쿠폰 정보 조회 (필요시)
-            coupon_used = f"COUPON_{payment.coupon_id}"
-
         return PaymentDetailResponse(
             id=payment.id,
             user_id=payment.user_id,
@@ -265,7 +251,6 @@ class PaymentService:
             status=payment.status,
             transaction_id=payment.transaction_id or "",
             receipt_url=payment.receipt_url,
-            coupon_used=coupon_used,
             paid_at=payment.paid_at,
             created_at=payment.created_at,
             can_refund=can_refund,

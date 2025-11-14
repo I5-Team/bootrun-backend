@@ -29,7 +29,14 @@
       "Bash(openapi_temp.json)",
       "Bash(del openapi_temp.json)",
       "Bash(del nul)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(del C:UsersnrvgoDesktopbootrun-backendopenapi_temp.json)",
+      "Bash(del approutersmy_courses.py)",
+      "Bash(del appservicesmy_course_service.py)",
+      "Bash(alembic revision:*)",
+      "Bash(alembic upgrade:*)",
+      "Bash(del C:UsersnrvgoDesktopbootrun-backendalembicversionsa66f3991f318_remove_coupon_foreign_key_from_payments.py)"
     ],
     "deny": [],
     "ask": []

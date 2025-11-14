@@ -25,7 +25,7 @@ class Enrollment(Base):
     # Relationships
     user = relationship("User", back_populates="enrollments")
     course = relationship("Course", back_populates="enrollments")
-    certificates = relationship("Certificate", back_populates="enrollment", uselist=False, cascade="all, delete-orphan")
+    progresses = relationship("Progress", back_populates="enrollment", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Enrollment(id={self.id}, user_id={self.user_id}, course_id={self.course_id}, progress={self.progress_rate}%)>"
@@ -36,6 +36,7 @@ class Progress(Base):
     # 기본 정보
     id = Column(Integer, primary_key=True, autoincrement=True, comment="진행 상황 고유 ID")
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True, comment="사용자 ID")
+    enrollment_id = Column(Integer, ForeignKey("enrollments.id", ondelete="CASCADE"), nullable=False, index=True, comment="수강 등록 ID")
     lecture_id = Column(Integer, ForeignKey("lectures.id", ondelete="CASCADE"), nullable=False, index=True, comment="강의 ID")
     
     # 진행 정보
@@ -51,6 +52,7 @@ class Progress(Base):
 
     # Relationships
     user = relationship("User", back_populates="progresses")
+    enrollment = relationship("Enrollment", back_populates="progresses")
     lecture = relationship("Lecture", back_populates="progresses")
 
     def __repr__(self):
