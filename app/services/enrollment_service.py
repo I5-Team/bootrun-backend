@@ -1,6 +1,6 @@
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_
+from sqlalchemy import select, func, and_, or_
 from sqlalchemy.orm import selectinload, joinedload
 from datetime import datetime, timedelta
 import math
@@ -11,7 +11,6 @@ from app.models.user import User
 from app.schemas.enrollment import (
     EnrollmentCreate,
     EnrollmentResponse,
-    EnrollmentDetailResponse,
     EnrollmentPaginatedResponse,
     MyEnrollmentListParams,
     ProgressCreate,
@@ -169,57 +168,6 @@ class EnrollmentService:
             page_size=params.page_size,
             total_pages=total_pages,
             items=items
-        )
-
-    async def get_enrollment_detail(
-        self,
-        user_id: int,
-        enrollment_id: int
-    ) -> EnrollmentDetailResponse:
-        """수강 상세 조회"""
-
-        result = await self.db.execute(
-            select(Enrollment)
-            .options(joinedload(Enrollment.course))
-            .where(
-                Enrollment.id == enrollment_id,
-                Enrollment.user_id == user_id
-            )
-        )
-        enrollment = result.scalar_one_or_none()
-
-        if not enrollment:
-            raise EnrollmentNotFoundError('수강 등록 정보를 찾을 수 없습니다')
-
-        course = enrollment.course
-
-        # 통계 계산
-        total_lectures, completed_lectures = await self._get_lecture_counts(
-            user_id, course.id
-        )
-        watched_duration = await self._get_total_watched_duration(
-            user_id, course.id
-        )
-
-        return EnrollmentDetailResponse(
-            id=enrollment.id,
-            user_id=enrollment.user_id,
-            course_id=enrollment.course_id,
-            course_title=course.title,
-            course_description=course.description,
-            course_thumbnail=course.thumbnail_url,
-            instructor_name=course.instructor_name,
-            category_name=course.category_type.value,
-            difficulty=course.difficulty.value,
-            enrolled_at=enrollment.enrolled_at,
-            expires_at=enrollment.expires_at,
-            is_active=enrollment.is_active,
-            progress_rate=enrollment.progress_rate,
-            days_until_expiry=get_days_until(enrollment.expires_at),
-            total_duration=course.total_duration,
-            watched_duration=watched_duration,
-            total_lectures=total_lectures,
-            completed_lectures=completed_lectures
         )
 
     # ==================== 학습 진행 ====================
@@ -774,8 +722,8 @@ class EnrollmentService:
             query = query.where(Course.difficulty == params.difficulty)
 
         # 필터링: 수강 상태 (학습 가능 / 만료)
-        from datetime import timezone
-        now = datetime.now(timezone.utc)
+        from app.utils.helpers import get_current_utc_datetime
+        now = get_current_utc_datetime()
         if params.enrollment_status == EnrollmentStatus.AVAILABLE:
             query = query.where(
                 or_(
@@ -810,7 +758,7 @@ class EnrollmentService:
         # 전체 개수
         count_query = select(func.count()).select_from(query.subquery())
         total_result = await self.db.execute(count_query)
-        total = total_result.scalar()
+        total = total_result.scalar() or 0
 
         # 페이지네이션
         offset = (params.page - 1) * params.page_size
@@ -948,8 +896,8 @@ class EnrollmentService:
                         break
 
         # 수강 상태 계산
-        from datetime import timezone
-        now = datetime.now(timezone.utc)
+        from app.utils.helpers import get_current_utc_datetime
+        now = get_current_utc_datetime()
         enrollment_status = EnrollmentStatus.AVAILABLE
         if enrollment.expires_at and enrollment.expires_at <= now:
             enrollment_status = EnrollmentStatus.EXPIRED

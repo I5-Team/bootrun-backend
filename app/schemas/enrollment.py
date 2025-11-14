@@ -4,12 +4,8 @@ from datetime import datetime
 from enum import Enum
 from fastapi import Query
 
-# course.py의 타입들을 import (TYPE_CHECKING으로 순환 참조 방지)
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from app.schemas.course import CourseType, CategoryType, Difficulty, PriceType, VideoType
-else:
-    from app.schemas.course import CourseType, CategoryType, Difficulty, PriceType, VideoType
+# course.py의 타입들을 import
+from app.schemas.course import CourseType, CategoryType, Difficulty, PriceType, VideoType
 
 # ============= 수강 등록 =============
 class EnrollmentCreate(BaseModel):
@@ -57,29 +53,6 @@ class MyEnrollmentListParams(BaseModel):
     )
     page: int = Field(default=1, ge=1)
     page_size: int = Field(default=20, ge=1, le=100)
-
-class EnrollmentDetailResponse(BaseModel):
-    id: int
-    user_id: int
-    course_id: int
-    course_title: str
-    course_description: str
-    course_thumbnail: str
-    instructor_name: str
-    category_name: str
-    difficulty: str
-    enrolled_at: datetime
-    expires_at: datetime
-    is_active: bool
-    progress_rate: float
-    days_until_expiry: int
-    total_duration: int  # 전체 강의 시간
-    watched_duration: int  # 시청한 시간
-    total_lectures: int
-    completed_lectures: int
-
-    class Config:
-        from_attributes = True
 
 # ============= 학습 진행 =============
 class ProgressCreate(BaseModel):

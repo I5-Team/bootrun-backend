@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.schemas.common import SuccessResponse
 from app.schemas.enrollment import (
-    EnrollmentCreate, EnrollmentResponse, EnrollmentDetailResponse,
+    EnrollmentCreate, EnrollmentResponse,
     EnrollmentPaginatedResponse, MyEnrollmentListParams,
     ProgressCreate, ProgressUpdate, ProgressResponse,
     CourseProgressDetail, StudentDashboard,
@@ -46,7 +46,7 @@ async def create_enrollment(
 
 @router.get(
     "/my",
-    response_model=MyCoursePaginatedResponse,
+    response_model=SuccessResponse[MyCoursePaginatedResponse],
     summary="내 수강 목록 조회",
     description="현재 사용자가 수강 중인 강의 목록을 조회합니다. 상태, 학습 진행도, 유형별로 필터링할 수 있습니다.",
     responses={
@@ -60,7 +60,8 @@ async def get_my_enrollments(
     db: AsyncSession = Depends(get_db)
 ):
     service = EnrollmentService(db)
-    return await service.get_my_courses(current_user.id, params)
+    result = await service.get_my_courses(current_user.id, params)
+    return SuccessResponse(data=result)
 
 @router.get(
     "/dashboard",
@@ -96,14 +97,9 @@ async def get_enrollment(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    # enrollment_id를 course_id로 해석하여 처리
     service = EnrollmentService(db)
-    course = await service.get_my_course_detail(current_user.id, enrollment_id)
-    return SuccessResponse(
-        success=True,
-        message="수강 상세 조회 성공",
-        data=course
-    )
+    result = await service.get_my_course_detail(current_user.id, enrollment_id)
+    return SuccessResponse(data=result)
 
 @router.post(
     "/progress",
