@@ -214,11 +214,18 @@ class CourseResponse(BaseModel):
     thumbnail_url: str
     instructor_name: str
     instructor_bio: str
+    instructor_description: Optional[str] = None
     instructor_image: str
     price_type: PriceType
     price: int
     difficulty: Difficulty
     total_duration: int  # 초 단위
+    access_duration_days: Optional[int] = None
+    max_students: Optional[int] = None
+    recruitment_start_date: Optional[datetime] = None
+    recruitment_end_date: Optional[datetime] = None
+    course_start_date: Optional[datetime] = None
+    course_end_date: Optional[datetime] = None
     student_reviews: Optional[str] = None
     faq: Optional[str] = None
     is_published: bool
