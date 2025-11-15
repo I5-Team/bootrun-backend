@@ -214,8 +214,8 @@ class ProgressNotFoundError(NotFoundError):
         super().__init__(detail=detail)
 
 # 결제 도메인
-class AlreadyPaidError(ConflictError):
-    
+class AlreadyPaidError(BadRequestError):
+
     def __init__(
         self,
         detail: str = '이미 결제한 강의입니다'

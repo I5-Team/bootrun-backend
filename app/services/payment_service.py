@@ -63,7 +63,7 @@ class PaymentService:
         if not course:
             raise CourseNotFoundError()
 
-        # 이미 결제했는지 확인
+        # 이미 결제했는지 확인 (환불된 결제는 제외)
         existing_payment = await self.db.execute(
             select(Payment).where(
                 and_(
@@ -985,6 +985,15 @@ class AdminPaymentService:
         refund.status = data.status.value if hasattr(data.status, 'value') else data.status
         refund.admin_note = data.admin_note
         refund.processed_at = datetime.utcnow()
+
+        # 환불이 승인되면 결제 상태를 REFUNDED로 업데이트
+        if refund.status == RefundStatus.APPROVED.value:
+            payment = await self.db.execute(
+                select(Payment).where(Payment.id == refund.payment_id)
+            )
+            payment = payment.scalar_one_or_none()
+            if payment:
+                payment.status = PaymentStatus.REFUNDED.value
 
         await self.db.flush()
 

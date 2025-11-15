@@ -78,29 +78,29 @@ class PaymentDetailResponse(BaseModel):
         from_attributes = True
 
 class PaymentListParams(BaseModel):
-    status: Optional[PaymentStatus] = Field(
+    status: Optional[str] = Field(
         None,
-        description="결제 상태로 필터링", 
+        description="결제 상태로 필터링",
         example="completed"
     )
-    payment_method: Optional[PaymentMethod] = Field(
+    payment_method: Optional[str] = Field(
         None,
-        description="결제 방식으로 필터링", 
+        description="결제 방식으로 필터링",
         example="card"
     )
     start_date: Optional[datetime] = Field(
         None,
-        description="시작 날짜", 
+        description="시작 날짜",
         example="2025-01-01T00:00:00"
     )
     end_date: Optional[datetime] = Field(
         None,
-        description="종료 날짜", 
+        description="종료 날짜",
         example="2025-12-31T23:59:59"
     )
     keyword: Optional[str] = Field(
         None,
-        description="검색 키워드 (사용자 이름, 이메일, 강의명)", 
+        description="검색 키워드 (사용자 이름, 이메일, 강의명)",
         example="FastAPI"
     )
     page: int = Field(default=1, ge=1)
