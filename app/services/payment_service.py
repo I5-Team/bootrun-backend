@@ -63,7 +63,7 @@ class PaymentService:
         if not course:
             raise CourseNotFoundError()
 
-        # 이미 결제했는지 확인
+        # 이미 결제했는지 확인 (환불된 결제는 제외)
         existing_payment = await self.db.execute(
             select(Payment).where(
                 and_(
@@ -511,6 +511,53 @@ class PaymentService:
         progress_rate = (completed_lectures / total_lectures * 100) if total_lectures > 0 else 0
         return min(progress_rate, 100)
 
+    async def _build_refund_response(self, refund: Refund):
+        """
+        환불 응답 구성 (관리자용 RefundManagementResponse)
+        """
+        from app.schemas.admin import RefundManagementResponse
+
+        # 결제 정보 조회
+        payment = await self.db.execute(
+            select(Payment).where(Payment.id == refund.payment_id)
+        )
+        payment = payment.scalar_one()
+
+        # 사용자 정보 조회
+        user = await self.db.execute(
+            select(User).where(User.id == refund.user_id)
+        )
+        user = user.scalar_one()
+
+        # 강의 정보 조회
+        course = await self.db.execute(
+            select(Course).where(Course.id == payment.course_id)
+        )
+        course = course.scalar_one()
+
+        # 진도율 계산
+        progress_rate = await self._calculate_progress_rate(
+            refund.user_id,
+            payment.course_id
+        )
+
+        return RefundManagementResponse(
+            id=refund.id,
+            payment_id=refund.payment_id,
+            transaction_id=payment.transaction_id or "",
+            user_id=refund.user_id,
+            user_nickname=user.nickname or user.email.split("@")[0],
+            course_title=course.title,
+            amount=refund.amount,
+            reason=refund.reason,
+            status=refund.status,
+            payment_date=payment.paid_at or payment.created_at,
+            progress_rate=progress_rate,
+            requested_at=refund.requested_at,
+            processed_at=refund.processed_at,
+            admin_note=refund.admin_note,
+        )
+
 
 class RefundService:
     """환불 관련 비즈니스 로직"""
@@ -699,6 +746,44 @@ class AdminPaymentService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
+    # ==================== 파라미터 변환 헬퍼 ====================
+
+    def _convert_refund_status_filter(self, status_str: Optional[str]) -> Optional[RefundStatus]:
+        """
+        문자열 상태 값을 RefundStatus ENUM으로 변환
+        지원 값: pending, approved, rejected
+        """
+        if not status_str:
+            return None
+
+        status_lower = status_str.lower()
+
+        # RefundStatus ENUM 값과 매칭
+        for enum_member in RefundStatus:
+            if enum_member.value == status_lower:
+                return enum_member
+
+        # 매칭되는 값이 없으면 None 반환
+        return None
+
+    def _convert_payment_status_filter(self, status_str: Optional[str]) -> Optional[PaymentStatus]:
+        """
+        문자열 상태 값을 PaymentStatus ENUM으로 변환
+        지원 값: pending, completed, failed, refunded
+        """
+        if not status_str:
+            return None
+
+        status_lower = status_str.lower()
+
+        # PaymentStatus ENUM 값과 매칭
+        for enum_member in PaymentStatus:
+            if enum_member.value == status_lower:
+                return enum_member
+
+        # 매칭되는 값이 없으면 None 반환
+        return None
+
     # ==================== 결제 관리 ====================
 
     async def get_payments(self, params) -> dict:
@@ -712,7 +797,9 @@ class AdminPaymentService:
 
         # 필터링
         if hasattr(params, 'status') and params.status:
-            query = query.where(Payment.status == params.status)
+            converted_status = self._convert_payment_status_filter(params.status)
+            if converted_status:
+                query = query.where(Payment.status == converted_status)
 
         if hasattr(params, 'payment_method') and params.payment_method:
             query = query.where(Payment.payment_method == params.payment_method)
@@ -733,10 +820,9 @@ class AdminPaymentService:
                 )
             )
 
-        # 전체 개수
-        count_result = await self.db.execute(
-            select(func.count(Payment.id)).select_from(Payment)
-        )
+        # 전체 개수 (필터링 조건 포함)
+        count_query = query.with_only_columns(func.count(Payment.id))
+        count_result = await self.db.execute(count_query)
         total = count_result.scalar() or 0
 
         # 페이지네이션
@@ -764,8 +850,9 @@ class AdminPaymentService:
 
             items.append({
                 "id": payment.id,
+                "transaction_id": payment.transaction_id or "",
                 "user_id": payment.user_id,
-                "user_name": user.nickname or user.email.split("@")[0],
+                "user_nickname": user.nickname or user.email.split("@")[0],
                 "user_email": user.email,
                 "course_id": payment.course_id,
                 "course_title": course.title,
@@ -808,7 +895,9 @@ class AdminPaymentService:
 
         # 필터링
         if hasattr(params, 'status') and params.status:
-            query = query.where(Refund.status == params.status)
+            converted_status = self._convert_refund_status_filter(params.status)
+            if converted_status:
+                query = query.where(Refund.status == converted_status)
 
         if hasattr(params, 'start_date') and params.start_date:
             query = query.where(Refund.requested_at >= params.start_date)
@@ -896,6 +985,15 @@ class AdminPaymentService:
         refund.status = data.status.value if hasattr(data.status, 'value') else data.status
         refund.admin_note = data.admin_note
         refund.processed_at = datetime.utcnow()
+
+        # 환불이 승인되면 결제 상태를 REFUNDED로 업데이트
+        if refund.status == RefundStatus.APPROVED.value:
+            payment = await self.db.execute(
+                select(Payment).where(Payment.id == refund.payment_id)
+            )
+            payment = payment.scalar_one_or_none()
+            if payment:
+                payment.status = PaymentStatus.REFUNDED.value
 
         await self.db.flush()
 
