@@ -11,6 +11,7 @@ from app.schemas.common import SuccessResponse
 from app.exceptions.responses import ADMIN_DASHBOARD_RESPONSES
 from app.core.dependencies import get_current_admin, get_db
 from app.models.user import User
+from app.services.admin_dashboard_service import AdminDashboardService
 
 router = APIRouter(prefix="/admin/dashboard", tags=["관리자 - 대시보드"])
 
@@ -28,7 +29,8 @@ async def get_dashboard_stats(
     current_admin: User = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db)
 ):
-    pass
+    stats = await AdminDashboardService.get_stats(db)
+    return SuccessResponse(data=stats)
 
 @router.get(
     "/daily-stats",
@@ -45,7 +47,12 @@ async def get_daily_stats(
     current_admin: User = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db)
 ):
-    pass
+    stats = await AdminDashboardService.get_daily_stats(
+        db,
+        start_date=params.start_date,
+        end_date=params.end_date
+    )
+    return SuccessResponse(data=stats)
 
 @router.get(
     "/revenue-stats",
@@ -62,7 +69,12 @@ async def get_revenue_stats(
     current_admin: User = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db)
 ):
-    pass
+    stats = await AdminDashboardService.get_revenue_stats(
+        db,
+        start_date=params.start_date,
+        end_date=params.end_date
+    )
+    return SuccessResponse(data=stats)
 
 @router.get(
     "/course-stats",
@@ -79,7 +91,13 @@ async def get_course_stats(
     current_admin: User = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db)
 ):
-    pass
+    stats = await AdminDashboardService.get_course_stats(
+        db,
+        category_type=params.category_type,
+        start_date=params.start_date,
+        end_date=params.end_date
+    )
+    return SuccessResponse(data=stats)
 
 @router.get(
     "/category-stats",
@@ -95,7 +113,8 @@ async def get_category_stats(
     current_admin: User = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db)
 ):
-    pass
+    stats = await AdminDashboardService.get_category_stats(db)
+    return SuccessResponse(data=stats)
 
 @router.get(
     "/settings",
