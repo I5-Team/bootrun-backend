@@ -511,6 +511,53 @@ class PaymentService:
         progress_rate = (completed_lectures / total_lectures * 100) if total_lectures > 0 else 0
         return min(progress_rate, 100)
 
+    async def _build_refund_response(self, refund: Refund):
+        """
+        환불 응답 구성 (관리자용 RefundManagementResponse)
+        """
+        from app.schemas.admin import RefundManagementResponse
+
+        # 결제 정보 조회
+        payment = await self.db.execute(
+            select(Payment).where(Payment.id == refund.payment_id)
+        )
+        payment = payment.scalar_one()
+
+        # 사용자 정보 조회
+        user = await self.db.execute(
+            select(User).where(User.id == refund.user_id)
+        )
+        user = user.scalar_one()
+
+        # 강의 정보 조회
+        course = await self.db.execute(
+            select(Course).where(Course.id == payment.course_id)
+        )
+        course = course.scalar_one()
+
+        # 진도율 계산
+        progress_rate = await self._calculate_progress_rate(
+            refund.user_id,
+            payment.course_id
+        )
+
+        return RefundManagementResponse(
+            id=refund.id,
+            payment_id=refund.payment_id,
+            transaction_id=payment.transaction_id or "",
+            user_id=refund.user_id,
+            user_nickname=user.nickname or user.email.split("@")[0],
+            course_title=course.title,
+            amount=refund.amount,
+            reason=refund.reason,
+            status=refund.status,
+            payment_date=payment.paid_at or payment.created_at,
+            progress_rate=progress_rate,
+            requested_at=refund.requested_at,
+            processed_at=refund.processed_at,
+            admin_note=refund.admin_note,
+        )
+
 
 class RefundService:
     """환불 관련 비즈니스 로직"""
