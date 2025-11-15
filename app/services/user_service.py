@@ -456,16 +456,26 @@ class UserService:
                 'JPG, PNG, GIF, WEBP만 업로드 가능합니다'
             )
 
+        # 이전 프로필 이미지가 있으면 삭제 (기본 이미지가 아닌 경우)
+        if user.profile_image and user.profile_image != DEFAULT_PROFILE_IMAGE:
+            old_file_path = user.profile_image.lstrip('/')
+            if os.path.exists(old_file_path):
+                try:
+                    os.remove(old_file_path)
+                    logger.info(f'이전 프로필 이미지 삭제: {old_file_path}')
+                except Exception as e:
+                    logger.error(f'이전 프로필 이미지 삭제 실패: {old_file_path}, 오류: {str(e)}')
+
         file_extension = file.filename.split('.')[-1]
         new_filename = f'{uuid.uuid4()}.{file_extension}'
-        
+
         # 업로드 디렉토리 생성
         upload_dir = 'uploads/profiles'
         os.makedirs(upload_dir, exist_ok=True)
-        
+
         # 파일 저장 경로
         file_path = os.path.join(upload_dir, new_filename)
-        
+
         # 파일을 디스크에 비동기로 저장
         async with aiofiles.open(file_path, 'wb') as f:
             await f.write(file_content)
@@ -489,6 +499,19 @@ class UserService:
         user_id: int
     ) -> None:
         user = await self.get_user_by_id(user_id)
+
+        # 기본 이미지가 아닌 경우에만 파일 삭제
+        if user.profile_image and user.profile_image != DEFAULT_PROFILE_IMAGE:
+            # 실제 파일 경로 추출 (예: /uploads/profiles/xxx.png -> uploads/profiles/xxx.png)
+            file_path = user.profile_image.lstrip('/')
+
+            # 파일이 존재하면 삭제
+            if os.path.exists(file_path):
+                try:
+                    os.remove(file_path)
+                    logger.info(f'프로필 이미지 파일 삭제 완료: {file_path}')
+                except Exception as e:
+                    logger.error(f'프로필 이미지 파일 삭제 실패: {file_path}, 오류: {str(e)}')
 
         user.profile_image = DEFAULT_PROFILE_IMAGE
         user.updated_at = get_current_utc_datetime()
