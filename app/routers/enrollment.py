@@ -3,8 +3,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.schemas.common import SuccessResponse
 from app.schemas.enrollment import (
-    EnrollmentCreate, EnrollmentResponse,
-    EnrollmentPaginatedResponse, MyEnrollmentListParams,
     ProgressCreate, ProgressUpdate, ProgressResponse,
     CourseProgressDetail, StudentDashboard,
     MyCourseListParams,
@@ -12,7 +10,6 @@ from app.schemas.enrollment import (
     MyCourseDetail,
 )
 from app.exceptions.responses import (
-    ENROLLMENT_CREATE_RESPONSES,
     ENROLLMENT_ACCESS_RESPONSES,
     PROGRESS_UPDATE_RESPONSES,
     AUTH_RESPONSES,
@@ -23,26 +20,6 @@ from app.models.user import User
 from app.services.enrollment_service import EnrollmentService
 
 router = APIRouter(prefix="/enrollments", tags=["수강 등록 및 학습 진행"])
-
-@router.post(
-    "",
-    response_model=SuccessResponse[EnrollmentResponse],
-    status_code=status.HTTP_201_CREATED,
-    summary="수강 등록",
-    description="강의를 수강 등록합니다. 결제가 완료된 후 자동으로 등록됩니다.",
-    responses={
-        201: {"description": "수강 등록 성공"},
-        **ENROLLMENT_CREATE_RESPONSES
-    }
-)
-async def create_enrollment(
-    data: EnrollmentCreate,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
-):
-    service = EnrollmentService(db)
-    result = await service.create_enrollment(current_user.id, data)
-    return SuccessResponse(data=result)
 
 @router.get(
     "/my",
@@ -82,23 +59,23 @@ async def get_student_dashboard(
     return SuccessResponse(data=result)
 
 @router.get(
-    "/{enrollment_id}",
+    "/{course_id}",
     response_model=SuccessResponse[MyCourseDetail],
-    summary="수강 상세 조회",
-    description="특정 수강 등록의 상세 정보를 조회합니다. 챕터별 강의 영상 목록과 각 영상의 시청 진행 상태를 확인할 수 있습니다.",
+    summary="내 강의실 조회",
+    description="수강 중인 강의의 상세 정보를 조회합니다. 챕터별 강의 영상 목록과 각 영상의 시청 진행 상태를 확인할 수 있습니다.",
     responses={
-        200: {"description": "수강 상세 조회 성공"},
+        200: {"description": "내 강의실 조회 성공"},
         **AUTH_RESPONSES,
         **READ_RESPONSES
     }
 )
 async def get_enrollment(
-    enrollment_id: int,
+    course_id: int,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     service = EnrollmentService(db)
-    result = await service.get_my_course_detail(current_user.id, enrollment_id)
+    result = await service.get_my_course_detail(current_user.id, course_id)
     return SuccessResponse(data=result)
 
 @router.post(
