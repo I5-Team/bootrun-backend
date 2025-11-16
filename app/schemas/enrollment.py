@@ -108,9 +108,7 @@ class StudentDashboard(BaseModel):
     completed_courses: int
     total_study_time: int  # 분 단위
     avg_progress_rate: float
-    recent_activities: list[dict] = []
-    upcoming_expiries: list[dict] = []  # 만료 임박 강의
-    
+
     class Config:
         from_attributes = True
 

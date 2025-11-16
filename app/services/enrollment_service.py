@@ -78,14 +78,27 @@ class EnrollmentService:
 
         # 새로운 진행 기록 생성
         now = get_current_utc_datetime()
+
+        # 시청률이 95% 이상이면 자동으로 완료 처리
+        is_completed = data.is_completed
+        completed_at = None
+
+        if lecture.duration_seconds > 0:
+            completion_rate = (data.watched_seconds / lecture.duration_seconds) * 100
+            if completion_rate >= 95 or data.is_completed:
+                is_completed = True
+                completed_at = now
+        elif data.is_completed:
+            completed_at = now
+
         progress = Progress(
             user_id=user_id,
             lecture_id=data.lecture_id,
             watched_seconds=data.watched_seconds,
             last_position=data.last_position,
-            is_completed=data.is_completed,
+            is_completed=is_completed,
             last_watched_at=now,
-            completed_at=now if data.is_completed else None
+            completed_at=completed_at
         )
 
         self.db.add(progress)
@@ -125,11 +138,21 @@ class EnrollmentService:
         # 업데이트
         progress.watched_seconds = data.watched_seconds
         progress.last_position = data.last_position
-        progress.is_completed = data.is_completed
         progress.last_watched_at = get_current_utc_datetime()
 
-        if data.is_completed and progress.completed_at is None:
-            progress.completed_at = get_current_utc_datetime()
+        # 시청률이 95% 이상이면 자동으로 완료 처리
+        if progress.lecture.duration_seconds > 0:
+            completion_rate = (data.watched_seconds / progress.lecture.duration_seconds) * 100
+            if completion_rate >= 95 or data.is_completed:
+                progress.is_completed = True
+                if progress.completed_at is None:
+                    progress.completed_at = get_current_utc_datetime()
+            else:
+                progress.is_completed = data.is_completed
+        else:
+            progress.is_completed = data.is_completed
+            if data.is_completed and progress.completed_at is None:
+                progress.completed_at = get_current_utc_datetime()
 
         await self.db.commit()
         await self.db.refresh(progress)
@@ -346,18 +369,12 @@ class EnrollmentService:
         total_study_seconds = total_study_time_result.scalar() or 0
         total_study_time = total_study_seconds // 60
 
-        # TODO: 최근 활동, 만료 임박 강의 등은 나중에 추가
-        recent_activities = []
-        upcoming_expiries = []
-
         return StudentDashboard(
             total_enrollments=total_enrollments,
             active_enrollments=active_enrollments,
             completed_courses=completed_courses,
             total_study_time=total_study_time,
-            avg_progress_rate=float(avg_progress_rate),
-            recent_activities=recent_activities,
-            upcoming_expiries=upcoming_expiries
+            avg_progress_rate=float(avg_progress_rate)
         )
 
     # ==================== 헬퍼 메서드 ====================
@@ -373,6 +390,11 @@ class EnrollmentService:
             progress.watched_seconds / lecture.duration_seconds * 100
         ) if lecture.duration_seconds > 0 else 0
 
+        # 시청률이 95% 이상이면 완료로 간주
+        is_completed = progress.is_completed
+        if lecture.duration_seconds > 0 and completion_rate >= 95:
+            is_completed = True
+
         return ProgressResponse(
             id=progress.id,
             user_id=progress.user_id,
@@ -380,7 +402,7 @@ class EnrollmentService:
             lecture_title=lecture.title,
             watched_seconds=progress.watched_seconds,
             last_position=progress.last_position,
-            is_completed=progress.is_completed,
+            is_completed=is_completed,
             completion_rate=completion_rate,
             last_watched_at=progress.last_watched_at,
             completed_at=progress.completed_at
@@ -778,6 +800,21 @@ class EnrollmentService:
                 # Progress 정보 가져오기
                 progress = progress_dict.get(lecture.id)
 
+                # 완료 여부 계산 (시청률 95% 이상이면 자동 완료)
+                is_completed = False
+                watched_seconds = 0
+                last_position = 0
+
+                if progress:
+                    watched_seconds = progress.watched_seconds
+                    last_position = progress.last_position
+
+                    if lecture.duration_seconds > 0:
+                        completion_rate = (watched_seconds / lecture.duration_seconds) * 100
+                        is_completed = completion_rate >= 95 or progress.is_completed
+                    else:
+                        is_completed = progress.is_completed
+
                 lecture_data = MyLectureProgress(
                     id=lecture.id,
                     chapter_id=lecture.chapter_id,
@@ -790,9 +827,9 @@ class EnrollmentService:
                     material_url=lecture.material_url,
                     created_at=lecture.created_at,
                     updated_at=lecture.updated_at,
-                    is_completed=progress.is_completed if progress else False,
-                    last_position=progress.last_position if progress else 0,
-                    watched_seconds=progress.watched_seconds if progress else 0
+                    is_completed=is_completed,
+                    last_position=last_position,
+                    watched_seconds=watched_seconds
                 )
                 lectures_data.append(lecture_data)
 
