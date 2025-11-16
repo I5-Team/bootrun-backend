@@ -82,10 +82,10 @@ async def get_enrollment(
     "/progress",
     response_model=SuccessResponse[ProgressResponse],
     status_code=status.HTTP_201_CREATED,
-    summary="학습 진행 생성",
-    description="새로운 강의 영상의 학습 진행을 시작합니다.",
+    summary="학습 진행 생성/업데이트",
+    description="강의 영상의 학습 진행을 생성하거나 업데이트합니다. 이미 진행 기록이 있으면 자동으로 업데이트됩니다.",
     responses={
-        201: {"description": "학습 진행 생성 성공"},
+        201: {"description": "학습 진행 생성/업데이트 성공"},
         **PROGRESS_UPDATE_RESPONSES
     }
 )

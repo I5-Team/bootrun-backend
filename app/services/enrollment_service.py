@@ -9,10 +9,6 @@ from app.models.progress import Enrollment, Progress
 from app.models.course import Course, Chapter, Lecture
 from app.models.user import User
 from app.schemas.enrollment import (
-    EnrollmentCreate,
-    EnrollmentResponse,
-    EnrollmentPaginatedResponse,
-    MyEnrollmentListParams,
     ProgressCreate,
     ProgressUpdate,
     ProgressResponse,
@@ -31,7 +27,6 @@ from app.schemas.enrollment import (
 )
 from app.exceptions.base import (
     CourseNotFoundError,
-    EnrollmentAlreadyExistsError,
     EnrollmentNotFoundError,
     LectureNotFoundError,
     ProgressNotFoundError,
@@ -44,132 +39,6 @@ class EnrollmentService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    # ==================== 수강 등록 ====================
-
-    async def create_enrollment(
-        self,
-        user_id: int,
-        data: EnrollmentCreate
-    ) -> EnrollmentResponse:
-        """수강 등록 생성 (결제 완료 후 호출)"""
-
-        # 강의 존재 확인
-        course_result = await self.db.execute(
-            select(Course).where(Course.id == data.course_id)
-        )
-        course = course_result.scalar_one_or_none()
-
-        if not course:
-            raise CourseNotFoundError(f'ID {data.course_id}인 강의를 찾을 수 없습니다')
-
-        # 이미 등록되어 있는지 확인
-        existing_result = await self.db.execute(
-            select(Enrollment).where(
-                Enrollment.user_id == user_id,
-                Enrollment.course_id == data.course_id
-            )
-        )
-        existing = existing_result.scalar_one_or_none()
-
-        if existing:
-            raise EnrollmentAlreadyExistsError('이미 수강 등록된 강의입니다')
-
-        # 수강 등록 생성 (만료일: 등록일 + 2년)
-        now = get_current_utc_datetime()
-        expires_at = now + timedelta(days=730)  # 2년
-
-        enrollment = Enrollment(
-            user_id=user_id,
-            course_id=data.course_id,
-            enrolled_at=now,
-            expires_at=expires_at,
-            is_active=True,
-            progress_rate=0.0
-        )
-
-        self.db.add(enrollment)
-        await self.db.commit()
-        await self.db.refresh(enrollment)
-
-        # 응답 데이터 생성
-        return await self._build_enrollment_response(enrollment, course)
-
-    async def get_my_enrollments(
-        self,
-        user_id: int,
-        params: MyEnrollmentListParams
-    ) -> EnrollmentPaginatedResponse:
-        """내 수강 목록 조회"""
-
-        # 기본 쿼리
-        query = (
-            select(Enrollment)
-            .options(joinedload(Enrollment.course))
-            .where(Enrollment.user_id == user_id)
-        )
-
-        # 필터링
-        if params.category_id is not None:
-            query = query.where(Course.category_type == params.category_id)
-
-        if params.difficulty is not None:
-            query = query.where(Course.difficulty == params.difficulty)
-
-        if params.is_active is not None:
-            query = query.where(Enrollment.is_active == params.is_active)
-
-        # 정렬: 최근 등록순
-        query = query.order_by(Enrollment.enrolled_at.desc())
-
-        # 전체 개수
-        count_query = select(func.count()).select_from(query.subquery())
-        total_result = await self.db.execute(count_query)
-        total = total_result.scalar()
-
-        # 페이지네이션
-        offset = (params.page - 1) * params.page_size
-        query = query.offset(offset).limit(params.page_size)
-
-        result = await self.db.execute(query)
-        enrollments = result.scalars().all()
-
-        # 응답 데이터 생성
-        items = []
-        for enrollment in enrollments:
-            course = enrollment.course
-
-            # 총 강의 수와 완료된 강의 수 계산
-            total_lectures, completed_lectures = await self._get_lecture_counts(
-                user_id, course.id
-            )
-
-            items.append(EnrollmentResponse(
-                id=enrollment.id,
-                user_id=enrollment.user_id,
-                course_id=enrollment.course_id,
-                course_title=course.title,
-                course_thumbnail=course.thumbnail_url,
-                category_name=course.category_type.value,
-                difficulty=course.difficulty.value,
-                enrolled_at=enrollment.enrolled_at,
-                expires_at=enrollment.expires_at,
-                is_active=enrollment.is_active,
-                progress_rate=enrollment.progress_rate,
-                days_until_expiry=get_days_until(enrollment.expires_at),
-                total_lectures=total_lectures,
-                completed_lectures=completed_lectures
-            ))
-
-        total_pages = math.ceil(total / params.page_size) if total > 0 else 0
-
-        return EnrollmentPaginatedResponse(
-            total=total,
-            page=params.page,
-            page_size=params.page_size,
-            total_pages=total_pages,
-            items=items
-        )
-
     # ==================== 학습 진행 ====================
 
     async def create_progress(
@@ -177,7 +46,7 @@ class EnrollmentService:
         user_id: int,
         data: ProgressCreate
     ) -> ProgressResponse:
-        """학습 진행 생성"""
+        """학습 진행 생성 또는 업데이트 (Upsert)"""
 
         # 강의 영상 존재 확인 (chapter와 course_id도 함께 로드)
         lecture_result = await self.db.execute(
@@ -200,7 +69,7 @@ class EnrollmentService:
         existing = existing_result.scalar_one_or_none()
 
         if existing:
-            # 이미 존재하면 업데이트
+            # 이미 존재하면 자동으로 업데이트 (Upsert 패턴)
             return await self.update_progress(user_id, data.lecture_id, ProgressUpdate(
                 watched_seconds=data.watched_seconds,
                 last_position=data.last_position,
@@ -490,34 +359,6 @@ class EnrollmentService:
 
     # ==================== 헬퍼 메서드 ====================
 
-    async def _build_enrollment_response(
-        self,
-        enrollment: Enrollment,
-        course: Course
-    ) -> EnrollmentResponse:
-        """수강 등록 응답 생성"""
-
-        total_lectures, completed_lectures = await self._get_lecture_counts(
-            enrollment.user_id, course.id
-        )
-
-        return EnrollmentResponse(
-            id=enrollment.id,
-            user_id=enrollment.user_id,
-            course_id=enrollment.course_id,
-            course_title=course.title,
-            course_thumbnail=course.thumbnail_url,
-            category_name=course.category_type.value,
-            difficulty=course.difficulty.value,
-            enrolled_at=enrollment.enrolled_at,
-            expires_at=enrollment.expires_at,
-            is_active=enrollment.is_active,
-            progress_rate=enrollment.progress_rate,
-            days_until_expiry=get_days_until(enrollment.expires_at),
-            total_lectures=total_lectures,
-            completed_lectures=completed_lectures
-        )
-
     async def _build_progress_response(
         self,
         progress: Progress,
@@ -596,15 +437,27 @@ class EnrollmentService:
         user_id: int,
         course_id: int
     ):
-        """강의 진행률 업데이트"""
+        """강의 진행률 업데이트 (시간 기반)"""
 
-        total_lectures, completed_lectures = await self._get_lecture_counts(
-            user_id, course_id
+        # 강의 조회 (총 시간)
+        course_result = await self.db.execute(
+            select(Course).where(Course.id == course_id)
         )
+        course = course_result.scalar_one_or_none()
 
+        if not course:
+            return
+
+        # 총 시청 시간 조회
+        total_watched = await self._get_total_watched_duration(user_id, course_id)
+
+        # 시간 기반 진행률 계산
         progress_rate = (
-            completed_lectures / total_lectures * 100
-        ) if total_lectures > 0 else 0
+            total_watched / course.total_duration * 100
+        ) if course.total_duration > 0 else 0
+
+        # 100% 초과 방지
+        progress_rate = min(progress_rate, 100.0)
 
         # Enrollment 업데이트
         result = await self.db.execute(
