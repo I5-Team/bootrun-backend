@@ -223,7 +223,9 @@ class EnrollmentService:
             total_watched_duration += chapter_watched
             total_completed += chapter_completed
 
-            chapter_progress_rate = (chapter_completed / len(chapter.lectures) * 100) if len(chapter.lectures) > 0 else 0
+            # 챕터 진행률: 시간 기반
+            chapter_progress_rate = (chapter_watched / chapter_duration * 100) if chapter_duration > 0 else 0
+            chapter_progress_rate = min(chapter_progress_rate, 100.0)
 
             chapters_data.append(ChapterProgressSummary(
                 chapter_id=chapter.id,
@@ -236,9 +238,10 @@ class EnrollmentService:
                 lectures=lectures_data
             ))
 
-        # 전체 진행률 계산
+        # 전체 진행률 계산: 시간 기반
         total_lectures = len(all_lecture_ids)
-        progress_rate = (total_completed / total_lectures * 100) if total_lectures > 0 else 0
+        progress_rate = (total_watched_duration / course.total_duration * 100) if course.total_duration > 0 else 0
+        progress_rate = min(progress_rate, 100.0)
 
         return CourseProgressDetail(
             course_id=course.id,
