@@ -1,6 +1,6 @@
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator, field_serializer
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from enum import Enum
 
 # Enums
@@ -39,20 +39,26 @@ class PaymentResponse(BaseModel):
     user_id: int
     course_id: int
     course_title: str
-    amount: int  # 원(KRW) 단위, 소수점 없음
-    discount_amount: int = 0  # 원(KRW) 단위
-    final_amount: int  # 원(KRW) 단위
+    amount: int
+    discount_amount: int = 0
+    final_amount: int
     payment_method: PaymentMethod
     status: PaymentStatus
     transaction_id: str
     receipt_url: Optional[str]
     paid_at: Optional[datetime]
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
-        # 금액은 정수형 원(KRW) 단위로 저장됩니다.
-        # 예: 50000 = 50,000원
+
+    @field_serializer('paid_at', 'created_at')
+    def serialize_datetime(self, value: Optional[datetime]) -> Optional[str]:
+        if not value:
+            return None
+        kst = timezone(timedelta(hours=9))
+        utc = value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value
+        return utc.astimezone(kst).isoformat()
 
 class PaymentDetailResponse(BaseModel):
     id: int
@@ -70,12 +76,19 @@ class PaymentDetailResponse(BaseModel):
     receipt_url: Optional[str]
     paid_at: Optional[datetime]
     created_at: datetime
-    # 환불 가능 여부
     can_refund: bool = False
-    refund_reason: Optional[str] = None  # 환불 불가 사유
-    
+    refund_reason: Optional[str] = None
+
     class Config:
         from_attributes = True
+
+    @field_serializer('paid_at', 'created_at')
+    def serialize_datetime(self, value: Optional[datetime]) -> Optional[str]:
+        if not value:
+            return None
+        kst = timezone(timedelta(hours=9))
+        utc = value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value
+        return utc.astimezone(kst).isoformat()
 
 class PaymentListParams(BaseModel):
     status: Optional[str] = Field(
@@ -155,13 +168,20 @@ class RefundResponse(BaseModel):
     admin_note: Optional[str]
     requested_at: datetime
     processed_at: Optional[datetime]
-    # 결제 정보
     payment_date: datetime
     course_title: str
     progress_rate: float
-    
+
     class Config:
         from_attributes = True
+
+    @field_serializer('requested_at', 'processed_at', 'payment_date')
+    def serialize_datetime(self, value: Optional[datetime]) -> Optional[str]:
+        if not value:
+            return None
+        kst = timezone(timedelta(hours=9))
+        utc = value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value
+        return utc.astimezone(kst).isoformat()
 
 class RefundCheckResponse(BaseModel):
     can_refund: bool

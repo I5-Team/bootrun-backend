@@ -1,6 +1,6 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
 from typing import Optional, List, Any
-from datetime import datetime, date
+from datetime import datetime, date, timezone, timedelta
 from enum import Enum
 
 from app.schemas.course import CategoryType, Difficulty
@@ -253,9 +253,17 @@ class PaymentManagementResponse(BaseModel):
     status: str
     paid_at: Optional[datetime]
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
+
+    @field_serializer('paid_at', 'created_at')
+    def serialize_datetime(self, value: Optional[datetime]) -> Optional[str]:
+        if not value:
+            return None
+        kst = timezone(timedelta(hours=9))
+        utc = value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value
+        return utc.astimezone(kst).isoformat()
 
 # ============= 환불 관리 =============
 class RefundManagementListParams(BaseModel):
@@ -297,6 +305,14 @@ class RefundManagementResponse(BaseModel):
     requested_at: datetime
     processed_at: Optional[datetime]
     admin_note: Optional[str]
+
+    @field_serializer('payment_date', 'requested_at', 'processed_at')
+    def serialize_datetime(self, value: Optional[datetime]) -> Optional[str]:
+        if not value:
+            return None
+        kst = timezone(timedelta(hours=9))
+        utc = value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value
+        return utc.astimezone(kst).isoformat()
 
 # ============= 통계 조회 파라미터 =============
 class StatsQueryParams(BaseModel):
