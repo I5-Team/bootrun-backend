@@ -4,7 +4,7 @@ from datetime import date, datetime, timedelta
 from typing import List, Optional
 
 from app.schemas.admin import (
-    DashboardStats, DailyStats, RevenueStats, CourseStats, CategoryStats
+    DashboardStats, DailyStats, RevenueStats, CourseStats, CategoryStats, SystemSettings
 )
 
 
@@ -381,3 +381,19 @@ class AdminDashboardService:
         except Exception:
             # 에러 발생 시 빈 리스트 반환
             return []
+
+    @staticmethod
+    async def get_system_settings(db: AsyncSession) -> SystemSettings:
+        """
+        시스템 설정 조회
+        현재는 기본값 반환
+        """
+        return SystemSettings()
+
+    @staticmethod
+    async def update_system_settings(db: AsyncSession, data: SystemSettings) -> SystemSettings:
+        """
+        시스템 설정 수정
+        현재는 입력된 데이터 반환
+        """
+        return data

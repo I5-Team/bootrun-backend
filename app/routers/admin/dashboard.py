@@ -130,7 +130,8 @@ async def get_system_settings(
     current_admin: User = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db)
 ):
-    pass
+    settings = await AdminDashboardService.get_system_settings(db)
+    return SuccessResponse(data=settings)
 
 @router.patch(
     "/settings",
@@ -147,4 +148,5 @@ async def update_system_settings(
     current_admin: User = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db)
 ):
-    pass
+    settings = await AdminDashboardService.update_system_settings(db, data)
+    return SuccessResponse(data=settings)

@@ -26,7 +26,6 @@ class Enrollment(Base):
     # Relationships
     user = relationship("User", back_populates="enrollments")
     course = relationship("Course", back_populates="enrollments")
-    progresses = relationship("Progress", back_populates="enrollment", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Enrollment(id={self.id}, user_id={self.user_id}, course_id={self.course_id}, progress={self.progress_rate}%)>"
@@ -37,14 +36,13 @@ class Progress(Base):
     # 기본 정보
     id = Column(Integer, primary_key=True, autoincrement=True, comment="진행 상황 고유 ID")
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True, comment="사용자 ID")
-    enrollment_id = Column(Integer, ForeignKey("enrollments.id", ondelete="CASCADE"), nullable=False, index=True, comment="수강 등록 ID")
     lecture_id = Column(Integer, ForeignKey("lectures.id", ondelete="CASCADE"), nullable=False, index=True, comment="강의 ID")
-    
+
     # 진행 정보
     watched_seconds = Column(Integer, nullable=False, default=0, comment="총 시청 시간 (초)")
     last_position = Column(Integer, nullable=False, default=0, comment="마지막 시청 위치 (초)")
     is_completed = Column(Boolean, nullable=False, default=False, comment="완료 여부")
-    
+
     # 타임스탬프
     last_watched_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now(), comment="마지막 시청 일시")
     completed_at = Column(DateTime, nullable=True, comment="완료 일시")
@@ -53,7 +51,6 @@ class Progress(Base):
 
     # Relationships
     user = relationship("User", back_populates="progresses")
-    enrollment = relationship("Enrollment", back_populates="progresses")
     lecture = relationship("Lecture", back_populates="progresses")
 
     def __repr__(self):

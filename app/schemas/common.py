@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List, Any, Generic, TypeVar
-from datetime import datetime
+from datetime import datetime, timezone
 from app.utils.helpers import get_current_utc_datetime
 
 T = TypeVar('T')
@@ -111,3 +111,18 @@ class ProfileImageUploadResponse(BaseModel):
     image_url: str
     file_size: int
     uploaded_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class FileDeleteRequest(BaseModel):
+    file_url: str = Field(..., description="삭제할 파일의 URL", example="/uploads/thumbnails/abc123.jpg")
+
+class UploadedFileInfo(BaseModel):
+    file_name: str = Field(..., description="파일명")
+    file_url: str = Field(..., description="파일 URL")
+    file_size: int = Field(..., description="파일 크기 (bytes)")
+    file_type: str = Field(..., description="파일 타입 (thumbnails, instructors, materials)")
+    created_at: datetime = Field(..., description="생성일시")
+
+class FileListResponse(BaseModel):
+    files: List["UploadedFileInfo"] = Field(..., description="업로드된 파일 목록")
+    total: int = Field(..., description="전체 파일 수")
+    total_size: int = Field(..., description="전체 파일 크기 (bytes)")

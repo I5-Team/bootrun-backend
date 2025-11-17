@@ -1,12 +1,12 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from typing import List
+from typing import List, Optional
 
 from app.schemas.admin import (
     CourseManagementListParams, CourseManagementPaginatedResponse,
 )
-from app.schemas.common import MessageResponse, SuccessResponse
+from app.schemas.common import MessageResponse, SuccessResponse, ImageUploadResponse, FileUploadResponse, FileDeleteRequest, FileListResponse
 from app.schemas.course import (
     CourseCreate, CourseUpdate, CourseResponse,
     ChapterCreate, ChapterUpdate, ChapterResponse,
@@ -26,16 +26,160 @@ from app.services.admin_course_service import AdminCourseService
 
 router = APIRouter(prefix="/admin/courses", tags=["관리자 - 강의 관리"])
 
+# ==================== 파일 업로드 ====================
+
+@router.post(
+    "/upload-thumbnail",
+    response_model=SuccessResponse[ImageUploadResponse],
+    status_code=status.HTTP_201_CREATED,
+    summary="강의 썸네일 업로드",
+    description="강의 썸네일 이미지를 업로드합니다. 업로드된 이미지 URL을 반환받아 강의 생성/수정 시 사용하세요.",
+    responses=ADMIN_RESPONSES
+)
+async def upload_thumbnail(
+    file: UploadFile = File(..., description="썸네일 이미지 파일 (JPEG, PNG, WebP)"),
+    current_admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
+    """강의 썸네일 업로드
+
+    - 지원 형식: JPEG, PNG, WebP
+    - 최대 크기: 10MB
+    - 업로드된 파일은 /uploads/thumbnails/ 경로에 저장됩니다
+    - 반환된 image_url을 CourseCreate의 thumbnail_url에 사용하세요
+    """
+    service = AdminCourseService(db)
+    result = await service.upload_thumbnail(file)
+
+    return SuccessResponse(
+        success=True,
+        message="썸네일이 성공적으로 업로드되었습니다",
+        data=result
+    )
+
+@router.post(
+    "/upload-instructor-image",
+    response_model=SuccessResponse[ImageUploadResponse],
+    status_code=status.HTTP_201_CREATED,
+    summary="강사 이미지 업로드",
+    description="강사 프로필 이미지를 업로드합니다. 업로드된 이미지 URL을 반환받아 강의 생성/수정 시 사용하세요.",
+    responses=ADMIN_RESPONSES
+)
+async def upload_instructor_image(
+    file: UploadFile = File(..., description="강사 이미지 파일 (JPEG, PNG, WebP)"),
+    current_admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
+    """강사 프로필 이미지 업로드
+
+    - 지원 형식: JPEG, PNG, WebP
+    - 최대 크기: 10MB
+    - 업로드된 파일은 /uploads/instructors/ 경로에 저장됩니다
+    - 반환된 image_url을 CourseCreate의 instructor_image에 사용하세요
+    """
+    service = AdminCourseService(db)
+    result = await service.upload_instructor_image(file)
+
+    return SuccessResponse(
+        success=True,
+        message="강사 이미지가 성공적으로 업로드되었습니다",
+        data=result
+    )
+
+@router.post(
+    "/upload-material",
+    response_model=SuccessResponse[FileUploadResponse],
+    status_code=status.HTTP_201_CREATED,
+    summary="강의 자료 업로드",
+    description="강의 자료 파일을 업로드합니다. 업로드된 파일 URL을 반환받아 강의 영상 생성/수정 시 사용하세요.",
+    responses=ADMIN_RESPONSES
+)
+async def upload_material(
+    file: UploadFile = File(..., description="강의 자료 파일 (PDF, ZIP, DOCX 등)"),
+    current_admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
+    """강의 자료 업로드
+
+    - 지원 형식: PDF, ZIP, DOCX, PPTX, TXT 등
+    - 최대 크기: 50MB
+    - 업로드된 파일은 /uploads/materials/ 경로에 저장됩니다
+    - 반환된 file_url을 LectureCreate의 material_url에 사용하세요
+    """
+    service = AdminCourseService(db)
+    result = await service.upload_material(file)
+
+    return SuccessResponse(
+        success=True,
+        message="강의 자료가 성공적으로 업로드되었습니다",
+        data=result
+    )
+
+@router.get(
+    "/files",
+    response_model=SuccessResponse[FileListResponse],
+    status_code=status.HTTP_200_OK,
+    summary="업로드된 파일 목록 조회",
+    description="관리자가 업로드한 강의 관련 파일(썸네일, 강사 이미지, 강의 자료) 목록을 조회합니다.",
+    responses=ADMIN_RESPONSES
+)
+async def list_uploaded_files(
+    file_type: Optional[str] = None,
+    current_admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
+    """업로드된 파일 목록 조회
+
+    - file_type: 조회할 파일 타입 (thumbnails, instructors, materials)
+    - file_type을 지정하지 않으면 모든 타입의 파일을 조회합니다
+    - 최신 업로드 순으로 정렬됩니다
+    - 파일명, URL, 크기, 생성일시 등의 정보를 포함합니다
+    """
+    service = AdminCourseService(db)
+    result = await service.list_uploaded_files(file_type)
+
+    return SuccessResponse(
+        success=True,
+        message="파일 목록 조회 성공",
+        data=result
+    )
+
+@router.delete(
+    "/files",
+    response_model=MessageResponse,
+    status_code=status.HTTP_200_OK,
+    summary="업로드된 파일 삭제",
+    description="업로드된 파일(썸네일, 강사 이미지, 강의 자료)을 삭제합니다.",
+    responses=ADMIN_RESPONSES
+)
+async def delete_file(
+    request: FileDeleteRequest,
+    current_admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
+    """업로드된 파일 삭제
+
+    - 잘못 업로드한 파일이나 사용하지 않는 파일을 삭제합니다
+    - 파일 URL을 제공하면 해당 파일이 서버에서 삭제됩니다
+    - 이미 강의/챕터/강의에 연결된 파일을 삭제하면 연결이 끊어지므로 주의하세요
+    """
+    service = AdminCourseService(db)
+    await service.delete_file(request.file_url)
+
+    return MessageResponse(
+        success=True,
+        message="파일이 성공적으로 삭제되었습니다"
+    )
+
+# ==================== 강의 관리 ====================
+
 @router.get(
     "",
-    response_model=CourseManagementPaginatedResponse,
+    response_model=SuccessResponse[CourseManagementPaginatedResponse],
     summary="강의 목록 조회",
     description="관리자용 강의 목록을 조회합니다. 수강생 수, 매출, 평균 진행률, 완료율 등의 정보를 포함합니다.",
     operation_id="admin_get_courses",
-    responses={
-        200: {"description": "강의 목록 조회 성공"},
-        **ADMIN_RESPONSES
-    }
+    responses=ADMIN_RESPONSES
 )
 async def get_courses(
     params: CourseManagementListParams = Depends(),
@@ -48,7 +192,13 @@ async def get_courses(
     - 카테고리, 난이도, 공개 여부, 키워드로 필터링 가능
     """
     service = AdminCourseService(db)
-    return await service.get_courses_for_admin(params)
+    result = await service.get_courses_for_admin(params)
+
+    return SuccessResponse(
+        success=True,
+        message="강의 목록 조회 성공",
+        data=result
+    )
 
 @router.get(
     "/{course_id}",
@@ -56,10 +206,7 @@ async def get_courses(
     summary="강의 상세 조회",
     description="관리자용 강의 상세 정보를 조회합니다. 비공개 강의도 조회할 수 있습니다.",
     operation_id="admin_get_course_detail",
-    responses={
-        200: {"description": "강의 상세 조회 성공"},
-        **ADMIN_COURSE_MANAGEMENT_RESPONSES
-    }
+    responses=ADMIN_COURSE_MANAGEMENT_RESPONSES
 )
 async def get_course(
     course_id: int,
@@ -88,10 +235,7 @@ async def get_course(
     summary="강의 생성",
     description="새로운 강의를 생성합니다. 기본적으로 비공개 상태로 생성됩니다.",
     operation_id="admin_create_course",
-    responses={
-        201: {"description": "강의 생성 성공"},
-        **COURSE_CREATE_RESPONSES
-    }
+    responses=COURSE_CREATE_RESPONSES
 )
 async def create_course(
     data: CourseCreate,
@@ -117,10 +261,7 @@ async def create_course(
     response_model=MessageResponse,
     summary="강의 공개",
     description="강의를 공개 상태로 변경합니다. 사용자들이 강의를 확인할 수 있게 됩니다.",
-    responses={
-        200: {"description": "강의 공개 완료"},
-        **ADMIN_COURSE_MANAGEMENT_RESPONSES
-    }
+    responses=ADMIN_COURSE_MANAGEMENT_RESPONSES
 )
 async def publish_course(
     course_id: int,
@@ -145,10 +286,7 @@ async def publish_course(
     response_model=MessageResponse,
     summary="강의 비공개",
     description="강의를 비공개 상태로 변경합니다. 사용자들이 강의를 확인할 수 없게 됩니다.",
-    responses={
-        200: {"description": "강의 비공개 완료"},
-        **ADMIN_COURSE_MANAGEMENT_RESPONSES
-    }
+    responses=ADMIN_COURSE_MANAGEMENT_RESPONSES
 )
 async def unpublish_course(
     course_id: int,
@@ -175,10 +313,7 @@ async def unpublish_course(
     summary="강의 수정",
     description="강의 정보를 수정합니다. 제공된 필드만 수정됩니다.",
     operation_id="admin_update_course",
-    responses={
-        200: {"description": "강의 수정 성공"},
-        **COURSE_UPDATE_RESPONSES
-    }
+    responses=COURSE_UPDATE_RESPONSES
 )
 async def update_course(
     course_id: int,
@@ -206,10 +341,7 @@ async def update_course(
     summary="강의 삭제",
     description="강의를 삭제합니다. CASCADE로 연결된 챕터, 강의 영상, 수강 등록 등 모든 데이터가 함께 삭제됩니다.",
     operation_id="admin_delete_course",
-    responses={
-        200: {"description": "강의 삭제 완료"},
-        **ADMIN_COURSE_MANAGEMENT_RESPONSES
-    }
+    responses=ADMIN_COURSE_MANAGEMENT_RESPONSES
 )
 async def delete_course(
     course_id: int,
@@ -237,10 +369,7 @@ async def delete_course(
     response_model=SuccessResponse[List[ChapterResponse]],
     summary="챕터 목록 조회",
     description="특정 강의의 모든 챕터를 조회합니다. order_number 순서로 정렬됩니다.",
-    responses={
-        200: {"description": "챕터 목록 조회 성공"},
-        **ADMIN_COURSE_MANAGEMENT_RESPONSES
-    }
+    responses=ADMIN_COURSE_MANAGEMENT_RESPONSES
 )
 async def get_chapters(
     course_id: int,
@@ -268,10 +397,7 @@ async def get_chapters(
     status_code=status.HTTP_201_CREATED,
     summary="챕터 생성",
     description="강의에 새로운 챕터를 추가합니다.",
-    responses={
-        201: {"description": "챕터 생성 성공"},
-        **CHAPTER_CREATE_RESPONSES
-    }
+    responses=CHAPTER_CREATE_RESPONSES
 )
 async def create_chapter(
     course_id: int,
@@ -298,10 +424,7 @@ async def create_chapter(
     response_model=SuccessResponse[ChapterResponse],
     summary="챕터 수정",
     description="챕터 정보를 수정합니다. 제공된 필드만 수정됩니다.",
-    responses={
-        200: {"description": "챕터 수정 성공"},
-        **ADMIN_COURSE_MANAGEMENT_RESPONSES
-    }
+    responses=ADMIN_COURSE_MANAGEMENT_RESPONSES
 )
 async def update_chapter(
     course_id: int,
@@ -329,10 +452,7 @@ async def update_chapter(
     response_model=MessageResponse,
     summary="챕터 삭제",
     description="챕터를 삭제합니다. CASCADE로 챕터에 포함된 모든 강의 영상이 함께 삭제됩니다.",
-    responses={
-        200: {"description": "챕터 삭제 완료"},
-        **ADMIN_COURSE_MANAGEMENT_RESPONSES
-    }
+    responses=ADMIN_COURSE_MANAGEMENT_RESPONSES
 )
 async def delete_chapter(
     course_id: int,
@@ -360,10 +480,7 @@ async def delete_chapter(
     response_model=SuccessResponse[List[LectureResponse]],
     summary="강의 영상 목록 조회",
     description="특정 챕터의 모든 강의 영상을 조회합니다. order_number 순서로 정렬됩니다.",
-    responses={
-        200: {"description": "강의 영상 목록 조회 성공"},
-        **ADMIN_COURSE_MANAGEMENT_RESPONSES
-    }
+    responses=ADMIN_COURSE_MANAGEMENT_RESPONSES
 )
 async def get_lectures(
     course_id: int,
@@ -392,10 +509,7 @@ async def get_lectures(
     status_code=status.HTTP_201_CREATED,
     summary="강의 영상 생성",
     description="챕터에 새로운 강의 영상을 추가합니다. VOD 또는 유튜브 영상을 지원합니다.",
-    responses={
-        201: {"description": "강의 영상 생성 성공"},
-        **LECTURE_CREATE_RESPONSES
-    }
+    responses=LECTURE_CREATE_RESPONSES
 )
 async def create_lecture(
     course_id: int,
@@ -425,10 +539,7 @@ async def create_lecture(
     response_model=SuccessResponse[LectureResponse],
     summary="강의 영상 수정",
     description="강의 영상 정보를 수정합니다. 제공된 필드만 수정됩니다.",
-    responses={
-        200: {"description": "강의 영상 수정 성공"},
-        **ADMIN_COURSE_MANAGEMENT_RESPONSES
-    }
+    responses=ADMIN_COURSE_MANAGEMENT_RESPONSES
 )
 async def update_lecture(
     course_id: int,
@@ -458,10 +569,7 @@ async def update_lecture(
     response_model=MessageResponse,
     summary="강의 영상 삭제",
     description="강의 영상을 삭제합니다. 학습 진행 기록이 함께 삭제되고 강의 전체 시간이 업데이트됩니다.",
-    responses={
-        200: {"description": "강의 영상 삭제 완료"},
-        **ADMIN_COURSE_MANAGEMENT_RESPONSES
-    }
+    responses=ADMIN_COURSE_MANAGEMENT_RESPONSES
 )
 async def delete_lecture(
     course_id: int,

@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
-from pydantic import Field
+from pydantic import Field, field_validator
+from typing import Union
 
 class Settings(BaseSettings):
 
@@ -108,10 +109,19 @@ class Settings(BaseSettings):
     # =====================================================
     # CORS 설정
     # =====================================================
-    cors_origins: list[str] = ["https://yourdomain.com","https://www.yourdomain.com"]
+    cors_origins: Union[str, list[str]] = ["http://localhost:3000"]
     cors_allow_credentials: bool = True
     cors_allow_methods: str = "GET,POST,PUT,DELETE,OPTIONS,PATCH"
     cors_allow_headers: str = "Content-Type,Authorization"
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, v):
+        """환경변수에서 쉼표로 구분된 문자열을 리스트로 변환"""
+        if isinstance(v, str):
+            # 쉼표로 구분된 문자열을 리스트로 변환
+            return [origin.strip() for origin in v.split(",") if origin.strip()]
+        return v
 
     # =====================================================
     # 로깅 설정
