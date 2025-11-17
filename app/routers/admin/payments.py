@@ -1,4 +1,7 @@
+import csv
+import io
 from fastapi import APIRouter, Depends, Path
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.schemas.admin import (
@@ -56,7 +59,15 @@ async def get_payments(
     summary="결제 내역 내보내기",
     description="결제 내역을 엑셀 파일로 내보냅니다.",
     responses={
-        200: {"description": "결제 내역 내보내기 완료"},
+        200: {
+            "description": "결제 내역 내보내기 완료",
+            "content": {
+                "text/csv": {
+                    "schema": {"type": "string"},
+                    "example": "id,transaction_id,user_id,user_nickname,user_email,course_id,course_title,amount,discount_amount,final_amount,payment_method,status,paid_at,created_at\n1,TXN001,1,홍길동,hong@example.com,1,Python 기초,50000,0,50000,card,completed,2025-01-15T10:30:00,2025-01-15T10:00:00"
+                }
+            }
+        },
         **ADMIN_RESPONSES
     }
 )
@@ -70,7 +81,34 @@ async def export_payments(
     """
     service = AdminPaymentService(db)
     items = await service.export_payments(params)
-    return {"data": items}
+
+    # CSV 파일 생성
+    output = io.StringIO()
+    if items:
+        fieldnames = [
+            "id", "transaction_id", "user_id", "user_nickname", "user_email",
+            "course_id", "course_title", "amount", "discount_amount", "final_amount",
+            "payment_method", "status", "paid_at", "created_at"
+        ]
+        writer = csv.DictWriter(output, fieldnames=fieldnames)
+        writer.writeheader()
+
+        for item in items:
+            row = {}
+            for field in fieldnames:
+                value = getattr(item, field, None)
+                # datetime 객체를 문자열로 변환
+                if hasattr(value, 'isoformat'):
+                    value = value.isoformat()
+                row[field] = value
+            writer.writerow(row)
+
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=payments_export.csv"}
+    )
 
 @router.get(
     "/refunds",
