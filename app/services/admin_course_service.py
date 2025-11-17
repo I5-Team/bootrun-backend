@@ -72,7 +72,7 @@ class AdminCourseService:
         new_filename = f'{uuid.uuid4()}.{file_extension}'
 
         # 업로드 디렉토리 생성
-        upload_dir = 'uploads/thumbnails'
+        upload_dir = '/app/uploads/thumbnails'
         os.makedirs(upload_dir, exist_ok=True)
 
         # 파일 저장 경로
@@ -115,7 +115,7 @@ class AdminCourseService:
         new_filename = f'{uuid.uuid4()}.{file_extension}'
 
         # 업로드 디렉토리 생성
-        upload_dir = 'uploads/instructors'
+        upload_dir = '/app/uploads/instructors'
         os.makedirs(upload_dir, exist_ok=True)
 
         # 파일 저장 경로
@@ -158,7 +158,7 @@ class AdminCourseService:
         new_filename = f'{uuid.uuid4()}.{file_extension}'
 
         # 업로드 디렉토리 생성
-        upload_dir = 'uploads/materials'
+        upload_dir = '/app/uploads/materials'
         os.makedirs(upload_dir, exist_ok=True)
 
         # 파일 저장 경로

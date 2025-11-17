@@ -470,7 +470,7 @@ class UserService:
         new_filename = f'{uuid.uuid4()}.{file_extension}'
 
         # 업로드 디렉토리 생성
-        upload_dir = 'uploads/profiles'
+        upload_dir = '/app/uploads/profiles'
         os.makedirs(upload_dir, exist_ok=True)
 
         # 파일 저장 경로
