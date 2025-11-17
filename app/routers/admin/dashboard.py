@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas.admin import (
     DashboardStats, DailyStats, RevenueStats,
     CourseStats, CategoryStats, StatsQueryParams,
-    CourseStatsQueryParams, SystemSettings
+    CourseStatsQueryParams
 )
 from app.schemas.common import SuccessResponse
 from app.exceptions.responses import ADMIN_DASHBOARD_RESPONSES
@@ -116,37 +116,3 @@ async def get_category_stats(
     stats = await AdminDashboardService.get_category_stats(db)
     return SuccessResponse(data=stats)
 
-@router.get(
-    "/settings",
-    response_model=SuccessResponse[SystemSettings],
-    summary="시스템 설정 조회",
-    description="시스템 설정 정보를 조회합니다.",
-    responses={
-        200: {"description": "시스템 설정 조회 성공"},
-        **ADMIN_DASHBOARD_RESPONSES
-    }
-)
-async def get_system_settings(
-    current_admin: User = Depends(get_current_admin),
-    db: AsyncSession = Depends(get_db)
-):
-    settings = await AdminDashboardService.get_system_settings(db)
-    return SuccessResponse(data=settings)
-
-@router.patch(
-    "/settings",
-    response_model=SuccessResponse[SystemSettings],
-    summary="시스템 설정 수정",
-    description="시스템 설정을 수정합니다.",
-    responses={
-        200: {"description": "시스템 설정 수정 완료"},
-        **ADMIN_DASHBOARD_RESPONSES
-    }
-)
-async def update_system_settings(
-    data: SystemSettings,
-    current_admin: User = Depends(get_current_admin),
-    db: AsyncSession = Depends(get_db)
-):
-    settings = await AdminDashboardService.update_system_settings(db, data)
-    return SuccessResponse(data=settings)
