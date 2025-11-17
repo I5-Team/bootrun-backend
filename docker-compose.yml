@@ -35,9 +35,11 @@ services:
         condition: service_healthy
     volumes:
       - ./logs:/app/logs
-      - ./uploads:/app/uploads
+      - uploads_data:/app/uploads
     restart: unless-stopped
 
 volumes:
   redis_data:
+    driver: local
+  uploads_data:
     driver: local
