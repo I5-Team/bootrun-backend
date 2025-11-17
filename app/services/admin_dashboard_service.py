@@ -4,7 +4,7 @@ from datetime import date, datetime, timedelta
 from typing import List, Optional
 
 from app.schemas.admin import (
-    DashboardStats, DailyStats, RevenueStats, CourseStats, CategoryStats, SystemSettings
+    DashboardStats, DailyStats, RevenueStats, CourseStats, CategoryStats
 )
 
 
@@ -72,7 +72,7 @@ class AdminDashboardService:
                 text("""
                     SELECT COUNT(DISTINCT ip_address) as count
                     FROM user_activity
-                    WHERE DATE(created_at) = CURDATE()
+                    WHERE DATE(created_at) = CURRENT_DATE
                 """)
             )
             today_visitors = today_visitors_result.scalar() or 0
@@ -82,7 +82,7 @@ class AdminDashboardService:
                 text("""
                     SELECT COUNT(*) as count
                     FROM user_activity
-                    WHERE DATE(created_at) = CURDATE()
+                    WHERE DATE(created_at) = CURRENT_DATE
                 """)
             )
             today_views = today_views_result.scalar() or 0
@@ -92,7 +92,7 @@ class AdminDashboardService:
                 text("""
                     SELECT COALESCE(SUM(final_amount), 0) as total
                     FROM payments
-                    WHERE status = 'completed' AND DATE(paid_at) = CURDATE()
+                    WHERE status = 'completed' AND DATE(paid_at) = CURRENT_DATE
                 """)
             )
             today_revenue = today_revenue_result.scalar() or 0
@@ -381,19 +381,3 @@ class AdminDashboardService:
         except Exception:
             # 에러 발생 시 빈 리스트 반환
             return []
-
-    @staticmethod
-    async def get_system_settings(db: AsyncSession) -> SystemSettings:
-        """
-        시스템 설정 조회
-        현재는 기본값 반환
-        """
-        return SystemSettings()
-
-    @staticmethod
-    async def update_system_settings(db: AsyncSession, data: SystemSettings) -> SystemSettings:
-        """
-        시스템 설정 수정
-        현재는 입력된 데이터 반환
-        """
-        return data
