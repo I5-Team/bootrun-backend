@@ -82,7 +82,6 @@ async def export_payments(
     service = AdminPaymentService(db)
     items = await service.export_payments(params)
 
-    # CSV 파일 생성
     output = io.StringIO()
     if items:
         fieldnames = [
@@ -94,13 +93,10 @@ async def export_payments(
         writer.writeheader()
 
         for item in items:
-            row = {}
+            row = {field: item[field] for field in fieldnames}
             for field in fieldnames:
-                value = getattr(item, field, None)
-                # datetime 객체를 문자열로 변환
-                if hasattr(value, 'isoformat'):
-                    value = value.isoformat()
-                row[field] = value
+                if hasattr(row[field], 'isoformat'):
+                    row[field] = row[field].isoformat()
             writer.writerow(row)
 
     output.seek(0)
