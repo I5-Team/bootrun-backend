@@ -184,7 +184,7 @@ logger.info(f"{len(all_routers)}개의 라우터가 등록되었습니다.")
 # ============= 정적 파일 서빙 =============
 
 # uploads 디렉토리가 없으면 생성
-uploads_dir = "uploads"
+uploads_dir = "/app/uploads"
 if not os.path.exists(uploads_dir):
     os.makedirs(uploads_dir)
     logger.info(f"'{uploads_dir}' 디렉토리를 생성했습니다.")
