@@ -333,7 +333,7 @@ class StatsQueryParams(BaseModel):
     )
 
 class CourseStatsQueryParams(BaseModel):
-    category_type: Optional[CategoryType] = Field(
+    category_type: Optional[str] = Field(
         None,
         description="카테고리 타입으로 필터링 (frontend, backend, data_analysis, ai, design, other)",
         example="backend"

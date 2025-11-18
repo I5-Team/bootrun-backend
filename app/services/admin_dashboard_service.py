@@ -112,18 +112,18 @@ class AdminDashboardService:
         result = await db.execute(
             text("""
                 SELECT
-                    p.paid_at::date as date,
+                    CAST(COALESCE(p.paid_at, p.created_at) AS DATE) as date,
                     COALESCE(SUM(CASE WHEN p.status = 'completed' THEN p.final_amount ELSE 0 END), 0) as revenue,
-                    COUNT(CASE WHEN p.status = 'completed' THEN 1 END) as payment_count,
-                    COALESCE(SUM(CASE WHEN r.status = 'refund_completed' THEN r.amount ELSE 0 END), 0) as refund_amount,
-                    COUNT(CASE WHEN r.status = 'refund_completed' THEN 1 END) as refund_count,
+                    COUNT(CASE WHEN p.status = 'completed' THEN p.id END) as payment_count,
+                    COALESCE(SUM(CASE WHEN r.status = 'approved' THEN r.amount ELSE 0 END), 0) as refund_amount,
+                    COUNT(CASE WHEN r.status = 'approved' THEN r.id END) as refund_count,
                     COALESCE(SUM(CASE WHEN p.status = 'completed' THEN p.final_amount ELSE 0 END), 0) -
-                    COALESCE(SUM(CASE WHEN r.status = 'refund_completed' THEN r.amount ELSE 0 END), 0) as net_revenue
+                    COALESCE(SUM(CASE WHEN r.status = 'approved' THEN r.amount ELSE 0 END), 0) as net_revenue
                 FROM payments p
                 LEFT JOIN refunds r ON p.id = r.payment_id
-                WHERE p.paid_at::date BETWEEN :start_date AND :end_date
-                GROUP BY p.paid_at::date
-                ORDER BY p.paid_at::date
+                WHERE CAST(COALESCE(p.paid_at, p.created_at) AS DATE) BETWEEN :start_date AND :end_date
+                GROUP BY CAST(COALESCE(p.paid_at, p.created_at) AS DATE)
+                ORDER BY CAST(COALESCE(p.paid_at, p.created_at) AS DATE)
             """),
             {"start_date": start_date, "end_date": end_date}
         )
@@ -155,34 +155,32 @@ class AdminDashboardService:
         params = {}
 
         if category_type:
-            cat_val = category_type.value if hasattr(category_type, 'value') else category_type
-            where_conditions.append("cat.type = :category_type")
+            cat_val = category_type.value if hasattr(category_type, 'value') else str(category_type)
+            where_conditions.append("c.category_type = :category_type")
             params["category_type"] = cat_val
         if start_date:
-            where_conditions.append("e.created_at::date >= :start_date")
+            where_conditions.append("DATE(e.enrolled_at) >= :start_date")
             params["start_date"] = start_date
         if end_date:
-            where_conditions.append("e.created_at::date <= :end_date")
+            where_conditions.append("DATE(e.enrolled_at) <= :end_date")
             params["end_date"] = end_date
 
         where_clause = "WHERE " + " AND ".join(where_conditions)
 
         query = f"""
             SELECT
-                c.id, c.title, cat.name,
+                c.id, c.title, c.category_type,
                 COUNT(DISTINCT e.id),
                 COUNT(DISTINCT CASE WHEN e.expires_at > NOW() THEN e.id END),
                 COALESCE(AVG(e.progress_rate), 0),
                 COUNT(DISTINCT CASE WHEN e.is_completed = true THEN e.id END),
                 COALESCE(COUNT(DISTINCT CASE WHEN e.is_completed = true THEN e.id END) * 100.0 /
                 NULLIF(COUNT(DISTINCT e.id), 0), 0),
-                COALESCE(SUM(p.final_amount), 0)
+                (SELECT COALESCE(SUM(final_amount), 0) FROM payments p WHERE p.course_id = c.id AND p.status = 'completed')
             FROM courses c
-            LEFT JOIN "Category" cat ON c.category_id = cat.id
             LEFT JOIN enrollments e ON c.id = e.course_id
-            LEFT JOIN payments p ON e.user_id = p.user_id AND c.id = p.course_id AND p.status = 'completed'
             {where_clause}
-            GROUP BY c.id, c.title, cat.name
+            GROUP BY c.id, c.title, c.category_type
             ORDER BY COUNT(DISTINCT e.id) DESC
         """
 
@@ -211,17 +209,14 @@ class AdminDashboardService:
         result = await db.execute(
             text("""
                 SELECT
-                    cat.id,
-                    cat.name,
+                    c.category_type,
                     COUNT(DISTINCT c.id),
                     COUNT(DISTINCT e.id),
-                    COALESCE(SUM(p.final_amount), 0),
+                    COALESCE((SELECT SUM(p.final_amount) FROM payments p WHERE p.course_id = c.id AND p.status = 'completed'), 0),
                     COALESCE(AVG(CASE WHEN e.is_completed = true THEN 100.0 ELSE 0 END), 0)
-                FROM "Category" cat
-                LEFT JOIN courses c ON cat.id = c.category_id AND c.is_published = true
-                LEFT JOIN enrollments e ON c.id = e.course_id
-                LEFT JOIN payments p ON e.user_id = p.user_id AND c.id = p.course_id AND p.status = 'completed'
-                GROUP BY cat.id, cat.name
+                FROM courses c
+                LEFT JOIN enrollments e ON c.id = e.course_id AND c.is_published = true
+                GROUP BY c.category_type
                 ORDER BY COUNT(DISTINCT e.id) DESC
             """)
         )
@@ -232,12 +227,12 @@ class AdminDashboardService:
 
         return [
             CategoryStats(
-                category_id=row[0],
-                category_name=row[1],
-                course_count=row[2] or 0,
-                total_enrollments=row[3] or 0,
-                total_revenue=int(row[4]) if row[4] else 0,
-                avg_completion_rate=float(row[5]) if row[5] else 0.0
+                category_id=idx + 1,
+                category_name=row[0],
+                course_count=row[1] or 0,
+                total_enrollments=row[2] or 0,
+                total_revenue=int(row[3]) if row[3] else 0,
+                avg_completion_rate=float(row[4]) if row[4] else 0.0
             )
-            for row in rows
+            for idx, row in enumerate(rows)
         ]
