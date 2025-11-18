@@ -106,22 +106,18 @@ class AdminUserService:
         )
 
     async def get_user_detail(self, user_id: int) -> UserDetailForAdmin:
-        """사용자 상세 정보 조회"""
         user = await self._get_user(user_id)
 
-        # 학습 통계
         total_study_time = await self._calculate_total_study_time(user_id)
         total_enrollments = await self._count_enrollments(user_id)
         active_enrollments = await self._count_active_enrollments(user_id)
         completed_courses = await self._count_completed_courses(user_id)
         avg_progress_rate = await self._calculate_avg_progress_rate(user_id)
 
-        # 결제 정보
         total_payments = await self._count_payments(user_id)
         total_spent = await self._calculate_total_spent(user_id)
         total_refunds = await self._calculate_total_refunds(user_id)
 
-        # 수강 정보
         enrollments = await self._get_enrollment_details(user_id)
 
         return UserDetailForAdmin(
@@ -147,31 +143,23 @@ class AdminUserService:
         )
 
     async def activate_user(self, user_id: int) -> None:
-        """사용자 활성화"""
-        user = await self._get_user(user_id)  # NotFoundError 발생 가능
-
+        user = await self._get_user(user_id)
         if user.is_active:
             raise ValueError("이미 활성화된 사용자입니다")
-
         user.is_active = True
         user.updated_at = datetime.utcnow()
         await self.db.commit()
 
     async def deactivate_user(self, user_id: int) -> None:
-        """사용자 비활성화"""
         user = await self._get_user(user_id)
-
         if not user.is_active:
             raise ValueError("이미 비활성화된 사용자입니다")
-
         user.is_active = False
         user.updated_at = datetime.utcnow()
         await self.db.commit()
 
     async def delete_user(self, user_id: int) -> None:
-        """사용자 완전 삭제"""
         user = await self._get_user(user_id)
-
         await self.db.delete(user)
         await self.db.commit()
 
@@ -180,52 +168,29 @@ class AdminUserService:
         user_id: int,
         report_period: str
     ) -> UserLearningReport:
-        """사용자 학습 리포트 조회"""
         user = await self._get_user(user_id)
 
-        # 기간 파싱 (예: "2025-01")
         try:
             period_parts = report_period.split("-")
-            year = int(period_parts[0])
-            month = int(period_parts[1])
+            year, month = int(period_parts[0]), int(period_parts[1])
         except (IndexError, ValueError):
             raise ValueError("리포트 기간 형식이 올바르지 않습니다 (예: 2025-01)")
 
-        # 월별 시작/종료일 계산
-        if month == 12:
-            month_end_year = year + 1
-            month_end = 1
-        else:
-            month_end_year = year
-            month_end = month + 1
-
+        month_end_year = year + 1 if month == 12 else year
+        month_end = 1 if month == 12 else month + 1
         period_start = datetime(year, month, 1)
         period_end = datetime(month_end_year, month_end, 1)
 
-        # 총 학습 시간 계산
-        total_study_time = await self._calculate_total_study_time(
-            user_id,
-            period_start,
-            period_end
-        )
+        total_study_time = await self._calculate_total_study_time(user_id, period_start, period_end)
 
-        # 수강 정보
-        enrollments_query = select(Enrollment).where(
-            and_(
-                Enrollment.user_id == user_id,
-                Enrollment.is_active == True
-            )
-        )
-        enrollments_result = await self.db.execute(enrollments_query)
+        enrollments_result = await self.db.execute(select(Enrollment).where(
+            and_(Enrollment.user_id == user_id, Enrollment.is_active == True)
+        ))
         enrollments_list = enrollments_result.scalars().all()
 
-        # 진도 상세 정보
         courses_detail = []
         for enrollment in enrollments_list:
-            course_query = select(Course).where(Course.id == enrollment.course_id)
-            course_result = await self.db.execute(course_query)
-            course = course_result.scalar_one()
-
+            course = (await self.db.execute(select(Course).where(Course.id == enrollment.course_id))).scalar_one()
             progress_detail = UserProgressDetail(
                 course_id=course.id,
                 course_title=course.title,
@@ -233,47 +198,27 @@ class AdminUserService:
                 expires_at=enrollment.expires_at,
                 progress_rate=enrollment.progress_rate,
                 total_lectures=await self._count_course_lectures(course.id),
-                completed_lectures=await self._count_completed_lectures(
-                    user_id,
-                    course.id
-                ),
-                total_study_time=await self._calculate_course_study_time(
-                    user_id,
-                    course.id,
-                    period_start,
-                    period_end
-                ),
+                completed_lectures=await self._count_completed_lectures(user_id, course.id),
+                total_study_time=await self._calculate_course_study_time(user_id, course.id, period_start, period_end),
                 last_watched_at=await self._get_last_watched_time(user_id, course.id)
             )
             courses_detail.append(progress_detail)
 
-        # 출석 기록
         from datetime import timedelta
         attendance_records = []
         current_date = period_start
         while current_date < period_end:
             daily_study = await self._get_daily_study_time(user_id, current_date)
-            is_present = daily_study > 0
-
-            record = UserAttendanceRecord(
+            attendance_records.append(UserAttendanceRecord(
                 date=current_date.date(),
-                is_present=is_present,
+                is_present=daily_study > 0,
                 study_time=daily_study,
                 lectures_watched=await self._count_daily_lectures_watched(user_id, current_date)
-            )
-            attendance_records.append(record)
+            ))
+            current_date += timedelta(days=1)
 
-            # 다음 날로 이동
-            current_date = current_date + timedelta(days=1)
-
-        # 평균 진도율 계산
         avg_progress = sum(c.progress_rate for c in courses_detail) / len(courses_detail) if courses_detail else 0
-
-        # 출석률 계산
-        attendance_rate = (
-            sum(1 for a in attendance_records if a.is_present) / len(attendance_records) * 100
-            if attendance_records else 0
-        )
+        attendance_rate = sum(1 for a in attendance_records if a.is_present) / len(attendance_records) * 100 if attendance_records else 0
 
         return UserLearningReport(
             user_id=user.id,
@@ -286,73 +231,34 @@ class AdminUserService:
             attendance=attendance_records
         )
 
-    # ==================== Helper Methods ====================
-
     async def _get_user(self, user_id: int) -> User:
-        """사용자 조회"""
-        query = select(User).where(User.id == user_id)
-        result = await self.db.execute(query)
-        user = result.scalar_one_or_none()
-
+        user = (await self.db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
         if not user:
             raise NotFoundError("사용자를 찾을 수 없습니다")
-
         return user
 
     async def _count_enrollments(self, user_id: int) -> int:
-        """총 수강 등록 수"""
-        query = select(func.count(Enrollment.id)).where(
-            Enrollment.user_id == user_id
-        )
-        result = await self.db.execute(query)
-        return result.scalar() or 0
+        return (await self.db.execute(select(func.count(Enrollment.id)).where(Enrollment.user_id == user_id))).scalar() or 0
 
     async def _count_active_enrollments(self, user_id: int) -> int:
-        """활성 수강 등록 수"""
-        query = select(func.count(Enrollment.id)).where(
-            and_(
-                Enrollment.user_id == user_id,
-                Enrollment.is_active == True
-            )
-        )
-        result = await self.db.execute(query)
-        return result.scalar() or 0
+        return (await self.db.execute(select(func.count(Enrollment.id)).where(
+            and_(Enrollment.user_id == user_id, Enrollment.is_active == True)
+        ))).scalar() or 0
 
     async def _count_completed_courses(self, user_id: int) -> int:
-        """완료한 강의 수"""
-        query = select(func.count(Enrollment.id)).where(
-            and_(
-                Enrollment.user_id == user_id,
-                Enrollment.progress_rate >= 100
-            )
-        )
-        result = await self.db.execute(query)
-        return result.scalar() or 0
+        return (await self.db.execute(select(func.count(Enrollment.id)).where(
+            and_(Enrollment.user_id == user_id, Enrollment.progress_rate >= 100)
+        ))).scalar() or 0
 
     async def _count_payments(self, user_id: int) -> int:
-        """총 결제 횟수"""
-        query = select(func.count(Payment.id)).where(
-            Payment.user_id == user_id
-        )
-        result = await self.db.execute(query)
-        return result.scalar() or 0
+        return (await self.db.execute(select(func.count(Payment.id)).where(Payment.user_id == user_id))).scalar() or 0
 
     async def _calculate_total_spent(self, user_id: int) -> int:
-        """총 지출액"""
-        query = select(func.sum(Payment.final_amount)).where(
-            Payment.user_id == user_id
-        )
-        result = await self.db.execute(query)
-        return result.scalar() or 0
+        return (await self.db.execute(select(func.sum(Payment.final_amount)).where(Payment.user_id == user_id))).scalar() or 0
 
     async def _calculate_total_refunds(self, user_id: int) -> int:
-        """총 환불액"""
         from app.models.payment import Refund
-        query = select(func.sum(Refund.amount)).where(
-            Refund.user_id == user_id
-        )
-        result = await self.db.execute(query)
-        return result.scalar() or 0
+        return (await self.db.execute(select(func.sum(Refund.amount)).where(Refund.user_id == user_id))).scalar() or 0
 
     async def _calculate_total_study_time(
         self,
@@ -360,82 +266,41 @@ class AdminUserService:
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None
     ) -> int:
-        """총 학습 시간 (분)"""
-        query = select(func.sum(Progress.watched_seconds)).where(
-            Progress.user_id == user_id
-        )
-
+        query = select(func.sum(Progress.watched_seconds)).where(Progress.user_id == user_id)
         if start_date:
             query = query.where(Progress.last_watched_at >= start_date)
         if end_date:
             query = query.where(Progress.last_watched_at < end_date)
-
-        result = await self.db.execute(query)
-        total_seconds = result.scalar() or 0
+        total_seconds = (await self.db.execute(query)).scalar() or 0
         return int(total_seconds / 60)
 
     async def _calculate_avg_progress_rate(self, user_id: int) -> float:
-        """평균 진도율"""
-        query = select(func.avg(Enrollment.progress_rate)).where(
-            and_(
-                Enrollment.user_id == user_id,
-                Enrollment.is_active == True
-            )
-        )
-        result = await self.db.execute(query)
-        avg = result.scalar()
+        avg = (await self.db.execute(select(func.avg(Enrollment.progress_rate)).where(
+            and_(Enrollment.user_id == user_id, Enrollment.is_active == True)
+        ))).scalar()
         return float(avg) if avg else 0.0
 
     async def _get_enrollment_details(self, user_id: int) -> List[dict]:
-        """수강 정보 목록"""
-        query = select(Enrollment, Course).join(Course).where(
+        enrollments = (await self.db.execute(select(Enrollment, Course).join(Course).where(
             Enrollment.user_id == user_id
-        )
-        result = await self.db.execute(query)
-        enrollments = result.all()
-
-        details = []
-        for enrollment, course in enrollments:
-            details.append({
-                "course_id": course.id,
-                "course_title": course.title,
-                "enrolled_at": enrollment.enrolled_at,
-                "expires_at": enrollment.expires_at,
-                "progress_rate": enrollment.progress_rate,
-                "is_active": enrollment.is_active
-            })
-
-        return details
+        ))).all()
+        return [{"course_id": c.id, "course_title": c.title, "enrolled_at": e.enrolled_at,
+                "expires_at": e.expires_at, "progress_rate": e.progress_rate, "is_active": e.is_active}
+                for e, c in enrollments]
 
     async def _count_course_lectures(self, course_id: int) -> int:
-        """강의의 전체 강의 수"""
         from app.models.course import Chapter, Lecture
-        query = select(func.count(Lecture.id)).join(
+        return (await self.db.execute(select(func.count(Lecture.id)).join(
             Chapter, Chapter.id == Lecture.chapter_id
-        ).where(Chapter.course_id == course_id)
-        result = await self.db.execute(query)
-        return result.scalar() or 0
+        ).where(Chapter.course_id == course_id))).scalar() or 0
 
-    async def _count_completed_lectures(
-        self,
-        user_id: int,
-        course_id: int
-    ) -> int:
-        """강의별 완료한 강의 수"""
+    async def _count_completed_lectures(self, user_id: int, course_id: int) -> int:
         from app.models.course import Chapter, Lecture
-        query = select(func.count(Progress.id)).join(
+        return (await self.db.execute(select(func.count(Progress.id)).join(
             Lecture, Lecture.id == Progress.lecture_id
-        ).join(
-            Chapter, Chapter.id == Lecture.chapter_id
-        ).where(
-            and_(
-                Progress.user_id == user_id,
-                Chapter.course_id == course_id,
-                Progress.is_completed == True
-            )
-        )
-        result = await self.db.execute(query)
-        return result.scalar() or 0
+        ).join(Chapter, Chapter.id == Lecture.chapter_id).where(
+            and_(Progress.user_id == user_id, Chapter.course_id == course_id, Progress.is_completed == True)
+        ))).scalar() or 0
 
     async def _calculate_course_study_time(
         self,
@@ -444,83 +309,38 @@ class AdminUserService:
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None
     ) -> int:
-        """강의별 학습 시간 (분)"""
         from app.models.course import Chapter, Lecture
         query = select(func.sum(Progress.watched_seconds)).join(
             Lecture, Lecture.id == Progress.lecture_id
-        ).join(
-            Chapter, Chapter.id == Lecture.chapter_id
-        ).where(
-            and_(
-                Progress.user_id == user_id,
-                Chapter.course_id == course_id
-            )
+        ).join(Chapter, Chapter.id == Lecture.chapter_id).where(
+            and_(Progress.user_id == user_id, Chapter.course_id == course_id)
         )
-
         if start_date:
             query = query.where(Progress.last_watched_at >= start_date)
         if end_date:
             query = query.where(Progress.last_watched_at < end_date)
-
-        result = await self.db.execute(query)
-        total_seconds = result.scalar() or 0
+        total_seconds = (await self.db.execute(query)).scalar() or 0
         return int(total_seconds / 60)
 
-    async def _get_last_watched_time(
-        self,
-        user_id: int,
-        course_id: int
-    ) -> Optional[datetime]:
-        """강의별 마지막 시청 시간"""
+    async def _get_last_watched_time(self, user_id: int, course_id: int) -> Optional[datetime]:
         from app.models.course import Chapter, Lecture
-        query = select(func.max(Progress.last_watched_at)).join(
+        return (await self.db.execute(select(func.max(Progress.last_watched_at)).join(
             Lecture, Lecture.id == Progress.lecture_id
-        ).join(
-            Chapter, Chapter.id == Lecture.chapter_id
-        ).where(
-            and_(
-                Progress.user_id == user_id,
-                Chapter.course_id == course_id
-            )
-        )
-        result = await self.db.execute(query)
-        return result.scalar()
+        ).join(Chapter, Chapter.id == Lecture.chapter_id).where(
+            and_(Progress.user_id == user_id, Chapter.course_id == course_id)
+        ))).scalar()
 
-    async def _get_daily_study_time(
-        self,
-        user_id: int,
-        date: datetime
-    ) -> int:
-        """일별 학습 시간 (분)"""
+    async def _get_daily_study_time(self, user_id: int, date: datetime) -> int:
         from datetime import timedelta
         next_date = date + timedelta(days=1)
-
-        query = select(func.sum(Progress.watched_seconds)).where(
-            and_(
-                Progress.user_id == user_id,
-                Progress.last_watched_at >= date,
-                Progress.last_watched_at < next_date
-            )
-        )
-        result = await self.db.execute(query)
-        total_seconds = result.scalar() or 0
+        total_seconds = (await self.db.execute(select(func.sum(Progress.watched_seconds)).where(
+            and_(Progress.user_id == user_id, Progress.last_watched_at >= date, Progress.last_watched_at < next_date)
+        ))).scalar() or 0
         return int(total_seconds / 60)
 
-    async def _count_daily_lectures_watched(
-        self,
-        user_id: int,
-        date: datetime
-    ) -> int:
-        """일별 시청한 강의 수"""
+    async def _count_daily_lectures_watched(self, user_id: int, date: datetime) -> int:
         from datetime import timedelta
         next_date = date + timedelta(days=1)
-
-        query = select(func.count(Progress.id)).where(
-            and_(
-                Progress.user_id == user_id,
-                Progress.last_watched_at >= date,
-                Progress.last_watched_at < next_date
-            )
-        )
-        result = await self.db.execute(query)
-        return result.scalar() or 0
+        return (await self.db.execute(select(func.count(Progress.id)).where(
+            and_(Progress.user_id == user_id, Progress.last_watched_at >= date, Progress.last_watched_at < next_date)
+        ))).scalar() or 0

@@ -109,7 +109,7 @@ class UserDetailForAdmin(BaseModel):
     email: str
     nickname: str
     gender: str
-    birth_date: date
+    birth_date: Optional[date]
     role: str
     is_active: bool
     provider: str
