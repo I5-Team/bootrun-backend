@@ -151,37 +151,37 @@ class AdminDashboardService:
         start_date: Optional[date] = None,
         end_date: Optional[date] = None
     ) -> List[CourseStats]:
-        where_conditions = ["c.is_published = true"]
+        where_parts = ["c.is_published = true"]
         params = {}
 
         if category_type:
             cat_val = category_type.value if hasattr(category_type, 'value') else str(category_type)
-            where_conditions.append("c.category_type = :category_type")
+            where_parts.append("c.category_type = :category_type")
             params["category_type"] = cat_val
         if start_date:
-            where_conditions.append("DATE(e.enrolled_at) >= :start_date")
+            where_parts.append("e.enrolled_at::date >= :start_date")
             params["start_date"] = start_date
         if end_date:
-            where_conditions.append("DATE(e.enrolled_at) <= :end_date")
+            where_parts.append("e.enrolled_at::date <= :end_date")
             params["end_date"] = end_date
 
-        where_clause = "WHERE " + " AND ".join(where_conditions)
+        where_clause = " WHERE " + " AND ".join(where_parts)
 
-        query = f"""
+        query = """
             SELECT
                 c.id, c.title, c.category_type,
-                COUNT(DISTINCT e.id),
+                COUNT(DISTINCT e.id) as enrollment_cnt,
                 COUNT(DISTINCT CASE WHEN e.expires_at > NOW() THEN e.id END),
                 COALESCE(AVG(e.progress_rate), 0),
-                COUNT(DISTINCT CASE WHEN e.is_completed = true THEN e.id END),
-                COALESCE(COUNT(DISTINCT CASE WHEN e.is_completed = true THEN e.id END) * 100.0 /
+                COUNT(DISTINCT CASE WHEN e.progress_rate >= 100 THEN e.id END),
+                COALESCE(COUNT(DISTINCT CASE WHEN e.progress_rate >= 100 THEN e.id END) * 100.0 /
                 NULLIF(COUNT(DISTINCT e.id), 0), 0),
                 (SELECT COALESCE(SUM(final_amount), 0) FROM payments p WHERE p.course_id = c.id AND p.status = 'completed')
             FROM courses c
             LEFT JOIN enrollments e ON c.id = e.course_id
-            {where_clause}
+        """ + where_clause + """
             GROUP BY c.id, c.title, c.category_type
-            ORDER BY COUNT(DISTINCT e.id) DESC
+            ORDER BY enrollment_cnt DESC
         """
 
         result = await db.execute(text(query), params)
@@ -207,18 +207,7 @@ class AdminDashboardService:
     @staticmethod
     async def get_category_stats(db: AsyncSession) -> List[CategoryStats]:
         result = await db.execute(
-            text("""
-                SELECT
-                    c.category_type,
-                    COUNT(DISTINCT c.id),
-                    COUNT(DISTINCT e.id),
-                    COALESCE((SELECT SUM(p.final_amount) FROM payments p WHERE p.course_id = c.id AND p.status = 'completed'), 0),
-                    COALESCE(AVG(CASE WHEN e.is_completed = true THEN 100.0 ELSE 0 END), 0)
-                FROM courses c
-                LEFT JOIN enrollments e ON c.id = e.course_id AND c.is_published = true
-                GROUP BY c.category_type
-                ORDER BY COUNT(DISTINCT e.id) DESC
-            """)
+            text("SELECT c.category_type, COUNT(DISTINCT c.id) as course_count, COALESCE(COUNT(DISTINCT e.id), 0) as enrollment_count, COALESCE(SUM(CASE WHEN p.status = 'completed' THEN p.final_amount ELSE 0 END), 0) as total_revenue, COALESCE(AVG(CASE WHEN e.progress_rate >= 100 THEN 100.0 ELSE 0 END), 0) as avg_completion FROM courses c LEFT JOIN enrollments e ON c.id = e.course_id LEFT JOIN payments p ON p.course_id = c.id WHERE c.is_published = true GROUP BY c.category_type ORDER BY enrollment_count DESC")
         )
 
         rows = result.fetchall()
