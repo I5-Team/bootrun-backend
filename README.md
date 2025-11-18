@@ -347,26 +347,20 @@ graph TD
 - **Router (라우터):** `routers/auth.py`, `routers/admin/dashboard.py`
   - HTTP 요청을 받아 적절한 서비스로 라우팅하는 "진입점" 역할을 합니다.
   - 요청 검증(Pydantic Schemas)과 응답 포맷 담당을 담당합니다.
-- **Service (서비스):**
-
-`services/user_service.py`, `services/admin_dashboard_service.py`
-
-- 모든 비즈니스 로직과 데이터 처리 로직이 집중된 계층입니다.
-- 데이터베이스 쿼리, 캐시 조회, 외부 API 호출 등을 조율합니다.
-- 재사용 가능한 로직을 제공하여 테스트가 용이합니다.
+- **Service (서비스):** `services/user_service.py`
+  - 모든 비즈니스 로직과 데이터 처리 로직이 집중된 계층입니다.
+  - 데이터베이스 쿼리, 캐시 조회, 외부 API 호출 등을 조율합니다.
+  - 재사용 가능한 로직을 제공하여 테스트가 용이합니다.
 - **Model & Schema (모델/스키마):** `models/user.py`, `schemas/user.py`
   - **Model:** SQLAlchemy ORM 모델로 데이터베이스 테이블을 정의합니다.
   - **Schema:** Pydantic으로 요청/응답 데이터 검증 및 직렬화를 합니다.
-- **Core (핵심 인프라):**
-
-`core/database.py`, `core/security.py`, `core/redis.py`
-
-- 데이터베이스 연결, JWT 인증, 캐시 관리 등 공통 기능을 제공합니다.
-- 의존성 주입(Dependencies)을 통해 라우터에 주입됩니다.
+- **Core (핵심 인프라):** `core/database.py`, `core/security.py`
+  - 데이터베이스 연결, JWT 인증, 캐시 관리 등 공통 기능을 제공합니다.
+  - 의존성 주입(Dependencies)을 통해 라우터에 주입됩니다.
 
 이러한 구조로 라우터는 HTTP 처리에만 집중하고, 비즈니스 로직은 서비스에서 관리되어 **테스트 및 수정이 간편**합니다.
 
-```tsx
+```
 ## backend 폴더구조
 bootrun-backend/
 ├── app/
@@ -581,8 +575,8 @@ docker-compose ps
    - **문제**: 결제 성공 시에도 초기 렌더링 단계에서 상태가 falsey로 설정되어 잠깐 결제 실패 화면이 노출됨.
    - **해결**: 강제 로딩 시간(300ms)을 주어 API 응답 전까지 로딩 상태를 유지하도록 수정, 성공/실패 화면은 로딩 이후에 렌더링되도록 개선.
 10. **[강의 수강 완료 날짜 미기록 문제]**
-   - **문제**: is_completed가 True로 설정되어도 completed_at 필드가 None으로 남아있어, 완강 여부를 기반으로 한 다른 서비스 연동이 정상적으로 작동하지 않는 오류 발생.
-   - **해결**: 시청률 95% 이상 도달 시 자동으로 is_completed를 True로 설정하는 동시에 completed_at에 현재 시간(now)을 기록하도록 로직 수정. 
+   -**문제**: is_completed가 True로 설정되어도 completed_at 필드가 None으로 남아있어, 완강 여부를 기반으로 한 다른 서비스 연동이 정상적으로 작동하지 않는 오류 발생.
+   -**해결**: 시청률 95% 이상 도달 시 자동으로 is_completed를 True로 설정하는 동시에 completed_at에 현재 시간(now)을 기록하도록 로직 수정. 
   
 
 # 8. 팀원
@@ -605,4 +599,4 @@ docker-compose ps
 - ## 신가람
   - 팀 프로젝트를 통해 협업 방식과 소통 방법, 그리고 함께 문제를 해결하는 과정을 깊이 경험할 수 있었습니다. 개발 환경 설정부터 아키텍처 설계, 그리고 프론트엔드와의 API 연동까지 진행하면서, 개발이 어떤 의미를 가지며 어떤 흐름으로 이루어지는지 많이 배울 수 있던 시간이었습니다.
 - ## 장민경
-  - 
+  - 저희 팀은 꾸준히, 그리고 밀접하게 소통하였고 팀원 각자가 자신의 역할에 높은 책임감과 열정을 가지고 임한 덕분에 저도 어려운 문제들을 포기하지 않고 해결하며 프로젝트를 성공적으로 완수할 수 있었습니다.
