@@ -119,7 +119,7 @@
 
 ### 3-1. 아키텍처 다이어그램
 
-```Mermaid
+```mermaid
 graph TD
 
     %% ===============================
@@ -229,7 +229,7 @@ graph TD
 
 : 프론트엔드는 **MVVM(Model-View-ViewModel)** 패턴을 React 환경에 맞게 적용하여 **관심사를 명확히 분리**했습니다.
 
-```Mermaid
+```mermaid
 graph TD
 
     %% View
@@ -307,7 +307,7 @@ src/
 
 : 백엔드는 계층별 책임 분리를 통해 코드의 유지보수성과 테스트 가능성을 확보했습니다.
 
-```Mermaid
+```mermaid
 graph TD
     %% Router Layer
     subgraph Router["Router Layer - 라우터"]
@@ -575,7 +575,7 @@ docker-compose ps
    - **해결**: 강제 로딩 시간(300ms)을 주어 API 응답 전까지 로딩 상태를 유지하도록 수정, 성공/실패 화면은 로딩 이후에 렌더링되도록 개선.
 10. **[강의 수강 완료 날짜 미기록 문제]**
    - **문제**: is_completed가 True로 설정되어도 completed_at 필드가 None으로 남아있어, 완강 여부를 기반으로 한 다른 서비스 연동이 정상적으로 작동하지 않는 오류 발생.
-   - **해결**: 시청률 95% 이상 도달 시 자동으로 is_completed를 True로 설정하는 동시에 completed_at에 현재 시간(now)을 기록하도록 로직 수정. 
+   - **해결**: 시청률 95% 이상 도달 시 자동으로 is_completed를 True로 설정하는 동시에 completed_at에 현재 시간(now)을 기록하도록 로직 수정.
   
 
 # 8. 팀원
