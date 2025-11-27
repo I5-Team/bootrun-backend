@@ -51,11 +51,10 @@ class AdminCourseService:
 
     async def upload_thumbnail(self, file: UploadFile) -> ImageUploadResponse:
         """강의 썸네일 업로드"""
-        # 파일 검증
         allowed_extensions = ['jpg', 'jpeg', 'png', 'webp']
-        file_extension = file.filename.split('.')[-1].lower()
+        file_extension = os.path.splitext(file.filename)[1].lower().lstrip('.')
 
-        if file_extension not in allowed_extensions:
+        if not file_extension or file_extension not in allowed_extensions:
             raise BadRequestError(
                 f'지원하지 않는 파일 형식입니다. 허용: {", ".join(allowed_extensions)}'
             )
@@ -182,20 +181,21 @@ class AdminCourseService:
 
     async def delete_file(self, file_url: str) -> None:
         """업로드된 파일 삭제"""
-        # URL에서 파일 경로 추출 (예: /uploads/thumbnails/abc.jpg -> uploads/thumbnails/abc.jpg)
         if not file_url.startswith('/uploads/'):
             raise BadRequestError('유효하지 않은 파일 URL입니다')
 
-        # 앞의 '/' 제거
-        file_path = file_url.lstrip('/')
+        relative_path = file_url.lstrip('/')
+        file_path = os.path.normpath(os.path.join('/app', relative_path))
+        real_file_path = os.path.realpath(file_path)
+        real_base_dir = os.path.realpath('/app/uploads')
+        if not real_file_path.startswith(real_base_dir + os.sep):
+            raise BadRequestError('유효하지 않은 파일 경로입니다')
 
-        # 파일이 존재하는지 확인
-        if not os.path.exists(file_path):
+        if not os.path.exists(real_file_path):
             raise BadRequestError('파일을 찾을 수 없습니다')
 
-        # 파일 삭제
         try:
-            os.remove(file_path)
+            os.remove(real_file_path)
             logger.info(f'파일 삭제 완료: {file_path}')
         except Exception as e:
             logger.error(f'파일 삭제 실패: {file_path}, 오류: {str(e)}')
