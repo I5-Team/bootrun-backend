@@ -458,15 +458,18 @@ class UserService:
 
         # 이전 프로필 이미지가 있으면 삭제 (기본 이미지가 아닌 경우)
         if user.profile_image and user.profile_image != DEFAULT_PROFILE_IMAGE:
-            old_file_path = user.profile_image.lstrip('/')
-            if os.path.exists(old_file_path):
+            old_file_path = os.path.normpath(os.path.join('/app/uploads', user.profile_image.lstrip('/')))
+            base_dir = os.path.normpath('/app/uploads')
+            if os.path.commonpath([old_file_path, base_dir]) != base_dir:
+                logger.error(f'경로 조작 시도 차단: {old_file_path}')
+            elif os.path.exists(old_file_path):
                 try:
                     os.remove(old_file_path)
                     logger.info(f'이전 프로필 이미지 삭제: {old_file_path}')
                 except Exception as e:
                     logger.error(f'이전 프로필 이미지 삭제 실패: {old_file_path}, 오류: {str(e)}')
 
-        file_extension = file.filename.split('.')[-1]
+        file_extension = os.path.splitext(file.filename)[1].lower().lstrip('.')
         new_filename = f'{uuid.uuid4()}.{file_extension}'
 
         # 업로드 디렉토리 생성
@@ -502,11 +505,11 @@ class UserService:
 
         # 기본 이미지가 아닌 경우에만 파일 삭제
         if user.profile_image and user.profile_image != DEFAULT_PROFILE_IMAGE:
-            # 실제 파일 경로 추출 (예: /uploads/profiles/xxx.png -> uploads/profiles/xxx.png)
-            file_path = user.profile_image.lstrip('/')
-
-            # 파일이 존재하면 삭제
-            if os.path.exists(file_path):
+            file_path = os.path.normpath(os.path.join('/app/uploads', user.profile_image.lstrip('/')))
+            base_dir = os.path.normpath('/app/uploads')
+            if os.path.commonpath([file_path, base_dir]) != base_dir:
+                logger.error(f'경로 조작 시도 차단: {file_path}')
+            elif os.path.exists(file_path):
                 try:
                     os.remove(file_path)
                     logger.info(f'프로필 이미지 파일 삭제 완료: {file_path}')
@@ -1051,9 +1054,13 @@ class UserService:
         nickname = base_nickname
 
         counter = 1
-        while await self._check_nickname_exists(nickname):
+        max_attempts = 100
+        while await self._check_nickname_exists(nickname) and counter <= max_attempts:
             nickname = f'{base_nickname}{counter}'
             counter += 1
+
+        if counter > max_attempts:
+            nickname = f'{base_nickname}_{uuid.uuid4().hex[:6]}'
 
         return nickname
 

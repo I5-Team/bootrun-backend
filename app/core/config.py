@@ -18,11 +18,11 @@ class Settings(BaseSettings):
     # =====================================================
     # 데이터베이스 설정 (PostgreSQL)
     # =====================================================
-    database_host: str = "localhost"
-    database_port: int = 5432
-    database_name: str = "bootrun_db"
-    database_user: str = "bootrun_user"
-    database_password: str = "your_secure_password"
+    database_host: str = Field(default="localhost")
+    database_port: int = Field(default=5432)
+    database_name: str = Field(default="bootrun_db")
+    database_user: str = Field(default="bootrun_user")
+    database_password: str = Field(...)
     database_echo: bool = False
     database_pool_size: int = 20
     database_max_overflow: int = 10
@@ -46,10 +46,10 @@ class Settings(BaseSettings):
     # =====================================================
     # Redis 캐시
     # =====================================================
-    redis_host: str = "localhost"
-    redis_port: int = 6379
-    redis_db: int = 0
-    redis_password: str = "your_redis_password"
+    redis_host: str = Field(default="localhost")
+    redis_port: int = Field(default=6379)
+    redis_db: int = Field(default=0)
+    redis_password: str = Field(default="")
     redis_timeout: int = 5
 
     @property
@@ -70,14 +70,13 @@ class Settings(BaseSettings):
     # =====================================================
     # JWT 인증 설정
     # =====================================================
-    jwt_secret_key: str = "your_secret_jwt_key_change_in_production"
-    jwt_algorithm: str = "HS256"
+    jwt_secret_key: str = Field(...)
+    jwt_algorithm: str = Field(default="HS256")
     jwt_access_token_expire_minutes: int = 60
     jwt_refresh_token_expire_days: int = 7
     jwt_email_verify_token_expire_minutes: int = 1440
     jwt_reset_password_token_expire_minutes: int = 30
 
-    # Fernet 암호화 키 (환경변수 필수)
     fernet_key: str = Field(...)
 
     # =====================================================
@@ -90,8 +89,8 @@ class Settings(BaseSettings):
     # =====================================================
     # OpenAI / LangChain 챗봇 설정
     # =====================================================
-    openai_api_key: str = "sk-your_openai_api_key_here"
-    openai_model_name: str = "gpt-3.5-turbo"
+    openai_api_key: str = Field(default="")
+    openai_model_name: str = Field(default="gpt-3.5-turbo")
     chatbot_temperature: float = 0.7
     chatbot_max_tokens: int = 1000
     chatbot_memory_buffer_size: int = 5
@@ -99,12 +98,12 @@ class Settings(BaseSettings):
     # =====================================================
     # AWS S3 설정 (동영상 저장)
     # =====================================================
-    aws_access_key_id: str = "your_aws_access_key_id"
-    aws_secret_access_key: str = "your_aws_secret_access_key"
-    aws_region: str = "ap-northeast-2"
-    s3_bucket_name: str = "bootrun-videos"
-    s3_videos_folder: str = "videos"
-    s3_images_folder: str = "images"
+    aws_access_key_id: str = Field(default="")
+    aws_secret_access_key: str = Field(default="")
+    aws_region: str = Field(default="ap-northeast-2")
+    s3_bucket_name: str = Field(default="bootrun-videos")
+    s3_videos_folder: str = Field(default="videos")
+    s3_images_folder: str = Field(default="images")
 
     # =====================================================
     # CORS 설정
@@ -134,19 +133,19 @@ class Settings(BaseSettings):
     # =====================================================
     # SMTP 이메일 설정 (인증 이메일)
     # =====================================================
-    email_smtp_host: str = "smtp.gmail.com"
-    email_smtp_port: int = 587
-    email_smtp_user: str = "your_email@gmail.com"
-    email_smtp_password: str = "your_email_password"
-    email_from_address: str = "noreply@bootrun.com"
-    email_from_name: str = "BootRun"
+    email_smtp_host: str = Field(default="smtp.gmail.com")
+    email_smtp_port: int = Field(default=587)
+    email_smtp_user: str = Field(...)
+    email_smtp_password: str = Field(...)
+    email_from_address: str = Field(default="noreply@bootrun.com")
+    email_from_name: str = Field(default="BootRun")
 
     # =====================================================
     # 결제 시스템 (Toss Payments)
     # =====================================================
-    toss_client_key: str = "your_toss_client_key"
-    toss_secret_key: str = "your_toss_secret_key"
-    toss_api_url: str = "https://api.tosspayments.com/v1"
+    toss_client_key: str = Field(...)
+    toss_secret_key: str = Field(...)
+    toss_api_url: str = Field(default="https://api.tosspayments.com/v1")
 
     # =====================================================
     # 파일 업로드 설정
