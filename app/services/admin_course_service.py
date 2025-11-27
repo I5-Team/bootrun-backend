@@ -184,16 +184,18 @@ class AdminCourseService:
         if not file_url.startswith('/uploads/'):
             raise BadRequestError('유효하지 않은 파일 URL입니다')
 
-        file_path = os.path.normpath(os.path.join('/app/uploads', file_url.lstrip('/')))
-        base_dir = os.path.normpath('/app/uploads')
-        if os.path.commonpath([file_path, base_dir]) != base_dir:
+        relative_path = file_url.lstrip('/')
+        file_path = os.path.normpath(os.path.join('/app', relative_path))
+        real_file_path = os.path.realpath(file_path)
+        real_base_dir = os.path.realpath('/app/uploads')
+        if not real_file_path.startswith(real_base_dir + os.sep):
             raise BadRequestError('유효하지 않은 파일 경로입니다')
 
-        if not os.path.exists(file_path):
+        if not os.path.exists(real_file_path):
             raise BadRequestError('파일을 찾을 수 없습니다')
 
         try:
-            os.remove(file_path)
+            os.remove(real_file_path)
             logger.info(f'파일 삭제 완료: {file_path}')
         except Exception as e:
             logger.error(f'파일 삭제 실패: {file_path}, 오류: {str(e)}')

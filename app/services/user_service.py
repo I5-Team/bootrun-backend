@@ -458,16 +458,18 @@ class UserService:
 
         # 이전 프로필 이미지가 있으면 삭제 (기본 이미지가 아닌 경우)
         if user.profile_image and user.profile_image != DEFAULT_PROFILE_IMAGE:
-            old_file_path = os.path.normpath(os.path.join('/app/uploads', user.profile_image.lstrip('/')))
-            base_dir = os.path.normpath('/app/uploads')
-            if os.path.commonpath([old_file_path, base_dir]) != base_dir:
-                logger.error(f'경로 조작 시도 차단: {old_file_path}')
-            elif os.path.exists(old_file_path):
+            relative_path = user.profile_image.lstrip('/')
+            old_file_path = os.path.normpath(os.path.join('/app', relative_path))
+            real_file_path = os.path.realpath(old_file_path)
+            real_base_dir = os.path.realpath('/app/uploads')
+            if not real_file_path.startswith(real_base_dir + os.sep):
+                logger.error(f'경로 조작 시도 차단: {real_file_path}')
+            elif os.path.exists(real_file_path):
                 try:
-                    os.remove(old_file_path)
-                    logger.info(f'이전 프로필 이미지 삭제: {old_file_path}')
+                    os.remove(real_file_path)
+                    logger.info(f'이전 프로필 이미지 삭제: {real_file_path}')
                 except Exception as e:
-                    logger.error(f'이전 프로필 이미지 삭제 실패: {old_file_path}, 오류: {str(e)}')
+                    logger.error(f'이전 프로필 이미지 삭제 실패: {real_file_path}, 오류: {str(e)}')
 
         file_extension = os.path.splitext(file.filename)[1].lower().lstrip('.')
         new_filename = f'{uuid.uuid4()}.{file_extension}'
@@ -505,16 +507,18 @@ class UserService:
 
         # 기본 이미지가 아닌 경우에만 파일 삭제
         if user.profile_image and user.profile_image != DEFAULT_PROFILE_IMAGE:
-            file_path = os.path.normpath(os.path.join('/app/uploads', user.profile_image.lstrip('/')))
-            base_dir = os.path.normpath('/app/uploads')
-            if os.path.commonpath([file_path, base_dir]) != base_dir:
-                logger.error(f'경로 조작 시도 차단: {file_path}')
-            elif os.path.exists(file_path):
+            relative_path = user.profile_image.lstrip('/')
+            file_path = os.path.normpath(os.path.join('/app', relative_path))
+            real_file_path = os.path.realpath(file_path)
+            real_base_dir = os.path.realpath('/app/uploads')
+            if not real_file_path.startswith(real_base_dir + os.sep):
+                logger.error(f'경로 조작 시도 차단: {real_file_path}')
+            elif os.path.exists(real_file_path):
                 try:
-                    os.remove(file_path)
-                    logger.info(f'프로필 이미지 파일 삭제 완료: {file_path}')
+                    os.remove(real_file_path)
+                    logger.info(f'프로필 이미지 파일 삭제 완료: {real_file_path}')
                 except Exception as e:
-                    logger.error(f'프로필 이미지 파일 삭제 실패: {file_path}, 오류: {str(e)}')
+                    logger.error(f'프로필 이미지 파일 삭제 실패: {real_file_path}, 오류: {str(e)}')
 
         user.profile_image = DEFAULT_PROFILE_IMAGE
         user.updated_at = get_current_utc_datetime()
