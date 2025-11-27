@@ -2,7 +2,7 @@
 
 > **작성 기준**: FastAPI v0.120.2 (2025년 10월 최신 버전)
 
-## 📚 목차
+## 목차
 
 1. [Swagger란 무엇인가?](#swagger란-무엇인가)
 2. [FastAPI의 자동 문서화](#fastapi의-자동-문서화)
@@ -18,9 +18,9 @@
 **Swagger**는 REST API를 설계, 빌드, 문서화하는 도구입니다. 현재는 **OpenAPI**라는 이름으로 표준화되었습니다.
 
 ### 주요 특징:
-- 📖 **자동 문서 생성**: 코드만 작성하면 문서가 자동으로 만들어집니다
-- 🧪 **테스트 가능**: 브라우저에서 바로 API를 테스트할 수 있습니다
-- 🔄 **실시간 업데이트**: 코드를 수정하면 문서도 자동으로 업데이트됩니다
+- **자동 문서 생성**: 코드만 작성하면 문서가 자동으로 만들어집니다
+- **테스트 가능**: 브라우저에서 바로 API를 테스트할 수 있습니다
+- **실시간 업데이트**: 코드를 수정하면 문서도 자동으로 업데이트됩니다
 
 ---
 
@@ -1404,7 +1404,7 @@ if __name__ == "__main__":
 
 ---
 
-## 📖 요약 및 팁
+## 요약 및 팁
 
 ### Swagger 문서화 핵심 요점
 
@@ -1433,24 +1433,98 @@ if __name__ == "__main__":
 
 ---
 
-## 🚀 실행 방법
+## 실행 방법
 
 ### 1. 프로젝트 구조
 
 ```
-project/
-├── main.py              # 메인 앱
-├── models.py            # Pydantic 모델
-├── exceptions.py        # 커스텀 예외 및 핸들러
-├── dependencies.py      # 의존성 함수
-├── routers/            # 라우터 모듈
-│   ├── __init__.py
-│   ├── users.py
-│   ├── products.py
-│   └── admin.py
-└── middlewares/        # 미들웨어 모듈
-    ├── __init__.py
-    └── error_handler.py
+bootrun-backend/
+├── app/
+│   ├── main.py                 # FastAPI 앱 진입점, 라우터 등록, 미들웨어 설정
+│   │
+│   ├── core/                   # 핵심 설정 및 의존성
+│   │   ├── config.py           # 환경 변수 및 설정 관리
+│   │   ├── database.py         # PostgreSQL 연결 및 세션 관리
+│   │   ├── redis.py            # Redis 캐시 초기화 및 관리
+│   │   ├── security.py         # JWT 토큰 생성/검증, 비밀번호 해싱
+│   │   ├── dependencies.py     # FastAPI 의존성 주입 
+│   │   └── logging_config.py   # 구조화된 로깅 설정 
+│   │
+│   ├── models/                 # SQLAlchemy ORM 모델
+│   │   ├── base.py             # 기본 모델 클래스
+│   │   ├── user.py             # 사용자 모델
+│   │   ├── course.py           # 강의, 챕터, 강의 영상 모델
+│   │   ├── payment.py          # 결제 정보 모델
+│   │   └── progress.py         # 수강 등록 및 학습 진행률 모델
+│   │
+│   ├── schemas/                # Pydantic 요청/응답 스키마
+│   │   ├── user.py             # 사용자 스키마
+│   │   ├── course.py           # 강의 스키마
+│   │   ├── enrollment.py       # 수강 등록 스키마
+│   │   ├── payment.py          # 결제 스키마
+│   │   ├── admin.py            # 관리자 대시보드 응답 스키마
+│   │   └── common.py           # 공통 응답 스키마 
+│   │
+│   ├── routers/                # API 엔드포인트
+│   │   ├── auth.py             # 인증 API 
+│   │   ├── user.py             # 사용자 API 
+│   │   ├── course.py           # 강의 조회 API 
+│   │   ├── enrollment.py       # 수강 등록 API
+│   │   ├── payment.py          # 결제 API 
+│   │   └── admin/              # 관리자 API
+│   │       ├── dashboard.py    # 대시보드 통계 API
+│   │       ├── users.py        # 사용자 관리 API
+│   │       ├── courses.py      # 강의 관리 API 
+│   │       └── payments.py     # 결제 관리 API 
+│   │
+│   ├── services/               # 비즈니스 로직 계층
+│   │   ├── user_service.py                 # 사용자 서비스
+│   │   ├── course_service.py               # 강의 조회 서비스
+│   │   ├── enrollment_service.py           # 수강 등록 서비스
+│   │   ├── payment_service.py              # 결제 서비스
+│   │   ├── admin_dashboard_service.py      # 관리자 대시보드 서비스
+│   │   ├── admin_user_service.py           # 관리자 사용자 관리 서비스
+│   │   └── admin_course_service.py         # 관리자 강의 관리 서비스
+│   │
+│   ├── middleware/             # 미들웨어
+│   │   └── rate_limit.py       # API 요청 속도 제한
+│   │
+│   ├── exceptions/             # 커스텀 예외 처리
+│   │   └── responses.py        # 표준화된 에러 응답 
+│   │
+│   └── utils/                  # 유틸리티 함수
+│       └── file_utils.py       # 파일 업로드/삭제 유틸   
+│
+├── alembic/                    # 데이터베이스 마이그레이션
+│   ├── versions/               # 마이그레이션 버전 파일
+│   └── env.py                  # Alembic 환경 설정
+│
+├── scripts/                    # 운영 스크립트
+│   └── recalculate_progress_rates.py  # 진행률 재계산 스크립트
+│
+├── docs/                       # 프로젝트 문서
+│   └── FOLDER_STRUCTURE.md            # 폴더 구조 문서
+│
+├── uploads/                    # 로컬 파일 저장 디렉토리
+│   ├── thumbnails/             # 강의 썸네일 이미지
+│   ├── instructors/            # 강사 프로필 이미지
+│   └── profiles/               # 사용자 프로필 이미지
+│
+├── logs/                       # 로그 파일
+│   ├── app.log                 # 애플리케이션 로그
+│   └── error.log               # 에러 전용 로그
+│
+├── docker-compose.yml          # Docker Compose 설정
+├── Dockerfile                  # Docker 이미지 빌드 설정
+├── .dockerignore               # Docker 빌드 시 제외 파일
+├── requirements.txt            # Python 패키지 의존성
+├── alembic.ini                # Alembic 설정 파일
+├── .env                       # 환경 변수 
+├── .env.example               # 환경 변수 예제
+├── .gitignore                 # Git 제외 파일 목록
+├── deploy-ec2.sh              # EC2 배포 스크립트
+├── update-deployment.sh       # 배포 업데이트 스크립트
+└── README.md                  # 프로젝트 README
 ```
 
 ### 2. 설치 및 실행
