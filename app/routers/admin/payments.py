@@ -38,12 +38,6 @@ async def get_payments(
     current_admin: User = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db)
 ):
-    """
-    전체 결제 목록 조회 (관리자용)
-    - 필터링: 상태, 결제 방식, 날짜 범위
-    - 검색: 사용자명, 이메일, 강의명
-    - 페이지네이션
-    """
     service = AdminPaymentService(db)
     result = await service.get_payments(params)
     return PaymentManagementPaginatedResponse(
@@ -121,12 +115,6 @@ async def get_refunds(
     current_admin: User = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db)
 ):
-    """
-    전체 환불 목록 조회 (관리자용)
-    - 필터링: 상태, 날짜 범위
-    - 검색: 사용자명, 이메일
-    - 페이지네이션
-    """
     service = AdminPaymentService(db)
     result = await service.get_refunds(params)
     return RefundManagementPaginatedResponse(
@@ -153,9 +141,6 @@ async def get_refund(
     current_admin: User = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db)
 ):
-    """
-    환불 상세 조회 (관리자용)
-    """
     service = AdminPaymentService(db)
     refund = await service.get_refund(refund_id)
     return SuccessResponse(data=refund)
@@ -176,9 +161,6 @@ async def update_refund(
     current_admin: User = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db)
 ):
-    """
-    환불 상태 변경 (관리자용)
-    """
     service = AdminPaymentService(db)
     refund = await service.update_refund(refund_id, data)
     await db.commit()
@@ -187,7 +169,7 @@ async def update_refund(
 @router.get(
     "/refunds/export",
     summary="환불 내역 내보내기",
-    description="환불 내역을 엑셀 파일로 내보냅니다.",
+    description="환불 내역을 CSV 파일로 내보냅니다.",
     responses={
         200: {"description": "환불 내역 내보내기 완료"},
         **ADMIN_RESPONSES
@@ -198,9 +180,6 @@ async def export_refunds(
     current_admin: User = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db)
 ):
-    """
-    환불 내역 내보내기 (엑셀용)
-    """
     service = AdminPaymentService(db)
     items = await service.export_refunds(params)
     return {"data": items}
