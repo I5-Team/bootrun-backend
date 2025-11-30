@@ -1,0 +1,88 @@
+name: CI/CD - Deploy to Lightsail
+
+on:
+  push:
+    branches:
+      - dev  # dev 브랜치에 push될 때 자동 배포
+  workflow_dispatch:  # 수동 실행도 가능
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.LIGHTSAIL_SSH_KEY }}" > ~/.ssh/lightsail_key
+          chmod 600 ~/.ssh/lightsail_key
+          ssh-keyscan -H ${{ secrets.LIGHTSAIL_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to Lightsail
+        env:
+          SSH_KEY: ~/.ssh/lightsail_key
+          HOST: ${{ secrets.LIGHTSAIL_HOST }}
+          USER: ${{ secrets.LIGHTSAIL_USER }}
+        run: |
+          ssh -i $SSH_KEY $USER@$HOST << 'EOF'
+            set -e
+
+            echo "=== Starting deployment ==="
+
+            # 프로젝트 디렉토리로 이동
+            cd ~/bootrun-backend || { echo "Project directory not found"; exit 1; }
+
+            # 최신 코드 받기
+            echo "Pulling latest code from dev branch..."
+            git fetch origin
+            git reset --hard origin/dev
+
+            # Docker 컨테이너 중지 및 제거
+            echo "Stopping existing containers..."
+            docker-compose down || true
+
+            # 이전 이미지 정리
+            echo "Cleaning up old images..."
+            docker image prune -f
+
+            # Docker 이미지 빌드 및 컨테이너 실행
+            echo "Building and starting containers..."
+            docker-compose up -d --build
+
+            # 헬스 체크
+            echo "Waiting for service to be ready..."
+            sleep 10
+
+            # 컨테이너 상태 확인
+            docker-compose ps
+
+            # 로그 확인 (최근 20줄)
+            echo "=== Recent logs ==="
+            docker-compose logs --tail=20
+
+            echo "=== Deployment completed successfully ==="
+          EOF
+
+      - name: Verify deployment
+        env:
+          SSH_KEY: ~/.ssh/lightsail_key
+          HOST: ${{ secrets.LIGHTSAIL_HOST }}
+          USER: ${{ secrets.LIGHTSAIL_USER }}
+        run: |
+          ssh -i $SSH_KEY $USER@$HOST << 'EOF'
+            # API 헬스 체크
+            echo "Checking API health..."
+            curl -f http://localhost:8000/health || echo "Warning: Health check failed"
+          EOF
+
+      - name: Notify deployment status
+        if: always()
+        run: |
+          if [ ${{ job.status }} == 'success' ]; then
+            echo "✅ Deployment successful!"
+          else
+            echo "❌ Deployment failed!"
+          fi
