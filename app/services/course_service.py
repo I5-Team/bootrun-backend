@@ -25,6 +25,7 @@ from app.exceptions.base import (
     ChapterNotFoundError,
     LectureNotFoundError,
 )
+from app.utils.cache import cached
 
 class CourseService:
     
@@ -226,8 +227,9 @@ class CourseService:
 
         return course_detail
     
+    @cached(prefix="course:metadata", ttl=3600)  # 1시간 캐싱
     async def get_course_metadata(self) -> CourseMetadataResponse:
-        
+
         categories = [
             CategoryMetadata(value=CategoryType.FRONTEND, label="프론트엔드"),
             CategoryMetadata(value=CategoryType.BACKEND, label="백엔드"),
@@ -263,7 +265,8 @@ class CourseService:
         )
     
     # ==================== 챕터 조회 ====================
-    
+
+    @cached(prefix="course:chapters", ttl=600)  # 10분 캐싱
     async def get_chapters_by_course(self, course_id: int) -> List[ChapterResponse]:
         
         # 강의 존재 확인

@@ -28,6 +28,7 @@ from app.schemas.admin import (
     CourseManagementPaginatedResponse,
     CourseManagementResponse,
 )
+from app.utils.cache import invalidate_course_cache
 from app.schemas.common import ImageUploadResponse, FileUploadResponse, FileListResponse, UploadedFileInfo
 from app.exceptions.base import (
     CourseNotFoundError,
@@ -497,6 +498,9 @@ class AdminCourseService:
         await self.db.commit()
         await self.db.refresh(course)
 
+        # 캐시 무효화
+        await invalidate_course_cache(course_id)
+
         # 수강 인원 수 조회
         enrollment_result = await self.db.execute(
             select(func.count(Enrollment.id))
@@ -528,6 +532,9 @@ class AdminCourseService:
         await self.db.delete(course)
         await self.db.commit()
 
+        # 캐시 무효화
+        await invalidate_course_cache(course_id)
+
     async def publish_course(self, course_id: int) -> None:
         """강의 공개"""
 
@@ -542,6 +549,9 @@ class AdminCourseService:
         course.is_published = True
         await self.db.commit()
 
+        # 캐시 무효화
+        await invalidate_course_cache(course_id)
+
     async def unpublish_course(self, course_id: int) -> None:
         """강의 비공개"""
 
@@ -555,6 +565,9 @@ class AdminCourseService:
 
         course.is_published = False
         await self.db.commit()
+
+        # 캐시 무효화
+        await invalidate_course_cache(course_id)
 
     # ==================== 챕터 관리 ====================
 
