@@ -1,5 +1,7 @@
 """
-재사용 가능한 헬퍼 함수를 제공
+유틸리티 헬퍼 함수 모듈
+
+이 모듈은 애플리케이션 전역에서 재사용 가능한 헬퍼 함수를 제공합니다.
 """
 
 from datetime import datetime, timezone, date
