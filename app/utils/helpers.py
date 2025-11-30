@@ -314,6 +314,28 @@ def format_file_size(size_bytes: int) -> str:
 # 데이터 변환 유틸리티
 # =====================================================
 
+def decode_redis_value(value: Optional[Any]) -> Optional[str]:
+    """
+    Redis에서 가져온 값을 문자열로 변환합니다.
+
+    Args:
+        value: Redis에서 가져온 값 (bytes 또는 str)
+
+    Returns:
+        str 또는 None
+    """
+    if value is None:
+        return None
+
+    if isinstance(value, bytes):
+        return value.decode('utf-8')
+
+    if isinstance(value, str):
+        return value
+
+    return str(value)
+
+
 def safe_int(value: Any, default: int = 0) -> int:
     try:
         return int(value)
