@@ -304,13 +304,16 @@ def decode_redis_value(value: Optional[Any]) -> Optional[str]:
         value: Redis에서 가져온 값 (bytes 또는 str)
 
     Returns:
-        str 또는 None
+        str 또는 None (유효하지 않은 UTF-8 바이트 시퀀스인 경우 None 반환)
     """
     if value is None:
         return None
 
     if isinstance(value, bytes):
-        return value.decode('utf-8')
+        try:
+            return value.decode('utf-8')
+        except UnicodeDecodeError:
+            return None
 
     if isinstance(value, str):
         return value
