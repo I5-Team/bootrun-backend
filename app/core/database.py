@@ -14,10 +14,7 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-# =====================================================
 # AsyncPG 엔진 생성
-# =====================================================
-
 async_engine = create_async_engine(
     settings.database_url,
     echo=settings.database_echo,
@@ -40,10 +37,7 @@ async_session_maker = async_sessionmaker(
 # Import Base from models
 from app.models.base import Base
 
-# =====================================================
 # Redis 비동기 클라이언트
-# =====================================================
-
 async def get_redis_client() -> Redis:
     try:
         redis_client = redis.Redis(
@@ -82,10 +76,7 @@ async def close_redis():
         await redis_client.close()
         logger.info('Redis 연결 종료')
 
-# =====================================================
 # 비동기 DB 세션 의존성
-# =====================================================
-
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with async_session_maker() as session:
         try:
@@ -93,10 +84,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
         finally:
             await session.close()
 
-# =====================================================
 # DB 초기화
-# =====================================================
-
 async def init_db() -> None:
     try:
         async with async_engine.begin() as conn:
@@ -114,10 +102,7 @@ async def drop_db() -> None:
         await conn.run_sync(Base.metadata.drop_all)
     logger.warning('모든 데이터베이스 테이블 삭제 완료')
 
-# =====================================================
 # 헬스체크
-# =====================================================
-
 async def check_db_connection() -> bool:
     try:
         async with async_session_maker() as session:
@@ -138,10 +123,7 @@ async def check_redis_connection() -> bool:
         logger.error(f'Redis 연결 확인 실패: {e}')
         return False
 
-# =====================================================
 # 트랜잭션 헬퍼
-# =====================================================
-
 class AsyncDatabaseTransaction:
     
     def __init__(self):

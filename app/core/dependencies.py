@@ -24,8 +24,7 @@ async def get_user_service(
 ) -> UserService:
     return UserService(db=db, redis_client=redis)
 
-# ============= 사용자 인증 =============
-
+# 사용자 인증
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: AsyncSession = Depends(get_db)
@@ -85,8 +84,7 @@ async def get_current_active_user(
 ) -> User:
     return current_user
 
-# ============= 권한 확인 =============
-
+# 권한 확인
 async def get_current_admin(
     current_user: User = Depends(get_current_user)
 ) -> User:
@@ -113,8 +111,7 @@ async def get_current_instructor(
         )
     return current_user
 
-# ============= 선택적 인증 =============
-
+# 선택적 인증
 async def get_current_user_optional(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(
         HTTPBearer(auto_error=False)
@@ -157,8 +154,7 @@ async def get_current_user_optional(
         logger.error(f'선택적 인증 오류: {e}', exc_info=True)
         return None
 
-# ============= 수강 권한 확인 =============
-
+# 수강 권한 확인
 async def verify_enrollment_access(
     course_id: int,
     current_user: User = Depends(get_current_user),
@@ -188,11 +184,10 @@ async def verify_enrollment_access(
             status_code=status.HTTP_410_GONE,
             detail="수강 기간이 만료되었습니다"
         )
-    
+
     return enrollment
 
-# ============= 리소스 소유권 확인 =============
-
+# 리소스 소유권 확인
 async def verify_resource_owner(
     resource_user_id: int,
     current_user: User = Depends(get_current_user)
@@ -205,11 +200,10 @@ async def verify_resource_owner(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="본인의 게시물만 수정/삭제할 수 있습니다"
         )
-    
+
     return current_user
 
-# ============= 페이지네이션 =============
-
+# 페이지네이션
 def get_pagination_params(
     page: int = 1,
     page_size: int = 20
@@ -235,8 +229,7 @@ def get_pagination_params(
         "page_size": page_size
     }
 
-# ============= 강의 접근 권한 확인 =============
-
+# 강의 접근 권한 확인
 async def verify_lecture_access(
     lecture_id: int,
     current_user: User = Depends(get_current_user),
