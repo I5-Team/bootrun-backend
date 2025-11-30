@@ -308,7 +308,10 @@ def decode_redis_value(value: Optional[Any]) -> Optional[str]:
         return None
 
     if isinstance(value, bytes):
-        return value.decode('utf-8')
+        try:
+            return value.decode('utf-8')
+        except UnicodeDecodeError:
+            return None
 
     if isinstance(value, str):
         return value
