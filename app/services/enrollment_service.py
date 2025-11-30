@@ -408,36 +408,6 @@ class EnrollmentService:
             completed_at=progress.completed_at
         )
 
-    async def _get_lecture_counts(
-        self,
-        user_id: int,
-        course_id: int
-    ) -> tuple[int, int]:
-        """총 강의 수와 완료된 강의 수 반환"""
-
-        # 총 강의 수
-        total_result = await self.db.execute(
-            select(func.count(Lecture.id))
-            .join(Chapter, Lecture.chapter_id == Chapter.id)
-            .where(Chapter.course_id == course_id)
-        )
-        total_lectures = total_result.scalar() or 0
-
-        # 완료된 강의 수
-        completed_result = await self.db.execute(
-            select(func.count(Progress.id))
-            .join(Lecture, Progress.lecture_id == Lecture.id)
-            .join(Chapter, Lecture.chapter_id == Chapter.id)
-            .where(
-                Chapter.course_id == course_id,
-                Progress.user_id == user_id,
-                Progress.is_completed == True
-            )
-        )
-        completed_lectures = completed_result.scalar() or 0
-
-        return total_lectures, completed_lectures
-
     async def _get_total_watched_duration(
         self,
         user_id: int,

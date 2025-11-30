@@ -11,21 +11,14 @@ from app.schemas.course import (
     CourseResponse,
     CourseDetailResponse,
     CoursePaginatedResponse,
-    ChapterResponse,
     ChapterWithLectures,
     LectureResponse,
-    CourseMetadataResponse,
-    CategoryMetadata,
-    CourseTypeMetadata,
-    DifficultyMetadata,
-    PriceTypeMetadata,
 )
 from app.exceptions.base import (
     CourseNotFoundError,
     ChapterNotFoundError,
     LectureNotFoundError,
 )
-from app.utils.cache import cached
 
 class CourseService:
     
@@ -226,81 +219,7 @@ class CourseService:
         course_detail.chapters = chapters_data
 
         return course_detail
-    
-    @cached(prefix="course:metadata", ttl=3600)  # 1시간 캐싱
-    async def get_course_metadata(self) -> CourseMetadataResponse:
 
-        categories = [
-            CategoryMetadata(value=CategoryType.FRONTEND, label="프론트엔드"),
-            CategoryMetadata(value=CategoryType.BACKEND, label="백엔드"),
-            CategoryMetadata(value=CategoryType.DATA_ANALYSIS, label="데이터분석"),
-            CategoryMetadata(value=CategoryType.AI, label="AI"),
-            CategoryMetadata(value=CategoryType.DESIGN, label="디자인"),
-            CategoryMetadata(value=CategoryType.OTHER, label="기타"),
-        ]
-        
-        course_types = [
-            CourseTypeMetadata(value=CourseType.VOD, label="VOD"),
-            CourseTypeMetadata(value=CourseType.BOOST_COMMUNITY, label="부스트캠프"),
-            CourseTypeMetadata(value=CourseType.KDC, label="KDC"),
-        ]
-        
-        difficulties = [
-            DifficultyMetadata(value=Difficulty.BEGINNER, label="초급"),
-            DifficultyMetadata(value=Difficulty.INTERMEDIATE, label="중급"),
-            DifficultyMetadata(value=Difficulty.ADVANCED, label="고급"),
-        ]
-        
-        price_types = [
-            PriceTypeMetadata(value=PriceType.FREE, label="무료"),
-            PriceTypeMetadata(value=PriceType.PAID, label="유료"),
-            PriceTypeMetadata(value=PriceType.NATIONAL_SUPPORT, label="국비지원"),
-        ]
-        
-        return CourseMetadataResponse(
-            categories=categories,
-            course_types=course_types,
-            difficulties=difficulties,
-            price_types=price_types,
-        )
-    
-    # ==================== 챕터 조회 ====================
-
-    @cached(prefix="course:chapters", ttl=600)  # 10분 캐싱
-    async def get_chapters_by_course(self, course_id: int) -> List[ChapterResponse]:
-        
-        # 강의 존재 확인
-        course_result = await self.db.execute(
-            select(Course).where(Course.id == course_id)
-        )
-        course = course_result.scalar_one_or_none()
-        
-        if not course:
-            raise CourseNotFoundError(f'ID {course_id}인 강의를 찾을 수 없습니다')
-        
-        # 챕터 목록 조회
-        chapters_result = await self.db.execute(
-            select(Chapter)
-            .where(Chapter.course_id == course_id)
-            .order_by(Chapter.order_number.asc())
-        )
-        chapters = chapters_result.scalars().all()
-        
-        # 챕터별 총 재생 시간 계산
-        chapter_responses = []
-        for chapter in chapters:
-            duration_result = await self.db.execute(
-                select(func.sum(Lecture.duration_seconds))
-                .where(Lecture.chapter_id == chapter.id)
-            )
-            total_duration = duration_result.scalar() or 0
-            
-            chapter_data = ChapterResponse.model_validate(chapter)
-            chapter_data.total_duration = total_duration
-            chapter_responses.append(chapter_data)
-        
-        return chapter_responses
-    
     async def get_chapter_by_id(
         self,
         course_id: int,
@@ -379,60 +298,3 @@ class CourseService:
             LectureResponse.model_validate(lecture)
             for lecture in lectures
         ]
-    
-    async def get_lecture_by_id(
-        self,
-        course_id: int,
-        chapter_id: int,
-        lecture_id: int,
-        user_id: Optional[int] = None
-    ) -> LectureResponse:
-        
-        # 강의 존재 확인
-        course_result = await self.db.execute(
-            select(Course).where(Course.id == course_id)
-        )
-        if not course_result.scalar_one_or_none():
-            raise CourseNotFoundError(f'ID {course_id}인 강의를 찾을 수 없습니다')
-        
-        # 챕터 존재 확인
-        chapter_result = await self.db.execute(
-            select(Chapter).where(
-                Chapter.id == chapter_id,
-                Chapter.course_id == course_id
-            )
-        )
-        if not chapter_result.scalar_one_or_none():
-            raise ChapterNotFoundError(f'ID {chapter_id}인 챕터를 찾을 수 없습니다')
-        
-        # 강의 영상 조회
-        lecture_result = await self.db.execute(
-            select(Lecture).where(
-                Lecture.id == lecture_id,
-                Lecture.chapter_id == chapter_id
-            )
-        )
-        lecture = lecture_result.scalar_one_or_none()
-        
-        if not lecture:
-            raise LectureNotFoundError(f'ID {lecture_id}인 강의 영상을 찾을 수 없습니다')
-        
-        # 사용자의 시청 정보 조회
-        progress = None
-        if user_id:
-            progress_result = await self.db.execute(
-                select(Progress).where(
-                    Progress.user_id == user_id,
-                    Progress.lecture_id == lecture_id
-                )
-            )
-            progress = progress_result.scalar_one_or_none()
-        
-        lecture_data = LectureResponse.model_validate(lecture)
-        
-        if progress:
-            lecture_data.is_completed = progress.is_completed
-            lecture_data.last_position = progress.last_position
-            lecture_data.watched_seconds = progress.watched_seconds
-        
-        return lecture_data
