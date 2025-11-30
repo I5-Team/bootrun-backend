@@ -1,7 +1,5 @@
 """
-유틸리티 헬퍼 함수 모듈
-
-이 모듈은 애플리케이션 전역에서 재사용 가능한 헬퍼 함수를 제공합니다.
+재사용 가능한 헬퍼 함수를 제공
 """
 
 from datetime import datetime, timezone, date
@@ -23,9 +21,7 @@ from app.utils.constants import (
 T = TypeVar('T')
 
 
-# =====================================================
 # 날짜/시간 유틸리티
-# =====================================================
 
 def get_current_utc_datetime():
     """timezone 정보가 없는 UTC datetime 반환 (PostgreSQL TIMESTAMP WITHOUT TIME ZONE 호환)"""
@@ -104,9 +100,7 @@ def get_days_until(target_date: datetime) -> int:
     return delta.days
 
 
-# =====================================================
 # 페이지네이션 유틸리티
-# =====================================================
 
 def calculate_total_pages(total_items: int, page_size: int) -> int:
     if page_size <= 0:
@@ -137,9 +131,7 @@ def create_paginated_response(
     }
 
 
-# =====================================================
 # 응답 빌더 유틸리티
-# =====================================================
 
 def success_response(
     message: str,
@@ -187,9 +179,7 @@ def list_response(
     return response
 
 
-# =====================================================
 # 문자열 유틸리티
-# =====================================================
 
 def truncate_string(text: str, max_length: int, suffix: str = "...") -> str:
     if len(text) <= max_length:
@@ -234,9 +224,7 @@ def camel_to_snake(camel_str: str) -> str:
     return re.sub(r'(?<!^)(?=[A-Z])', '_', camel_str).lower()
 
 
-# =====================================================
 # 검증 유틸리티
-# =====================================================
 
 def is_valid_email(email: str) -> bool:
     return bool(re.match(PATTERN_EMAIL, email))
@@ -255,9 +243,7 @@ def validate_file_size(file_size_bytes: int, max_size_mb: int) -> bool:
     return file_size_bytes <= max_size_bytes
 
 
-# =====================================================
 # Redis 키 생성 유틸리티
-# =====================================================
 
 def build_redis_key(prefix: str, identifier: Any) -> str:
     return f"{prefix}:{identifier}"
@@ -267,9 +253,7 @@ def build_cache_key(*parts: Any) -> str:
     return ':'.join(str(part) for part in parts)
 
 
-# =====================================================
 # Enum 유틸리티
-# =====================================================
 
 def enum_to_dict(enum_class: Type[Enum]) -> Dict[str, str]:
     return {item.name: item.value for item in enum_class}
@@ -283,9 +267,7 @@ def enum_names_list(enum_class: Type[Enum]) -> List[str]:
     return [item.name for item in enum_class]
 
 
-# =====================================================
 # 숫자 포맷팅 유틸리티
-# =====================================================
 
 def format_currency(amount: Union[int, float], currency: str = "KRW") -> str:
     if currency == "KRW":
@@ -310,9 +292,7 @@ def format_file_size(size_bytes: int) -> str:
     return f"{size:.1f} PB"
 
 
-# =====================================================
 # 데이터 변환 유틸리티
-# =====================================================
 
 def decode_redis_value(value: Optional[Any]) -> Optional[str]:
     """
@@ -363,9 +343,7 @@ def safe_bool(value: Any, default: bool = False) -> bool:
         return default
 
 
-# =====================================================
 # 리스트 유틸리티
-# =====================================================
 
 def chunk_list(items: List[T], chunk_size: int) -> List[List[T]]:
     return [items[i:i + chunk_size] for i in range(0, len(items), chunk_size)]
@@ -387,9 +365,7 @@ def remove_duplicates(items: List[T], key=None) -> List[T]:
     return result
 
 
-# =====================================================
 # 딕셔너리 유틸리티
-# =====================================================
 
 def filter_none_values(data: Dict[str, Any]) -> Dict[str, Any]:
     return {k: v for k, v in data.items() if v is not None}
@@ -409,9 +385,7 @@ def flatten_dict(data: Dict[str, Any], parent_key: str = '', sep: str = '.') -> 
     return dict(items)
 
 
-# =====================================================
 # URL 유틸리티
-# =====================================================
 
 def build_url(base_url: str, path: str, **query_params) -> str:
     url = f"{base_url.rstrip('/')}/{path.lstrip('/')}"
