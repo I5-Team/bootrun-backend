@@ -12,17 +12,15 @@ from app.core.logging_config import configure_logging
 logger = configure_logging()
 
 
-# ============= FastAPI 앱 생성 =============
-
 # 태그 메타데이터 정의
 tags_metadata = [
     {
         "name": "인증",
-        "description": "회원가입, 로그인, 소셜 로그인, 이메일 인증, 비밀번호 재설정 등 인증 관련 API",
+        "description": "회원가입, 로그인, 이메일 인증 등 인증 관련 API",
     },
     {
         "name": "사용자",
-        "description": "프로필 조회/수정, 비밀번호 변경, 이메일 변경, 회원 탈퇴, 알림 등 사용자 관련 API",
+        "description": "프로필 조회/수정, 비밀번호 변경, 이메일 변경, 회원 탈퇴 등 사용자 관련 API",
     },
     {
         "name": "강의",
@@ -30,7 +28,7 @@ tags_metadata = [
     },
     {
         "name": "수강 등록 및 학습 진행",
-        "description": "수강 등록, 내 강의실, 학습 진행 기록, 진행률 조회, 학습 통계 등 수강 관련 API",
+        "description": "수강 등록, 내 강의실, 학습 진행 기록, 진행률 조회 등 수강 관련 API",
     },
     {
         "name": "결제 및 환불",
@@ -53,8 +51,6 @@ tags_metadata = [
         "description": "결제 내역 조회, 환불 승인/거절 등 관리자 결제 관리 API",
     },
 ]
-
-# ============= Lifespan 이벤트 =============
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -86,20 +82,6 @@ app = FastAPI(
 
     BootRun은 온라인 강의 수강 및 관리를 위한 종합 교육 플랫폼입니다.
 
-    
-    인증 방식
-    대부분의 API는 JWT 토큰 기반 인증을 사용합니다.
-
-    1. 로그인 API로 토큰 발급
-    2. Authorization 헤더에 `Bearer {token}` 형식으로 포함
-    3. 토큰 만료 시 refresh API로 갱신
-
-    Swagger UI에서 테스트하기
-    1. 우측 상단의 'Authorize' 버튼 클릭
-    2. Bearer 토큰 입력 (예: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...)
-    3. 'Authorize' 버튼을 클릭하여 저장
-    4. 이제 인증이 필요한 엔드포인트를 테스트할 수 있습니다
-
     """,
     version="1.0.0",
     openapi_tags=tags_metadata,
@@ -119,8 +101,6 @@ app = FastAPI(
     }
 )
 
-# ============= CORS 미들웨어 설정 =============
-
 # CORS 설정
 app.add_middleware(
     CORSMiddleware,
@@ -139,28 +119,26 @@ app.add_middleware(
     burst_size=10
 )
 
-# ============= 예외 핸들러 등록 =============
+# 예외 핸들러 등록 
 
 from app.exceptions.handlers import register_exception_handlers
 
 register_exception_handlers(app)
 
-# ============= 라우터 등록 =============
+# 라우터 등록 
 
-# 라우터 import
 from app.routers.auth import router as auth_router
 from app.routers.user import router as user_router
 from app.routers.course import router as course_router
 from app.routers.enrollment import router as enrollment_router
 from app.routers.payment import router as payment_router
 
-# 관리자 라우터 import
 from app.routers.admin.dashboard import router as dashboard_router
 from app.routers.admin.users import router as users_router
 from app.routers.admin.courses import router as courses_router
 from app.routers.admin.payments import router as payments_router
 
-# 모든 라우터 등록
+
 all_routers = [
     # 인증 및 사용자 API
     auth_router,
@@ -181,7 +159,7 @@ for router in all_routers:
 
 logger.info(f"{len(all_routers)}개의 라우터가 등록되었습니다.")
 
-# ============= 정적 파일 서빙 =============
+# 정적 파일 서빙
 
 # uploads 디렉토리가 없으면 생성
 uploads_dir = "/app/uploads"
@@ -193,7 +171,7 @@ if not os.path.exists(uploads_dir):
 app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 logger.info(f"정적 파일 서빙이 '/uploads' 경로에 마운트되었습니다.")
 
-# ============= 기본 엔드포인트 =============
+# 기본 엔드포인트 
 
 @app.get(
     "/",
@@ -223,7 +201,7 @@ async def health_check():
         "version": "1.0.0",
     }
 
-# ============= 메인 실행 =============
+# 메인 실행 
 
 if __name__ == "__main__":
     import uvicorn
