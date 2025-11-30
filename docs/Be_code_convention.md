@@ -30,17 +30,17 @@ pythonclass User:
         pass
 2. 네이밍 원칙
 2.1 "설명 + 요소" 순서
-pythonanswer_btn = ...      # ✅
-btn_answer = ...      # ❌
+pythonanswer_btn = ...      # 올바른 예시
+btn_answer = ...      # 잘못된 예시
 
-user_list = []        # ✅
-list_user = []        # ❌
+user_list = []        # 올바른 예시
+list_user = []        # 잘못된 예시
 2.2 함수명: "동사 + 목적어"
-pythondef get_comment():    # ✅
-def comment_get():    # ❌
+pythondef get_comment():    # 올바른 예시
+def comment_get():    # 잘못된 예시
 
-def create_order():   # ✅
-def validate_email(): # ✅
+def create_order():   # 올바른 예시
+def validate_email(): # 올바른 예시
 2.3 Boolean 변수: is/has/can 접두사
 pythonis_valid = True
 has_permission = False
@@ -65,14 +65,14 @@ my_string = (
     "my eyes would close so quickly."
 )
 3.3 연산자 개행: 연산자를 다음 줄 앞에
-python# ✅ 권장
+python# 권장
 total = (
     one
     + two
     + three
 )
 
-# ✅ 함수 호출
+# 함수 호출
 result = some_function(
     arg1,
     arg2,
@@ -109,7 +109,7 @@ from flask import Flask
 from .models import User
 from .utils import helper
 4.2 절대 경로 import 우선
-pythonfrom myproject.models import User  # ✅
+pythonfrom myproject.models import User  # 올바른 예시
 from .models import User           # 같은 패키지 내에서만
 5. 문서화
 5.1 Docstring: 큰따옴표 3개
@@ -137,11 +137,11 @@ pythondef get_user_name(user_id: int) -> str:
 def process_data(data: list[dict]) -> None:
     pass
 6.2 비교 연산
-python# ✅
+python# 올바른 예시
 if value is None:
 if value is not None:
 
-# ❌
+# 주의사항
 if value == None:
 6.3 문자열: 일관된 따옴표 사용 (작은따옴표 권장)
 pythonname = 'John'
