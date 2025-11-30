@@ -3,7 +3,7 @@ name: CI/CD - Deploy to Lightsail
 on:
   push:
     branches:
-      - dev  # dev 브랜치에 push될 때 자동 배포
+      - dev  
   workflow_dispatch:  # 수동 실행도 가능
 
 jobs:
@@ -82,7 +82,7 @@ jobs:
         if: always()
         run: |
           if [ ${{ job.status }} == 'success' ]; then
-            echo "✅ Deployment successful!"
+            echo "Deployment successful!"
           else
-            echo "❌ Deployment failed!"
+            echo "Deployment failed!"
           fi
