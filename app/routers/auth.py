@@ -33,9 +33,6 @@ import logging
 router = APIRouter(prefix="/auth", tags=["인증"])
 logger = logging.getLogger(__name__)
 
-# ============================================================
-# 1. 회원가입 & 이메일 인증
-# ============================================================
 
 @router.get(
     "/email/check",
@@ -219,10 +216,6 @@ async def confirm_email_verification(
             status_code=e.status_code,
             detail={"error": e.error_code, "detail": e.detail}
         )
-
-# ============================================================
-# 2. 로그인
-# ============================================================
 
 @router.post(
     "/login",
@@ -450,10 +443,6 @@ async def github_login(
             detail={"error": e.error_code, "detail": e.detail}
         )
 
-# ============================================================
-# 3. 토큰 관리
-# ============================================================
-
 @router.get(
     "/verify",
     response_model=SuccessResponse[UserResponse],
@@ -598,10 +587,6 @@ async def refresh_token(
             detail={"error": e.error_code, "detail": e.detail}
         )
 
-# ============================================================
-# 4. 로그아웃
-# ============================================================
-
 @router.post(
     "/logout",
     response_model=MessageResponse,
@@ -631,86 +616,6 @@ async def logout(
         return MessageResponse(
             success=True,
             message=MSG_LOGOUT_SUCCESS
-        )
-    except BaseAPIException as e:
-        raise HTTPException(
-            status_code=e.status_code,
-            detail={"error": e.error_code, "detail": e.detail}
-        )
-
-# ============================================================
-# 5. 비밀번호 재설정
-# ============================================================
-
-@router.post(
-    "/password/reset/request",
-    response_model=MessageResponse,
-    summary="비밀번호 재설정 요청",
-    description="비밀번호 재설정을 위한 링크를 이메일로 발송합니다.",
-    responses={
-        200: {
-            "description": "재설정 링크 발송 성공",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "success": True,
-                        "message": "비밀번호 재설정 링크가 이메일로 발송되었습니다",
-                        "detail": "개발 환경에서 재설정 토큰: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                    }
-                }
-            }
-        },
-        **PASSWORD_RESET_RESPONSES
-    }
-)
-async def request_password_reset(
-    data: PasswordResetRequest,
-    user_service: UserService = Depends(get_user_service)
-):
-    try:
-        reset_token = await user_service.request_password_reset(data.email)
-        logger.info(f"비밀번호 재설정 토큰 발급: {data.email}, 토큰: {reset_token}")
-
-        return MessageResponse(
-            success=True,
-            message=MSG_PASSWORD_RESET_EMAIL_SENT,
-            detail=f"개발 환경에서 재설정 토큰: {reset_token}"
-        )
-    except BaseAPIException as e:
-        raise HTTPException(
-            status_code=e.status_code,
-            detail={"error": e.error_code, "detail": e.detail}
-        )
-
-@router.post(
-    "/password/reset/confirm",
-    response_model=MessageResponse,
-    summary="비밀번호 재설정 확인",
-    description="재설정 토큰을 확인하고 새 비밀번호로 변경합니다.",
-    responses={
-        200: {
-            "description": "비밀번호 재설정 완료",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "success": True,
-                        "message": "비밀번호가 성공적으로 재설정되었습니다"
-                    }
-                }
-            }
-        },
-        **PASSWORD_RESET_RESPONSES
-    }
-)
-async def confirm_password_reset(
-    data: PasswordResetConfirm,
-    user_service: UserService = Depends(get_user_service)
-):
-    try:
-        await user_service.confirm_password_reset(data)
-        return MessageResponse(
-            success=True,
-            message=MSG_PASSWORD_RESET_SUCCESS
         )
     except BaseAPIException as e:
         raise HTTPException(

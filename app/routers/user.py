@@ -202,65 +202,6 @@ async def change_password(
             detail={"error_code": e.error_code, "message": e.detail}
         )
 
-# ============================================================
-# 4. 알림
-# ============================================================
-
-@router.get(
-    "/me/notifications",
-    response_model=PaginatedResponse[NotificationResponse],
-    summary="내 알림 목록",
-    description="사용자의 알림 목록을 조회합니다.",
-    responses={
-        200: {
-            "description": "알림 목록 조회 성공",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "success": True,
-                        "total": 10,
-                        "page": 1,
-                        "page_size": 20,
-                        "total_pages": 1,
-                        "items": [
-                            {
-                                "id": 1,
-                                "user_id": 1,
-                                "type": "expiry_warning",
-                                "title": "수강 기간 만료 예정",
-                                "content": "Python 기초 강의의 수강 기간이 7일 후 만료됩니다",
-                                "is_read": False,
-                                "related_url": "/courses/5",
-                                "created_at": "2025-01-10T12:00:00Z"
-                            }
-                        ]
-                    }
-                }
-            }
-        },
-        **AUTH_RESPONSES
-    }
-)
-async def get_my_notifications(
-    is_read: bool = Query(None, description="읽음 여부 필터"),
-    page: int = Query(1, ge=1, description="페이지 번호"),
-    page_size: int = Query(20, ge=1, le=100, description="페이지 크기"),
-    current_user: User = Depends(get_current_user),
-    user_service: UserService = Depends(get_user_service)
-):
-    try:
-        result = await user_service.get_user_notifications(
-            current_user.id,
-            is_read,
-            page,
-            page_size
-        )
-        return result
-    except BaseAPIException as e:
-        raise HTTPException(
-            status_code=e.status_code,
-            detail={"error_code": e.error_code, "message": e.detail}
-        )
 
 @router.delete(
     "/me",
