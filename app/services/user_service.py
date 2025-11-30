@@ -62,7 +62,9 @@ from app.utils.helpers import (
     calculate_total_pages,
     calculate_offset,
     get_current_utc_datetime,
+    decode_redis_value,
 )
+from app.utils.email_service import email_service
 
 logger = logging.getLogger(__name__)
 
@@ -81,8 +83,17 @@ class UserService:
         data: UserCreate
     ) -> UserResponse:
         existing_user = await self._get_user_by_email(data.email)
-        if existing_user:
+
+        # 활성 계정이 이미 존재하는 경우만 오류
+        if existing_user and existing_user.is_active:
             raise EmailAlreadyExistsError('이미 존재하는 이메일입니다')
+
+        # 탈퇴한 계정(is_active=false)이 있는 경우
+        if existing_user and not existing_user.is_active:
+            # 기존 데이터 완전 삭제
+            await self.db.delete(existing_user)
+            await self.db.commit()
+            logger.info(f'탈퇴한 계정 삭제: {data.email} (ID: {existing_user.id})')
 
         existing_nickname = await self._check_nickname_exists(
             data.nickname
@@ -96,16 +107,12 @@ class UserService:
 
         if self.redis:
             verified_status = await self.redis.get(verified_key)
+            verified_status = decode_redis_value(verified_status)
 
-            if verified_status:
-                # bytes를 string으로 변환
-                if isinstance(verified_status, bytes):
-                    verified_status = verified_status.decode('utf-8')
-
-                if verified_status == "verified":
-                    is_email_verified = True
-                    # 인증 완료 플래그 삭제 (일회성 사용)
-                    await self.redis.delete(verified_key)
+            if verified_status == "verified":
+                is_email_verified = True
+                # 인증 완료 플래그 삭제 (일회성 사용)
+                await self.redis.delete(verified_key)
 
         # 이메일 인증을 하지 않은 경우 회원가입 불가
         if not is_email_verified:
@@ -155,9 +162,9 @@ class UserService:
         회원가입 전 이메일 인증 코드를 발송합니다.
         사용자가 DB에 없어도 인증 코드를 발송합니다.
         """
-        # 이메일 중복 체크
+        # 활성 계정만 중복 체크 (탈퇴한 계정은 재가입 가능)
         existing_user = await self._get_user_by_email(email)
-        if existing_user:
+        if existing_user and existing_user.is_active:
             raise EmailAlreadyExistsError('이미 가입된 이메일입니다')
 
         code = self._generate_verification_code()
@@ -171,7 +178,13 @@ class UserService:
                 code
             )
 
-        logger.info(f'회원가입 전 이메일 인증 코드 생성: {email}')
+        # 이메일 발송
+        try:
+            await email_service.send_verification_code(email, code)
+            logger.info(f'회원가입 전 이메일 인증 코드 발송 성공: {email}')
+        except Exception as e:
+            logger.error(f'이메일 발송 실패: {email}, 오류: {e}')
+            # 이메일 발송 실패해도 코드는 반환 (개발 환경에서 확인 가능)
 
         return code
 
@@ -189,10 +202,7 @@ class UserService:
 
         key = REDIS_KEY_EMAIL_VERIFICATION.format(email=email)
         stored_code = await self.redis.get(key)
-
-        # bytes를 string으로 변환
-        if isinstance(stored_code, bytes):
-            stored_code = stored_code.decode('utf-8')
+        stored_code = decode_redis_value(stored_code)
 
         if not stored_code or stored_code != code:
             raise VerificationCodeInvalidError(
@@ -595,15 +605,13 @@ class UserService:
             logger.info(f'저장된 토큰 존재 여부: {stored_token is not None}')
             logger.info(f'받은 토큰: {data.reset_token[:20]}...')
 
+            stored_token = decode_redis_value(stored_token)
+
             if not stored_token:
                 logger.warning(f'Redis에 토큰이 없음: user_id={user_id} - 이미 사용되었거나 만료됨')
                 raise UnauthorizedError(
                     '토큰이 이미 사용되었거나 만료되었습니다. 비밀번호 재설정을 다시 요청해주세요'
                 )
-
-            # bytes인 경우 decode
-            if isinstance(stored_token, bytes):
-                stored_token = stored_token.decode('utf-8')
 
             if stored_token != data.reset_token:
                 logger.warning(f'토큰 불일치: user_id={user_id}')
@@ -705,20 +713,8 @@ class UserService:
             if not verify_password(password, user.password_hash):
                 raise BadRequestError('비밀번호가 일치하지 않습니다')
 
-        active_enrollments = await self.db.execute(
-            select(func.count(Enrollment.id)).where(
-                and_(
-                    Enrollment.user_id == user_id,
-                    Enrollment.is_active == True,
-                    Enrollment.expires_at > get_current_utc_datetime()
-                )
-            )
-        )
-        if active_enrollments.scalar() > 0:
-            raise BadRequestError(
-                '진행 중인 강의가 있어 탈퇴할 수 없습니다'
-            )
-
+        # 진행 중인 강의가 있어도 탈퇴 가능
+        # 탈퇴 시 수강 중인 강의는 자동으로 비활성화됨
         user.is_active = False
         user.updated_at = get_current_utc_datetime()
 
