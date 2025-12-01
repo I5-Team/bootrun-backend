@@ -385,10 +385,10 @@ class LectureCreate(BaseModel):
         description="동영상 타입 (vod 또는 youtube)",
         example="youtube"
     )
-    duration_seconds: int = Field(
-        ...,
+    duration_seconds: Optional[int] = Field(
+        None,
         ge=0,
-        description="재생 시간 (초)",
+        description="재생 시간 (초). 입력하지 않으면 자동으로 계산됩니다.",
         example=600
     )
     order_number: int = Field(

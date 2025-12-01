@@ -38,6 +38,8 @@ from app.exceptions.base import (
 )
 from app.core.logging_config import configure_logging
 from app.utils.helpers import get_current_utc_datetime
+from app.utils.video_duration import get_video_duration
+from app.core.config import settings
 
 logger = configure_logging()
 
@@ -797,6 +799,26 @@ class AdminCourseService:
         if not chapter:
             raise ChapterNotFoundError(f'ID {chapter_id}인 챕터를 찾을 수 없습니다')
 
+        # 재생시간 자동 계산 (입력되지 않은 경우)
+        duration_seconds = data.duration_seconds
+        if duration_seconds is None:
+            logger.info(f"영상 재생시간 자동 계산 시도: {data.video_url}")
+            try:
+                calculated_duration = await get_video_duration(
+                    data.video_url,
+                    data.video_type.value,
+                    settings.youtube_api_key if settings.youtube_api_key else None
+                )
+                if calculated_duration:
+                    duration_seconds = calculated_duration
+                    logger.info(f"재생시간 자동 계산 성공: {duration_seconds}초")
+                else:
+                    logger.warning("재생시간 자동 계산 실패, 기본값 0초로 설정")
+                    duration_seconds = 0
+            except Exception as e:
+                logger.error(f"재생시간 자동 계산 중 오류: {e}")
+                duration_seconds = 0
+
         # 새 강의 영상 생성
         new_lecture = Lecture(
             chapter_id=chapter_id,
@@ -804,7 +826,7 @@ class AdminCourseService:
             description=data.description,
             video_url=data.video_url,
             video_type=data.video_type,
-            duration_seconds=data.duration_seconds,
+            duration_seconds=duration_seconds,
             order_number=data.order_number,
             material_url=data.material_url
         )
@@ -814,7 +836,7 @@ class AdminCourseService:
         await self.db.refresh(new_lecture)
 
         # 강의 전체 시간 업데이트
-        await self._update_course_total_duration(course_id, data.duration_seconds)
+        await self._update_course_total_duration(course_id, duration_seconds)
 
         return LectureResponse.model_validate(new_lecture)
 
