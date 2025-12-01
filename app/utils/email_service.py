@@ -159,13 +159,17 @@ class EmailService:
                 username=self.smtp_user,
                 password=self.smtp_password,
                 start_tls=True,
+                timeout=10,
             )
 
             logger.info(f'이메일 전송 성공: {to_email}')
             return True
 
+        except aiosmtplib.SMTPException as e:
+            logger.error(f'SMTP 오류 - 이메일 전송 실패: {to_email}, 오류: {e}')
+            return False
         except Exception as e:
-            logger.error(f'이메일 전송 실패: {to_email}, 오류: {e}')
+            logger.error(f'이메일 전송 실패: {to_email}, 오류 타입: {type(e).__name__}, 오류 내용: {e}')
             return False
 
 

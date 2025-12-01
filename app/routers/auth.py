@@ -174,7 +174,7 @@ async def request_email_verification(
         return MessageResponse(
             success=True,
             message="인증 코드가 이메일로 발송되었습니다",
-            detail=f"개발 환경에서 인증 코드: {verification_code}"
+            detail=None
         )
     except BaseAPIException as e:
         raise HTTPException(
