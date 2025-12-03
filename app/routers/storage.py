@@ -10,7 +10,7 @@ from app.core.dependencies import get_current_active_user
 from app.models.user import User
 from app.schemas.common import MessageResponse
 
-router = APIRouter(prefix="/storage", tags=["Storage"])
+router = APIRouter(prefix="/storage", tags=["스토리지"])
 
 
 def get_file_extension(filename: str) -> str:

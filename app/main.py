@@ -50,6 +50,10 @@ tags_metadata = [
         "name": "관리자 - 결제 및 환불 관리",
         "description": "결제 내역 조회, 환불 승인/거절 등 관리자 결제 관리 API",
     },
+    {
+        "name": "스토리지",
+        "description": "Cloudflare R2 파일 스토리지 - 이미지/동영상/파일 업로드, 삭제, 목록 조회",
+    },
 ]
 
 @asynccontextmanager
@@ -147,6 +151,8 @@ all_routers = [
     users_router,
     courses_router,
     payments_router,
+    # 스토리지 API
+    storage_router,
 ]
 
 for router in all_routers:
