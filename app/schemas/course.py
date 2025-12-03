@@ -195,17 +195,18 @@ class CourseCreate(BaseModel):
     def validate_date_order(self):
         """
         날짜 순서 검증
-        순서: 모집 시작일 → 모집 종료일 → 교육 시작일 → 교육 종료일
+        순서: 모집 시작일 → 모집 종료일 ≤ 교육 시작일 → 교육 종료일
+        (모집 종료일 = 교육 시작일 허용 - VOD 강의)
         """
         # 1. 모집 시작일 < 모집 종료일
         if self.recruitment_start_date and self.recruitment_end_date:
             if self.recruitment_start_date >= self.recruitment_end_date:
                 raise ValueError("모집 종료일은 모집 시작일보다 이후여야 합니다")
 
-        # 2. 모집 종료일 < 교육 시작일
+        # 2. 모집 종료일 ≤ 교육 시작일 (같아도 OK)
         if self.recruitment_end_date and self.course_start_date:
-            if self.recruitment_end_date >= self.course_start_date:
-                raise ValueError("교육 시작일은 모집 종료일보다 이후여야 합니다")
+            if self.recruitment_end_date > self.course_start_date:
+                raise ValueError("교육 시작일은 모집 종료일보다 빠를 수 없습니다")
 
         # 3. 교육 시작일 < 교육 종료일
         if self.course_start_date and self.course_end_date:
@@ -274,17 +275,18 @@ class CourseUpdate(BaseModel):
     def validate_date_order(self):
         """
         날짜 순서 검증
-        순서: 모집 시작일 → 모집 종료일 → 교육 시작일 → 교육 종료일
+        순서: 모집 시작일 → 모집 종료일 ≤ 교육 시작일 → 교육 종료일
+        (모집 종료일 = 교육 시작일 허용 - VOD 강의)
         """
         # 1. 모집 시작일 < 모집 종료일
         if self.recruitment_start_date and self.recruitment_end_date:
             if self.recruitment_start_date >= self.recruitment_end_date:
                 raise ValueError("모집 종료일은 모집 시작일보다 이후여야 합니다")
 
-        # 2. 모집 종료일 < 교육 시작일
+        # 2. 모집 종료일 ≤ 교육 시작일 (같아도 OK)
         if self.recruitment_end_date and self.course_start_date:
-            if self.recruitment_end_date >= self.course_start_date:
-                raise ValueError("교육 시작일은 모집 종료일보다 이후여야 합니다")
+            if self.recruitment_end_date > self.course_start_date:
+                raise ValueError("교육 시작일은 모집 종료일보다 빠를 수 없습니다")
 
         # 3. 교육 시작일 < 교육 종료일
         if self.course_start_date and self.course_end_date:
