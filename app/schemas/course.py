@@ -162,13 +162,57 @@ class CourseCreate(BaseModel):
         example='[{"question":"환불이 가능한가요?","answer":"구매일로부터 7일 이내, 진도율 10% 미만일 경우 환불 가능합니다."}]'
     )
 
-    @field_validator('recruitment_start_date', 'recruitment_end_date', 'course_start_date', 'course_end_date', mode='after')
+    @field_validator('recruitment_start_date', 'recruitment_end_date', 'course_start_date', 'course_end_date', mode='before')
     @classmethod
-    def remove_timezone(cls, v):
-        """timezone-aware datetime을 timezone-naive로 변환"""
-        if v is not None and v.tzinfo is not None:
+    def convert_to_kst_naive(cls, v):
+        """
+        timezone-aware datetime을 한국 시간(KST)으로 변환 후 timezone 제거
+        - UTC나 다른 timezone으로 입력되어도 한국 시간으로 변환
+        - timezone 정보를 제거하여 DB에 저장
+        """
+        if v is None:
+            return None
+
+        # 문자열인 경우 datetime으로 변환
+        if isinstance(v, str):
+            # ISO 8601 형식 처리 (Z를 +00:00으로 변환)
+            v = v.replace('Z', '+00:00')
+            v = datetime.fromisoformat(v)
+
+        # timezone-aware인 경우 한국 시간으로 변환
+        if isinstance(v, datetime) and v.tzinfo is not None:
+            from zoneinfo import ZoneInfo
+            kst = ZoneInfo('Asia/Seoul')
+            v = v.astimezone(kst)
+
+        # timezone 정보 제거 (DB는 timezone-naive로 저장)
+        if isinstance(v, datetime):
             return v.replace(tzinfo=None)
+
         return v
+
+    @model_validator(mode='after')
+    def validate_date_order(self):
+        """
+        날짜 순서 검증
+        순서: 모집 시작일 → 모집 종료일 → 교육 시작일 → 교육 종료일
+        """
+        # 1. 모집 시작일 < 모집 종료일
+        if self.recruitment_start_date and self.recruitment_end_date:
+            if self.recruitment_start_date >= self.recruitment_end_date:
+                raise ValueError("모집 종료일은 모집 시작일보다 이후여야 합니다")
+
+        # 2. 모집 종료일 < 교육 시작일
+        if self.recruitment_end_date and self.course_start_date:
+            if self.recruitment_end_date >= self.course_start_date:
+                raise ValueError("교육 시작일은 모집 종료일보다 이후여야 합니다")
+
+        # 3. 교육 시작일 < 교육 종료일
+        if self.course_start_date and self.course_end_date:
+            if self.course_start_date >= self.course_end_date:
+                raise ValueError("교육 종료일은 교육 시작일보다 이후여야 합니다")
+
+        return self
 
 class CourseUpdate(BaseModel):
     category_type: Optional[CategoryType] = None
@@ -197,13 +241,57 @@ class CourseUpdate(BaseModel):
         example=True
     )
 
-    @field_validator('recruitment_start_date', 'recruitment_end_date', 'course_start_date', 'course_end_date', mode='after')
+    @field_validator('recruitment_start_date', 'recruitment_end_date', 'course_start_date', 'course_end_date', mode='before')
     @classmethod
-    def remove_timezone(cls, v):
-        """timezone-aware datetime을 timezone-naive로 변환"""
-        if v is not None and v.tzinfo is not None:
+    def convert_to_kst_naive(cls, v):
+        """
+        timezone-aware datetime을 한국 시간(KST)으로 변환 후 timezone 제거
+        - UTC나 다른 timezone으로 입력되어도 한국 시간으로 변환
+        - timezone 정보를 제거하여 DB에 저장
+        """
+        if v is None:
+            return None
+
+        # 문자열인 경우 datetime으로 변환
+        if isinstance(v, str):
+            # ISO 8601 형식 처리 (Z를 +00:00으로 변환)
+            v = v.replace('Z', '+00:00')
+            v = datetime.fromisoformat(v)
+
+        # timezone-aware인 경우 한국 시간으로 변환
+        if isinstance(v, datetime) and v.tzinfo is not None:
+            from zoneinfo import ZoneInfo
+            kst = ZoneInfo('Asia/Seoul')
+            v = v.astimezone(kst)
+
+        # timezone 정보 제거 (DB는 timezone-naive로 저장)
+        if isinstance(v, datetime):
             return v.replace(tzinfo=None)
+
         return v
+
+    @model_validator(mode='after')
+    def validate_date_order(self):
+        """
+        날짜 순서 검증
+        순서: 모집 시작일 → 모집 종료일 → 교육 시작일 → 교육 종료일
+        """
+        # 1. 모집 시작일 < 모집 종료일
+        if self.recruitment_start_date and self.recruitment_end_date:
+            if self.recruitment_start_date >= self.recruitment_end_date:
+                raise ValueError("모집 종료일은 모집 시작일보다 이후여야 합니다")
+
+        # 2. 모집 종료일 < 교육 시작일
+        if self.recruitment_end_date and self.course_start_date:
+            if self.recruitment_end_date >= self.course_start_date:
+                raise ValueError("교육 시작일은 모집 종료일보다 이후여야 합니다")
+
+        # 3. 교육 시작일 < 교육 종료일
+        if self.course_start_date and self.course_end_date:
+            if self.course_start_date >= self.course_end_date:
+                raise ValueError("교육 종료일은 교육 시작일보다 이후여야 합니다")
+
+        return self
 
 class CourseResponse(BaseModel):
     id: int
