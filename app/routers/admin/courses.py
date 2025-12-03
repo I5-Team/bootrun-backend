@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status, UploadFile, File
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from typing import List, Optional
@@ -6,7 +6,7 @@ from typing import List, Optional
 from app.schemas.admin import (
     CourseManagementListParams, CourseManagementPaginatedResponse,
 )
-from app.schemas.common import MessageResponse, SuccessResponse, ImageUploadResponse, FileUploadResponse, FileDeleteRequest, FileListResponse
+from app.schemas.common import MessageResponse, SuccessResponse
 from app.schemas.course import (
     CourseCreate, CourseUpdate, CourseResponse,
     ChapterCreate, ChapterUpdate, ChapterResponse,
@@ -26,115 +26,14 @@ from app.services.admin_course_service import AdminCourseService
 
 router = APIRouter(prefix="/admin/courses", tags=["관리자 - 강의 관리"])
 
-
-@router.post(
-    "/upload-thumbnail",
-    response_model=SuccessResponse[ImageUploadResponse],
-    status_code=status.HTTP_201_CREATED,
-    summary="강의 썸네일 업로드",
-    description="강의 썸네일 이미지를 업로드합니다. 업로드된 이미지 URL을 반환받아 강의 생성/수정 시 사용하세요.",
-    responses=ADMIN_RESPONSES
-)
-async def upload_thumbnail(
-    file: UploadFile = File(..., description="썸네일 이미지 파일 (JPEG, PNG, WebP)"),
-    current_admin: User = Depends(get_current_admin),
-    db: AsyncSession = Depends(get_db)
-):
-    service = AdminCourseService(db)
-    result = await service.upload_thumbnail(file)
-
-    return SuccessResponse(
-        success=True,
-        message="썸네일이 성공적으로 업로드되었습니다",
-        data=result
-    )
-
-@router.post(
-    "/upload-instructor-image",
-    response_model=SuccessResponse[ImageUploadResponse],
-    status_code=status.HTTP_201_CREATED,
-    summary="강사 이미지 업로드",
-    description="강사 프로필 이미지를 업로드합니다. 업로드된 이미지 URL을 반환받아 강의 생성/수정 시 사용하세요.",
-    responses=ADMIN_RESPONSES
-)
-async def upload_instructor_image(
-    file: UploadFile = File(..., description="강사 이미지 파일 (JPEG, PNG, WebP)"),
-    current_admin: User = Depends(get_current_admin),
-    db: AsyncSession = Depends(get_db)
-):
-    service = AdminCourseService(db)
-    result = await service.upload_instructor_image(file)
-
-    return SuccessResponse(
-        success=True,
-        message="강사 이미지가 성공적으로 업로드되었습니다",
-        data=result
-    )
-
-@router.post(
-    "/upload-material",
-    response_model=SuccessResponse[FileUploadResponse],
-    status_code=status.HTTP_201_CREATED,
-    summary="강의 자료 업로드",
-    description="강의 자료 파일을 업로드합니다. 업로드된 파일 URL을 반환받아 강의 영상 생성/수정 시 사용하세요.",
-    responses=ADMIN_RESPONSES
-)
-async def upload_material(
-    file: UploadFile = File(..., description="강의 자료 파일 (PDF, ZIP, DOCX 등)"),
-    current_admin: User = Depends(get_current_admin),
-    db: AsyncSession = Depends(get_db)
-):
-    service = AdminCourseService(db)
-    result = await service.upload_material(file)
-
-    return SuccessResponse(
-        success=True,
-        message="강의 자료가 성공적으로 업로드되었습니다",
-        data=result
-    )
-
-@router.get(
-    "/files",
-    response_model=SuccessResponse[FileListResponse],
-    status_code=status.HTTP_200_OK,
-    summary="업로드된 파일 목록 조회",
-    description="관리자가 업로드한 강의 관련 파일(썸네일, 강사 이미지, 강의 자료) 목록을 조회합니다.",
-    responses=ADMIN_RESPONSES
-)
-async def list_uploaded_files(
-    file_type: Optional[str] = None,
-    current_admin: User = Depends(get_current_admin),
-    db: AsyncSession = Depends(get_db)
-):
-    service = AdminCourseService(db)
-    result = await service.list_uploaded_files(file_type)
-
-    return SuccessResponse(
-        success=True,
-        message="파일 목록 조회 성공",
-        data=result
-    )
-
-@router.delete(
-    "/files",
-    response_model=MessageResponse,
-    status_code=status.HTTP_200_OK,
-    summary="업로드된 파일 삭제",
-    description="업로드된 파일(썸네일, 강사 이미지, 강의 자료)을 삭제합니다.",
-    responses=ADMIN_RESPONSES
-)
-async def delete_file(
-    request: FileDeleteRequest,
-    current_admin: User = Depends(get_current_admin),
-    db: AsyncSession = Depends(get_db)
-):
-    service = AdminCourseService(db)
-    await service.delete_file(request.file_url)
-
-    return MessageResponse(
-        success=True,
-        message="파일이 성공적으로 삭제되었습니다"
-    )
+# ==================== 파일 업로드 API 제거됨 ====================
+# 파일 업로드는 /storage 엔드포인트를 사용하세요:
+# - POST /storage/upload/image - 이미지 업로드 (썸네일, 강사 이미지)
+# - POST /storage/upload/video - 동영상 업로드
+# - POST /storage/upload - 일반 파일 업로드 (강의 자료)
+# - DELETE /storage/delete/{file_path} - 파일 삭제
+# - GET /storage/list - 파일 목록 조회
+# =============================================================
 
 @router.get(
     "",

@@ -9,6 +9,7 @@ import logging
 import uuid
 import os
 import aiofiles
+from io import BytesIO
 
 from app.models.user import User, UserRole, Gender, SocialProvider
 from app.models.progress import Enrollment, Progress
@@ -442,6 +443,8 @@ class UserService:
         user_id: int,
         file: UploadFile
     ) -> ProfileImageUploadResponse:
+        from app.services.r2_service import r2_service
+
         user = await self.get_user_by_id(user_id)
 
         max_size = 5 * 1024 * 1024
@@ -460,42 +463,53 @@ class UserService:
                 'JPG, PNG, GIF, WEBP만 업로드 가능합니다'
             )
 
-        # 이전 프로필 이미지가 있으면 삭제 (기본 이미지가 아닌 경우)
+        # 이전 프로필 이미지가 있으면 R2에서 삭제 (기본 이미지가 아닌 경우)
         if user.profile_image and user.profile_image != DEFAULT_PROFILE_IMAGE:
-            relative_path = user.profile_image.lstrip('/')
-            old_file_path = os.path.normpath(os.path.join('/app', relative_path))
-            real_file_path = os.path.realpath(old_file_path)
-            real_base_dir = os.path.realpath('/app/uploads')
-            if not real_file_path.startswith(real_base_dir + os.sep):
-                logger.error(f'경로 조작 시도 차단: {real_file_path}')
-            elif os.path.exists(real_file_path):
+            # R2 URL에서 파일 경로 추출
+            if user.profile_image.startswith('http'):
+                # 전체 URL에서 파일 경로 추출
                 try:
-                    os.remove(real_file_path)
-                    logger.info(f'이전 프로필 이미지 삭제: {real_file_path}')
+                    file_path = user.profile_image.split('/')[-2] + '/' + user.profile_image.split('/')[-1]
+                    r2_service.delete_file(file_path)
+                    logger.info(f'이전 프로필 이미지 R2에서 삭제: {file_path}')
                 except Exception as e:
-                    logger.error(f'이전 프로필 이미지 삭제 실패: {real_file_path}, 오류: {str(e)}')
+                    logger.error(f'이전 프로필 이미지 R2 삭제 실패: {str(e)}')
+            else:
+                # 상대 경로인 경우 (레거시 로컬 파일)
+                relative_path = user.profile_image.lstrip('/')
+                old_file_path = os.path.normpath(os.path.join('/app', relative_path))
+                real_file_path = os.path.realpath(old_file_path)
+                real_base_dir = os.path.realpath('/app/uploads')
+                if not real_file_path.startswith(real_base_dir + os.sep):
+                    logger.error(f'경로 조작 시도 차단: {real_file_path}')
+                elif os.path.exists(real_file_path):
+                    try:
+                        os.remove(real_file_path)
+                        logger.info(f'이전 프로필 이미지 로컬에서 삭제: {real_file_path}')
+                    except Exception as e:
+                        logger.error(f'이전 프로필 이미지 로컬 삭제 실패: {str(e)}')
 
+        # R2에 업로드
         file_extension = os.path.splitext(file.filename)[1].lower().lstrip('.')
         new_filename = f'{uuid.uuid4()}.{file_extension}'
+        file_path = f'profiles/user_{user_id}/{new_filename}'
 
-        # 업로드 디렉토리 생성
-        upload_dir = '/app/uploads/profiles'
-        os.makedirs(upload_dir, exist_ok=True)
-
-        # 파일 저장 경로
-        file_path = os.path.join(upload_dir, new_filename)
-
-        # 파일을 디스크에 비동기로 저장
-        async with aiofiles.open(file_path, 'wb') as f:
-            await f.write(file_content)
-
-        image_url = f'/uploads/profiles/{new_filename}'
+        # R2에 파일 업로드
+        image_url = r2_service.upload_file(
+            file_data=BytesIO(file_content),
+            file_path=file_path,
+            content_type=file.content_type,
+            metadata={
+                'user_id': str(user_id),
+                'uploaded_at': get_current_utc_datetime().isoformat()
+            }
+        )
 
         user.profile_image = image_url
         user.updated_at = get_current_utc_datetime()
         await self.db.commit()
 
-        logger.info(f'프로필 이미지 업로드: 사용자 ID {user_id}, 파일: {file_path}')
+        logger.info(f'프로필 이미지 R2 업로드: 사용자 ID {user_id}, 경로: {file_path}')
 
         return ProfileImageUploadResponse(
             image_url=image_url,
@@ -507,22 +521,35 @@ class UserService:
         self,
         user_id: int
     ) -> None:
+        from app.services.r2_service import r2_service
+
         user = await self.get_user_by_id(user_id)
 
         # 기본 이미지가 아닌 경우에만 파일 삭제
         if user.profile_image and user.profile_image != DEFAULT_PROFILE_IMAGE:
-            relative_path = user.profile_image.lstrip('/')
-            file_path = os.path.normpath(os.path.join('/app', relative_path))
-            real_file_path = os.path.realpath(file_path)
-            real_base_dir = os.path.realpath('/app/uploads')
-            if not real_file_path.startswith(real_base_dir + os.sep):
-                logger.error(f'경로 조작 시도 차단: {real_file_path}')
-            elif os.path.exists(real_file_path):
+            # R2 URL에서 파일 경로 추출
+            if user.profile_image.startswith('http'):
+                # 전체 URL에서 파일 경로 추출
                 try:
-                    os.remove(real_file_path)
-                    logger.info(f'프로필 이미지 파일 삭제 완료: {real_file_path}')
+                    file_path = user.profile_image.split('/')[-2] + '/' + user.profile_image.split('/')[-1]
+                    r2_service.delete_file(file_path)
+                    logger.info(f'프로필 이미지 R2에서 삭제 완료: {file_path}')
                 except Exception as e:
-                    logger.error(f'프로필 이미지 파일 삭제 실패: {real_file_path}, 오류: {str(e)}')
+                    logger.error(f'프로필 이미지 R2 삭제 실패: {str(e)}')
+            else:
+                # 상대 경로인 경우 (레거시 로컬 파일)
+                relative_path = user.profile_image.lstrip('/')
+                file_path = os.path.normpath(os.path.join('/app', relative_path))
+                real_file_path = os.path.realpath(file_path)
+                real_base_dir = os.path.realpath('/app/uploads')
+                if not real_file_path.startswith(real_base_dir + os.sep):
+                    logger.error(f'경로 조작 시도 차단: {real_file_path}')
+                elif os.path.exists(real_file_path):
+                    try:
+                        os.remove(real_file_path)
+                        logger.info(f'프로필 이미지 로컬에서 삭제 완료: {real_file_path}')
+                    except Exception as e:
+                        logger.error(f'프로필 이미지 로컬 삭제 실패: {str(e)}')
 
         user.profile_image = DEFAULT_PROFILE_IMAGE
         user.updated_at = get_current_utc_datetime()

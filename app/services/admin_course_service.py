@@ -10,10 +10,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_, and_, case
 from sqlalchemy.orm import selectinload
 import math
-import os
-import uuid
-import aiofiles
-from fastapi import UploadFile
 
 from app.models.course import Course, Chapter, Lecture
 from app.models.progress import Enrollment, Progress
@@ -29,7 +25,6 @@ from app.schemas.admin import (
     CourseManagementResponse,
 )
 from app.utils.cache import invalidate_course_cache
-from app.schemas.common import ImageUploadResponse, FileUploadResponse, FileListResponse, UploadedFileInfo
 from app.exceptions.base import (
     CourseNotFoundError,
     ChapterNotFoundError,
@@ -51,211 +46,12 @@ class AdminCourseService:
         self.db = db
 
     # ==================== 파일 업로드 ====================
-
-    async def upload_thumbnail(self, file: UploadFile) -> ImageUploadResponse:
-        """강의 썸네일 업로드"""
-        allowed_extensions = ['jpg', 'jpeg', 'png', 'webp']
-        file_extension = os.path.splitext(file.filename)[1].lower().lstrip('.')
-
-        if not file_extension or file_extension not in allowed_extensions:
-            raise BadRequestError(
-                f'지원하지 않는 파일 형식입니다. 허용: {", ".join(allowed_extensions)}'
-            )
-
-        # 파일 크기 확인 (10MB)
-        file_content = await file.read()
-        file_size = len(file_content)
-        max_size = 10 * 1024 * 1024  # 10MB
-
-        if file_size > max_size:
-            raise BadRequestError('파일 크기는 10MB를 초과할 수 없습니다')
-
-        # 고유 파일명 생성
-        new_filename = f'{uuid.uuid4()}.{file_extension}'
-
-        # 업로드 디렉토리 생성
-        upload_dir = '/app/uploads/thumbnails'
-        os.makedirs(upload_dir, exist_ok=True)
-
-        # 파일 저장 경로
-        file_path = os.path.join(upload_dir, new_filename)
-
-        # 파일을 디스크에 비동기로 저장
-        async with aiofiles.open(file_path, 'wb') as f:
-            await f.write(file_content)
-
-        image_url = f'/uploads/thumbnails/{new_filename}'
-
-        logger.info(f'썸네일 업로드 완료: {file_path}')
-
-        return ImageUploadResponse(
-            image_url=image_url,
-            file_size=file_size,
-            uploaded_at=get_current_utc_datetime()
-        )
-
-    async def upload_instructor_image(self, file: UploadFile) -> ImageUploadResponse:
-        """강사 이미지 업로드"""
-        # 파일 검증
-        allowed_extensions = ['jpg', 'jpeg', 'png', 'webp']
-        file_extension = file.filename.split('.')[-1].lower()
-
-        if file_extension not in allowed_extensions:
-            raise BadRequestError(
-                f'지원하지 않는 파일 형식입니다. 허용: {", ".join(allowed_extensions)}'
-            )
-
-        # 파일 크기 확인 (10MB)
-        file_content = await file.read()
-        file_size = len(file_content)
-        max_size = 10 * 1024 * 1024  # 10MB
-
-        if file_size > max_size:
-            raise BadRequestError('파일 크기는 10MB를 초과할 수 없습니다')
-
-        # 고유 파일명 생성
-        new_filename = f'{uuid.uuid4()}.{file_extension}'
-
-        # 업로드 디렉토리 생성
-        upload_dir = '/app/uploads/instructors'
-        os.makedirs(upload_dir, exist_ok=True)
-
-        # 파일 저장 경로
-        file_path = os.path.join(upload_dir, new_filename)
-
-        # 파일을 디스크에 비동기로 저장
-        async with aiofiles.open(file_path, 'wb') as f:
-            await f.write(file_content)
-
-        image_url = f'/uploads/instructors/{new_filename}'
-
-        logger.info(f'강사 이미지 업로드 완료: {file_path}')
-
-        return ImageUploadResponse(
-            image_url=image_url,
-            file_size=file_size,
-            uploaded_at=get_current_utc_datetime()
-        )
-
-    async def upload_material(self, file: UploadFile) -> FileUploadResponse:
-        """강의 자료 업로드"""
-        # 파일 검증 (더 넓은 범위)
-        allowed_extensions = ['pdf', 'zip', 'docx', 'pptx', 'txt', 'xlsx', 'doc', 'ppt', 'xls']
-        file_extension = file.filename.split('.')[-1].lower()
-
-        if file_extension not in allowed_extensions:
-            raise BadRequestError(
-                f'지원하지 않는 파일 형식입니다. 허용: {", ".join(allowed_extensions)}'
-            )
-
-        # 파일 크기 확인 (50MB)
-        file_content = await file.read()
-        file_size = len(file_content)
-        max_size = 50 * 1024 * 1024  # 50MB
-
-        if file_size > max_size:
-            raise BadRequestError('파일 크기는 50MB를 초과할 수 없습니다')
-
-        # 고유 파일명 생성
-        new_filename = f'{uuid.uuid4()}.{file_extension}'
-
-        # 업로드 디렉토리 생성
-        upload_dir = '/app/uploads/materials'
-        os.makedirs(upload_dir, exist_ok=True)
-
-        # 파일 저장 경로
-        file_path = os.path.join(upload_dir, new_filename)
-
-        # 파일을 디스크에 비동기로 저장
-        async with aiofiles.open(file_path, 'wb') as f:
-            await f.write(file_content)
-
-        file_url = f'/uploads/materials/{new_filename}'
-
-        logger.info(f'강의 자료 업로드 완료: {file_path}')
-
-        return FileUploadResponse(
-            file_url=file_url,
-            file_name=file.filename,
-            file_size=file_size,
-            content_type=file.content_type or 'application/octet-stream',
-            uploaded_at=get_current_utc_datetime()
-        )
-
-    async def delete_file(self, file_url: str) -> None:
-        """업로드된 파일 삭제"""
-        if not file_url.startswith('/uploads/'):
-            raise BadRequestError('유효하지 않은 파일 URL입니다')
-
-        relative_path = file_url.lstrip('/')
-        file_path = os.path.normpath(os.path.join('/app', relative_path))
-        real_file_path = os.path.realpath(file_path)
-        real_base_dir = os.path.realpath('/app/uploads')
-        if not real_file_path.startswith(real_base_dir + os.sep):
-            raise BadRequestError('유효하지 않은 파일 경로입니다')
-
-        if not os.path.exists(real_file_path):
-            raise BadRequestError('파일을 찾을 수 없습니다')
-
-        try:
-            os.remove(real_file_path)
-            logger.info(f'파일 삭제 완료: {file_path}')
-        except Exception as e:
-            logger.error(f'파일 삭제 실패: {file_path}, 오류: {str(e)}')
-            raise BadRequestError('파일 삭제 중 오류가 발생했습니다')
-
-    async def list_uploaded_files(self, file_type: Optional[str] = None) -> FileListResponse:
-        """업로드된 파일 목록 조회"""
-        upload_dirs = {
-            'thumbnails': 'uploads/thumbnails',
-            'instructors': 'uploads/instructors',
-            'materials': 'uploads/materials'
-        }
-
-        # file_type이 지정되면 해당 타입만, 아니면 전체
-        if file_type:
-            if file_type not in upload_dirs:
-                raise BadRequestError(f'유효하지 않은 파일 타입입니다. 허용: {", ".join(upload_dirs.keys())}')
-            dirs_to_scan = {file_type: upload_dirs[file_type]}
-        else:
-            dirs_to_scan = upload_dirs
-
-        files = []
-        total_size = 0
-
-        for ftype, dir_path in dirs_to_scan.items():
-            if not os.path.exists(dir_path):
-                continue
-
-            # 디렉토리 내 파일 목록 가져오기
-            for filename in os.listdir(dir_path):
-                file_path = os.path.join(dir_path, filename)
-
-                # 파일인지 확인 (디렉토리 제외)
-                if not os.path.isfile(file_path):
-                    continue
-
-                # 파일 정보 가져오기
-                file_stat = os.stat(file_path)
-                file_size = file_stat.st_size
-
-                files.append(UploadedFileInfo(
-                    file_name=filename,
-                    file_url=f'/uploads/{ftype}/{filename}',
-                    file_size=file_size,
-                    file_type=ftype,
-                    created_at=datetime.fromtimestamp(file_stat.st_ctime)
-                ))
-                total_size += file_size
-
-        # 최신순으로 정렬
-        files.sort(key=lambda x: x.created_at, reverse=True)
-
-        return FileListResponse(
-            files=files,
-            total=len(files),
-            total_size=total_size
-        )
+    # 파일 업로드 기능은 /storage API를 사용하세요
+    # - POST /storage/upload/image - 이미지 업로드
+    # - POST /storage/upload/video - 동영상 업로드
+    # - POST /storage/upload - 일반 파일 업로드
+    # - DELETE /storage/delete/{file_path} - 파일 삭제
+    # - GET /storage/list - 파일 목록 조회
 
     # ==================== 강의 관리 ====================
 
