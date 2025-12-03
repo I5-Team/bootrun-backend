@@ -1,7 +1,3 @@
-"""
-Cloudflare R2 Storage Service
-R2는 S3 호환 API를 사용하므로 boto3 라이브러리로 연동 가능
-"""
 import boto3
 from botocore.client import Config
 from botocore.exceptions import ClientError

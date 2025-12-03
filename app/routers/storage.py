@@ -1,6 +1,3 @@
-"""
-파일 스토리지 API 엔드포인트 (Cloudflare R2)
-"""
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from typing import Optional
 from datetime import datetime
