@@ -17,7 +17,6 @@ from app.utils.constants import (
     DEFAULT_PAGE_SIZE,
     TIMEZONE_KST,
     PASSWORD_PATTERN,
-    PATTERN_EMAIL,
 )
 
 T = TypeVar('T')
@@ -183,16 +182,6 @@ def list_response(
 
 # 문자열 유틸리티
 
-def truncate_string(text: str, max_length: int, suffix: str = "...") -> str:
-    if len(text) <= max_length:
-        return text
-
-    if max_length < len(suffix):
-        return text[:max_length]
-
-    return text[:max_length - len(suffix)] + suffix
-
-
 def sanitize_filename(filename: str) -> str:
     # 위험한 문자 제거
     safe_filename = re.sub(r'[^\w\s.-]', '', filename)
@@ -227,10 +216,6 @@ def camel_to_snake(camel_str: str) -> str:
 
 
 # 검증 유틸리티
-
-def is_valid_email(email: str) -> bool:
-    return bool(re.match(PATTERN_EMAIL, email))
-
 
 def is_valid_password(password: str) -> bool:
     return bool(re.match(PASSWORD_PATTERN, password))

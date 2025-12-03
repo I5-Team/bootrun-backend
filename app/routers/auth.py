@@ -2,8 +2,7 @@ from fastapi import APIRouter, Header, status, Depends, HTTPException
 from app.schemas.user import (
     UserCreate, UserLogin, UserResponse, TokenResponse,
     EmailVerificationRequest, EmailVerificationConfirm,
-    SocialLoginRequest, PasswordResetRequest, PasswordResetConfirm,
-    SocialProvider
+    PasswordResetRequest, PasswordResetConfirm
 )
 from app.schemas.common import MessageResponse, SuccessResponse
 from app.exceptions.responses import (
@@ -27,65 +26,10 @@ from app.utils.constants import (
     MSG_PASSWORD_RESET_EMAIL_SENT,
     MSG_PASSWORD_RESET_SUCCESS,
 )
-from app.utils.helpers import is_valid_email, truncate_string
 import logging
 
 router = APIRouter(prefix="/auth", tags=["인증"])
 logger = logging.getLogger(__name__)
-
-
-# @router.get(
-#     "/email/check",
-#     response_model=MessageResponse,
-#     summary="이메일 중복 체크",
-#     description="이메일 주소가 이미 사용 중인지 확인합니다.",
-#     responses={
-#         200: {
-#             "description": "이메일 사용 가능",
-#             "content": {
-#                 "application/json": {
-#                     "example": {
-#                         "success": True,
-#                         "message": "사용 가능한 이메일입니다",
-#                         "detail": None
-#                     }
-#                 }
-#             }
-#         },
-#         400: {
-#             "description": "이메일 이미 사용 중",
-#             "content": {
-#                 "application/json": {
-#                     "example": {
-#                         "error": "EMAIL_ALREADY_EXISTS",
-#                         "detail": "이미 사용 중인 이메일입니다"
-#                     }
-#                 }
-#             }
-#         }
-#     }
-# )
-# async def check_email_availability(
-#     email: str,
-#     user_service: UserService = Depends(get_user_service)
-# ):
-#     try:
-#         is_available = await user_service.check_email_availability(email)
-#         if is_available:
-#             return MessageResponse(
-#                 success=True,
-#                 message="사용 가능한 이메일입니다"
-#             )
-#         else:
-#             raise HTTPException(
-#                 status_code=status.HTTP_400_BAD_REQUEST,
-#                 detail={"error": "EMAIL_ALREADY_EXISTS", "detail": "이미 사용 중인 이메일입니다"}
-#             )
-#     except BaseAPIException as e:
-#         raise HTTPException(
-#             status_code=e.status_code,
-#             detail={"error": e.error_code, "detail": e.detail}
-#         )
 
 
 @router.post(
@@ -268,174 +212,6 @@ async def login(
         return SuccessResponse(
             success=True,
             message=MSG_LOGIN_SUCCESS,
-            data=token_response
-        )
-    except BaseAPIException as e:
-        raise HTTPException(
-            status_code=e.status_code,
-            detail={"error": e.error_code, "detail": e.detail}
-        )
-
-@router.post(
-    "/social/google",
-    response_model=SuccessResponse[TokenResponse],
-    summary="Google 소셜 로그인",
-    description="Google 계정으로 로그인합니다.",
-    responses={
-        200: {
-            "description": "Google 로그인 성공",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "success": True,
-                        "message": "Google 로그인에 성공했습니다",
-                        "data": {
-                            "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-                            "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-                            "token_type": "bearer",
-                            "user": {
-                                "id": 1,
-                                "email": "user@gmail.com",
-                                "nickname": "구글사용자",
-                                "gender": "other",
-                                "birth_date": "2000-01-01",
-                                "profile_image": None,
-                                "role": "student",
-                                "is_active": True,
-                                "is_email_verified": True,
-                                "created_at": "2025-01-10T12:00:00Z",
-                                "updated_at": "2025-01-10T12:00:00Z",
-                                "last_login": "2025-01-10T12:00:00Z",
-                                "social_provider": "google",
-                                "social_id": "google_abc123"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        **LOGIN_RESPONSES
-    }
-)
-async def google_login(
-    data: SocialLoginRequest,
-    user_service: UserService = Depends(get_user_service)
-):
-    try:
-        if data.provider != SocialProvider.GOOGLE:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail={"error": "INVALID_PROVIDER", "detail": "Google 로그인만 허용됩니다"}
-            )
-
-        if not data.email:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail={"error": "EMAIL_REQUIRED", "detail": "이메일이 필요합니다"}
-            )
-
-        if not is_valid_email(data.email):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail={"error": "INVALID_EMAIL", "detail": "유효하지 않은 이메일 형식입니다"}
-            )
-
-        social_id = f"google_{truncate_string(data.access_token, 20, suffix='')}"
-
-        token_response = await user_service.social_login(
-            provider=SocialProvider.GOOGLE,
-            social_id=social_id,
-            email=data.email,
-            nickname=data.nickname
-        )
-
-        return SuccessResponse(
-            success=True,
-            message="Google 로그인에 성공했습니다",
-            data=token_response
-        )
-    except BaseAPIException as e:
-        raise HTTPException(
-            status_code=e.status_code,
-            detail={"error": e.error_code, "detail": e.detail}
-        )
-
-@router.post(
-    "/social/github",
-    response_model=SuccessResponse[TokenResponse],
-    summary="Github 소셜 로그인",
-    description="Github 계정으로 로그인합니다.",
-    responses={
-        200: {
-            "description": "Github 로그인 성공",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "success": True,
-                        "message": "Github 로그인에 성공했습니다",
-                        "data": {
-                            "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-                            "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-                            "token_type": "bearer",
-                            "user": {
-                                "id": 2,
-                                "email": "user@github.com",
-                                "nickname": "깃허브사용자",
-                                "gender": "other",
-                                "birth_date": "2000-01-01",
-                                "profile_image": None,
-                                "role": "student",
-                                "is_active": True,
-                                "is_email_verified": True,
-                                "created_at": "2025-01-10T12:00:00Z",
-                                "updated_at": "2025-01-10T12:00:00Z",
-                                "last_login": "2025-01-10T12:00:00Z",
-                                "social_provider": "github",
-                                "social_id": "github_xyz789"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        **LOGIN_RESPONSES
-    }
-)
-async def github_login(
-    data: SocialLoginRequest,
-    user_service: UserService = Depends(get_user_service)
-):
-    try:
-        if data.provider != SocialProvider.GITHUB:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail={"error": "INVALID_PROVIDER", "detail": "Github 로그인만 허용됩니다"}
-            )
-
-        if not data.email:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail={"error": "EMAIL_REQUIRED", "detail": "이메일이 필요합니다"}
-            )
-
-        if not is_valid_email(data.email):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail={"error": "INVALID_EMAIL", "detail": "유효하지 않은 이메일 형식입니다"}
-            )
-
-        social_id = f"github_{truncate_string(data.access_token, 20, suffix='')}"
-
-        token_response = await user_service.social_login(
-            provider=SocialProvider.GITHUB,
-            social_id=social_id,
-            email=data.email,
-            nickname=data.nickname
-        )
-
-        return SuccessResponse(
-            success=True,
-            message="Github 로그인에 성공했습니다",
             data=token_response
         )
     except BaseAPIException as e:

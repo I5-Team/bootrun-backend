@@ -118,21 +118,6 @@ class UserLogin(BaseModel):
         example="Test1234!@"
     )
 
-# 소셜 로그인 (선택사항)
-class SocialLoginRequest(BaseModel):
-    provider: SocialProvider = Field(
-        ...,
-        description="소셜 로그인 제공자 (google, github)", 
-        example="google"
-    )
-    access_token: str = Field(
-        ...,
-        description="소셜 로그인 액세스 토큰", 
-        example="ya29.a0AfH6SMB..."
-    )
-    email: Optional[EmailStr] = None
-    nickname: Optional[str] = None
-
 # 프로필 수정
 class UserUpdate(BaseModel):
     nickname: Optional[str] = Field(

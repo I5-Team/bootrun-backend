@@ -141,14 +141,6 @@ class UserService:
 
         return UserResponse.model_validate(new_user)
 
-    async def check_email_availability(
-        self,
-        email: str
-    ) -> bool:
-        """이메일이 사용 가능한지 확인합니다."""
-        user = await self._get_user_by_email(email)
-        return user is None
-
     async def send_verification_code(
         self,
         email: str
@@ -298,75 +290,6 @@ class UserService:
         return TokenResponse(
             access_token=access_token,
             refresh_token=new_refresh_token,
-            token_type='bearer',
-            user=UserResponse.model_validate(user)
-        )
-
-    async def social_login(
-        self,
-        provider: SocialProvider,
-        social_id: str,
-        email: str,
-        nickname: Optional[str] = None
-    ) -> TokenResponse:
-        user = await self._get_user_by_social_id(provider, social_id)
-
-        if not user:
-            user = await self._get_user_by_email(email)
-
-            if user:
-                if user.social_provider != provider:
-                    raise BadRequestError(
-                        f'이 이메일은 이미 {user.social_provider.value} '
-                        f'계정으로 가입되어 있습니다'
-                    )
-            else:
-                generated_nickname = (
-                    nickname if nickname
-                    else await self._generate_unique_nickname(email)
-                )
-
-                user = User(
-                    email=email,
-                    nickname=generated_nickname,
-                    social_provider=provider.value,
-                    social_id=social_id,
-                    role=UserRole.STUDENT.value,
-                    is_active=True,
-                    is_email_verified=True,
-                    gender=Gender.OTHER.value,
-                    birth_date=datetime(2000, 1, 1).date(),
-                    created_at=get_current_utc_datetime(),
-                    updated_at=get_current_utc_datetime(),
-                )
-
-                self.db.add(user)
-                await self.db.commit()
-                await self.db.refresh(user)
-
-                logger.info(
-                    f'소셜 로그인 신규 가입: {email} '
-                    f'(Provider: {provider.value})'
-                )
-
-        if not user.is_active:
-            raise ForbiddenError('비활성화된 계정입니다')
-
-        user.last_login = get_current_utc_datetime()
-        await self.db.commit()
-        await self.db.refresh(user)
-
-        access_token = create_access_token(data={'sub': str(user.id)})
-        refresh_token = create_refresh_token(data={'sub': str(user.id)})
-
-        logger.info(
-            f'소셜 로그인 성공: {user.email} '
-            f'(Provider: {provider.value})'
-        )
-
-        return TokenResponse(
-            access_token=access_token,
-            refresh_token=refresh_token,
             token_type='bearer',
             user=UserResponse.model_validate(user)
         )
@@ -696,20 +619,6 @@ class UserService:
         email: str
     ) -> Optional[User]:
         query = select(User).where(User.email == email)
-        result = await self.db.execute(query)
-        return result.scalar_one_or_none()
-
-    async def _get_user_by_social_id(
-        self,
-        provider: SocialProvider,
-        social_id: str
-    ) -> Optional[User]:
-        query = select(User).where(
-            and_(
-                User.social_provider == provider,
-                User.social_id == social_id
-            )
-        )
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
 
