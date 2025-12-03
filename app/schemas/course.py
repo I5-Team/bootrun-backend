@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator, field_serializer
 from typing import Optional, List, Dict, Any, Annotated
 from datetime import datetime
 from enum import Enum
@@ -321,6 +321,23 @@ class CourseResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+    @field_serializer('recruitment_start_date', 'recruitment_end_date',
+                       'course_start_date', 'course_end_date',
+                       'created_at', 'updated_at',
+                       when_used='always')
+    def serialize_datetime_with_kst(self, value: Optional[datetime]) -> Optional[str]:
+        """
+        datetime을 한국 시간(KST, +09:00) timezone 포함 ISO 8601 형식으로 직렬화
+        예: 2025-12-03T10:00:00+09:00
+        """
+        if value is None:
+            return None
+        from zoneinfo import ZoneInfo
+        kst = ZoneInfo('Asia/Seoul')
+        # DB에 timezone-naive로 저장된 datetime을 한국 시간으로 간주
+        aware_dt = value.replace(tzinfo=kst)
+        return aware_dt.isoformat()
+
     class Config:
         from_attributes = True
 
@@ -353,6 +370,23 @@ class CourseDetailResponse(BaseModel):
     updated_at: datetime
     # 추가 정보
     chapters: List['ChapterWithLectures'] = []
+
+    @field_serializer('recruitment_start_date', 'recruitment_end_date',
+                       'course_start_date', 'course_end_date',
+                       'created_at', 'updated_at',
+                       when_used='always')
+    def serialize_datetime_with_kst(self, value: Optional[datetime]) -> Optional[str]:
+        """
+        datetime을 한국 시간(KST, +09:00) timezone 포함 ISO 8601 형식으로 직렬화
+        예: 2025-12-03T10:00:00+09:00
+        """
+        if value is None:
+            return None
+        from zoneinfo import ZoneInfo
+        kst = ZoneInfo('Asia/Seoul')
+        # DB에 timezone-naive로 저장된 datetime을 한국 시간으로 간주
+        aware_dt = value.replace(tzinfo=kst)
+        return aware_dt.isoformat()
 
     class Config:
         from_attributes = True
@@ -433,7 +467,17 @@ class ChapterResponse(BaseModel):
     total_duration: int = 0  # 챕터 내 강의 총 시간
     created_at: datetime
     updated_at: datetime
-    
+
+    @field_serializer('created_at', 'updated_at', when_used='always')
+    def serialize_datetime_with_kst(self, value: Optional[datetime]) -> Optional[str]:
+        """datetime을 한국 시간(KST, +09:00) timezone 포함 ISO 8601 형식으로 직렬화"""
+        if value is None:
+            return None
+        from zoneinfo import ZoneInfo
+        kst = ZoneInfo('Asia/Seoul')
+        aware_dt = value.replace(tzinfo=kst)
+        return aware_dt.isoformat()
+
     class Config:
         from_attributes = True
 
@@ -524,6 +568,16 @@ class LectureResponse(BaseModel):
     watched_seconds: Optional[int] = None
     created_at: datetime
     updated_at: datetime
+
+    @field_serializer('created_at', 'updated_at', when_used='always')
+    def serialize_datetime_with_kst(self, value: Optional[datetime]) -> Optional[str]:
+        """datetime을 한국 시간(KST, +09:00) timezone 포함 ISO 8601 형식으로 직렬화"""
+        if value is None:
+            return None
+        from zoneinfo import ZoneInfo
+        kst = ZoneInfo('Asia/Seoul')
+        aware_dt = value.replace(tzinfo=kst)
+        return aware_dt.isoformat()
 
     class Config:
         from_attributes = True
