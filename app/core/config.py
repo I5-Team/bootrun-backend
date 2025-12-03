@@ -87,15 +87,6 @@ class Settings(BaseSettings):
     initial_admin_nickname: str = Field(default="관리자")
 
     # =====================================================
-    # OpenAI / LangChain 챗봇 설정
-    # =====================================================
-    openai_api_key: str = Field(default="")
-    openai_model_name: str = Field(default="gpt-3.5-turbo")
-    chatbot_temperature: float = 0.7
-    chatbot_max_tokens: int = 1000
-    chatbot_memory_buffer_size: int = 5
-
-    # =====================================================
     # YouTube API 설정 (영상 재생시간 자동 추출)
     # =====================================================
     youtube_api_key: str = Field(default="")
