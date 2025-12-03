@@ -403,6 +403,14 @@ class LectureCreate(BaseModel):
         example="https://example.com/materials/lecture1.pdf"
     )
 
+    @field_validator('duration_seconds', mode='before')
+    @classmethod
+    def convert_zero_to_none(cls, v):
+        """duration_seconds가 0이거나 빈 값이면 None으로 변환 (자동 계산 위해)"""
+        if v == 0 or v == "" or v is None:
+            return None
+        return v
+
 class LectureUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=1, max_length=200)
     description: Optional[str] = None
