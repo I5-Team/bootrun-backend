@@ -1,8 +1,7 @@
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from pydantic import ValidationError
 
-from typing import List, Optional
+from typing import List
 
 from app.schemas.admin import (
     CourseManagementListParams, CourseManagementPaginatedResponse,
