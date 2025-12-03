@@ -214,38 +214,6 @@ async def delete_file(
         raise HTTPException(status_code=500, detail=f"파일 삭제 실패: {str(e)}")
 
 
-@router.get("/url/{file_path:path}", summary="파일 URL 조회")
-async def get_file_url(
-    file_path: str,
-    current_user: User = Depends(get_current_active_user)
-):
-    """
-    파일의 공개 URL을 조회합니다.
-
-    - **file_path**: 파일 경로
-    """
-    try:
-        # 파일 존재 확인
-        if not r2_service.file_exists(file_path):
-            raise HTTPException(status_code=404, detail="파일을 찾을 수 없습니다")
-
-        file_url = r2_service.get_file_url(file_path)
-
-        return {
-            "success": True,
-            "data": {
-                "file_path": file_path,
-                "file_url": file_url
-            }
-        }
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Get file URL error: {e}")
-        raise HTTPException(status_code=500, detail=f"URL 조회 실패: {str(e)}")
-
-
 @router.get("/presigned-url/{file_path:path}", summary="임시 접근 URL 생성")
 async def get_presigned_url(
     file_path: str,

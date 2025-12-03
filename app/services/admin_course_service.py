@@ -35,6 +35,8 @@ from app.core.logging_config import configure_logging
 from app.utils.helpers import get_current_utc_datetime
 from app.utils.video_duration import get_video_duration
 from app.core.config import settings
+from app.services.r2_service import r2_service
+from urllib.parse import urlparse
 
 logger = configure_logging()
 
@@ -317,14 +319,33 @@ class AdminCourseService:
     async def delete_course(self, course_id: int) -> None:
         """강의 삭제 (CASCADE로 챕터, 강의 영상 모두 삭제됨)"""
 
-        # 강의 조회
+        # 강의 조회 (챕터와 강의 영상 포함)
         result = await self.db.execute(
-            select(Course).where(Course.id == course_id)
+            select(Course)
+            .options(
+                selectinload(Course.chapters).selectinload(Chapter.lectures)
+            )
+            .where(Course.id == course_id)
         )
         course = result.scalar_one_or_none()
 
         if not course:
             raise CourseNotFoundError(f'ID {course_id}인 강의를 찾을 수 없습니다')
+
+        # DB 삭제 전에 R2 파일 삭제
+        # 1. 강의 이미지 파일 삭제
+        if course.thumbnail_url:
+            await self._delete_r2_file(course.thumbnail_url)
+        if course.instructor_image:
+            await self._delete_r2_file(course.instructor_image)
+
+        # 2. 모든 챕터의 강의 영상 파일 삭제
+        for chapter in course.chapters:
+            for lecture in chapter.lectures:
+                if lecture.video_url:
+                    await self._delete_r2_file(lecture.video_url)
+                if lecture.material_url:
+                    await self._delete_r2_file(lecture.material_url)
 
         # 강의 삭제 (CASCADE로 연결된 데이터도 삭제)
         await self.db.delete(course)
@@ -506,9 +527,11 @@ class AdminCourseService:
         if not course_result.scalar_one_or_none():
             raise CourseNotFoundError(f'ID {course_id}인 강의를 찾을 수 없습니다')
 
-        # 챕터 조회
+        # 챕터 조회 (강의 영상 포함)
         chapter_result = await self.db.execute(
-            select(Chapter).where(
+            select(Chapter)
+            .options(selectinload(Chapter.lectures))
+            .where(
                 Chapter.id == chapter_id,
                 Chapter.course_id == course_id
             )
@@ -524,6 +547,13 @@ class AdminCourseService:
             .where(Lecture.chapter_id == chapter_id)
         )
         deleted_duration = duration_result.scalar() or 0
+
+        # DB 삭제 전에 R2 파일 삭제
+        for lecture in chapter.lectures:
+            if lecture.video_url:
+                await self._delete_r2_file(lecture.video_url)
+            if lecture.material_url:
+                await self._delete_r2_file(lecture.material_url)
 
         # 챕터 삭제
         await self.db.delete(chapter)
@@ -736,6 +766,12 @@ class AdminCourseService:
         # 삭제될 강의 영상의 재생 시간 저장
         deleted_duration = lecture.duration_seconds
 
+        # DB 삭제 전에 R2 파일 삭제
+        if lecture.video_url:
+            await self._delete_r2_file(lecture.video_url)
+        if lecture.material_url:
+            await self._delete_r2_file(lecture.material_url)
+
         # 강의 영상 삭제
         await self.db.delete(lecture)
         await self.db.commit()
@@ -744,6 +780,32 @@ class AdminCourseService:
         await self._update_course_total_duration(course_id, -deleted_duration)
 
     # ==================== 내부 헬퍼 메서드 ====================
+
+    def _extract_file_path_from_url(self, url: str) -> str:
+        """URL에서 file_path 추출"""
+        if not url:
+            return ""
+        try:
+            parsed = urlparse(url)
+            # URL 경로에서 앞의 '/' 제거
+            return parsed.path.lstrip('/')
+        except Exception as e:
+            logger.error(f"URL 파싱 오류: {url}, {e}")
+            return ""
+
+    async def _delete_r2_file(self, url: str) -> None:
+        """R2에서 파일 삭제 (에러 무시)"""
+        if not url:
+            return
+
+        try:
+            file_path = self._extract_file_path_from_url(url)
+            if file_path:
+                r2_service.delete_file(file_path)
+                logger.info(f"R2 파일 삭제 성공: {file_path}")
+        except Exception as e:
+            # 파일 삭제 실패는 로그만 남기고 진행
+            logger.warning(f"R2 파일 삭제 실패 (무시): {url}, {e}")
 
     async def _update_course_total_duration(
         self,
