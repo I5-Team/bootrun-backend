@@ -5,22 +5,22 @@ import os
 from app.core.redis import init_redis, close_redis
 from app.core.config import settings
 from contextlib import asynccontextmanager
-
-# 로거 설정
 from app.core.logging_config import configure_logging
 
 logger = configure_logging()
 
 
+# ============= FastAPI 앱 생성 =============
+
 # 태그 메타데이터 정의
 tags_metadata = [
     {
         "name": "인증",
-        "description": "회원가입, 로그인, 이메일 인증 등 인증 관련 API",
+        "description": "회원가입, 로그인, 소셜 로그인, 이메일 인증, 비밀번호 재설정 등 인증 관련 API",
     },
     {
         "name": "사용자",
-        "description": "프로필 조회/수정, 비밀번호 변경, 이메일 변경, 회원 탈퇴 등 사용자 관련 API",
+        "description": "프로필 조회/수정, 비밀번호 변경, 이메일 변경, 회원 탈퇴, 알림 등 사용자 관련 API",
     },
     {
         "name": "강의",
@@ -28,7 +28,7 @@ tags_metadata = [
     },
     {
         "name": "수강 등록 및 학습 진행",
-        "description": "수강 등록, 내 강의실, 학습 진행 기록, 진행률 조회 등 수강 관련 API",
+        "description": "수강 등록, 내 강의실, 학습 진행 기록, 진행률 조회, 학습 통계 등 수강 관련 API",
     },
     {
         "name": "결제 및 환불",
@@ -50,15 +50,10 @@ tags_metadata = [
         "name": "관리자 - 결제 및 환불 관리",
         "description": "결제 내역 조회, 환불 승인/거절 등 관리자 결제 관리 API",
     },
-    {
-        "name": "Storage",
-        "description": "Cloudflare R2 파일 스토리지 API - 파일 업로드, 다운로드, 삭제 등",
-    },
 ]
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 시작 시
     logger.info("=" * 60)
     logger.info(" BootRun API 서버 시작")
     logger.info("=" * 60)
@@ -66,19 +61,12 @@ async def lifespan(app: FastAPI):
     logger.info(f" 문서: http://localhost:8000/docs")
     logger.info(f" ReDoc: http://localhost:8000/redoc")
     logger.info("=" * 60)
-    
-    # Redis 초기화
     await init_redis()
-    
     yield
-    
-    # 종료 시
     await close_redis()
     logger.info("=" * 60)
     logger.info(" BootRun API 서버 종료")
     logger.info("=" * 60)
-
-# FastAPI 앱 인스턴스 생성
 app = FastAPI(
     title="BootRun API",
     description="""
@@ -105,6 +93,8 @@ app = FastAPI(
     }
 )
 
+# ============= CORS 미들웨어 설정 =============
+
 # CORS 설정
 app.add_middleware(
     CORSMiddleware,
@@ -114,7 +104,6 @@ app.add_middleware(
     allow_headers=settings.cors_allow_headers.split(","),
 )
 
-# Rate Limiting 미들웨어
 from app.middleware.rate_limit import RateLimitMiddleware
 
 app.add_middleware(
@@ -123,20 +112,21 @@ app.add_middleware(
     burst_size=10
 )
 
-# 예외 핸들러 등록 
+# ============= 예외 핸들러 등록 =============
 
 from app.exceptions.handlers import register_exception_handlers
-
 register_exception_handlers(app)
 
-# 라우터 등록 
+# ============= 라우터 등록 =============
 
+# 라우터 import
 from app.routers.auth import router as auth_router
 from app.routers.user import router as user_router
 from app.routers.course import router as course_router
 from app.routers.enrollment import router as enrollment_router
 from app.routers.payment import router as payment_router
 
+# 관리자 라우터 import
 from app.routers.admin.dashboard import router as dashboard_router
 from app.routers.admin.users import router as users_router
 from app.routers.admin.courses import router as courses_router
@@ -157,8 +147,6 @@ all_routers = [
     users_router,
     courses_router,
     payments_router,
-    # 스토리지 API
-    storage_router,
 ]
 
 for router in all_routers:
@@ -166,7 +154,7 @@ for router in all_routers:
 
 logger.info(f"{len(all_routers)}개의 라우터가 등록되었습니다.")
 
-# 정적 파일 서빙
+# ============= 정적 파일 서빙 =============
 
 # uploads 디렉토리가 없으면 생성
 uploads_dir = "/app/uploads"
@@ -174,11 +162,10 @@ if not os.path.exists(uploads_dir):
     os.makedirs(uploads_dir)
     logger.info(f"'{uploads_dir}' 디렉토리를 생성했습니다.")
 
-# 정적 파일 마운트
 app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 logger.info(f"정적 파일 서빙이 '/uploads' 경로에 마운트되었습니다.")
 
-# 기본 엔드포인트 
+# ============= 기본 엔드포인트 =============
 
 @app.get(
     "/",
@@ -195,12 +182,7 @@ async def root():
         "redoc": "/redoc",
     }
 
-@app.get(
-    "/health",
-    tags=["기본"],
-    summary="헬스 체크",
-    description="서버 상태를 확인합니다 (모니터링용)",
-)
+@app.get("/health", tags=["기본"])
 async def health_check():
     return {
         "status": "healthy",
@@ -208,15 +190,8 @@ async def health_check():
         "version": "1.0.0",
     }
 
-# 메인 실행 
+# ============= 메인 실행 =============
 
 if __name__ == "__main__":
     import uvicorn
-    
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=settings.debug,  
-        log_level="info",
-        )
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=settings.debug, log_level="info")
