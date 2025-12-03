@@ -111,6 +111,15 @@ class Settings(BaseSettings):
     s3_images_folder: str = Field(default="images")
 
     # =====================================================
+    # Cloudflare R2 설정 (파일 저장)
+    # =====================================================
+    r2_account_id: str = Field(default="")
+    r2_access_key_id: str = Field(default="")
+    r2_secret_access_key: str = Field(default="")
+    r2_bucket_name: str = Field(default="")
+    r2_public_url: str = Field(default="")  # 공개 URL (선택사항)
+
+    # =====================================================
     # CORS 설정
     # =====================================================
     cors_origins: Union[str, list[str]] = ["http://localhost:3000"]

@@ -50,6 +50,10 @@ tags_metadata = [
         "name": "관리자 - 결제 및 환불 관리",
         "description": "결제 내역 조회, 환불 승인/거절 등 관리자 결제 관리 API",
     },
+    {
+        "name": "Storage",
+        "description": "Cloudflare R2 파일 스토리지 API - 파일 업로드, 다운로드, 삭제 등",
+    },
 ]
 
 @asynccontextmanager
@@ -137,6 +141,7 @@ from app.routers.admin.dashboard import router as dashboard_router
 from app.routers.admin.users import router as users_router
 from app.routers.admin.courses import router as courses_router
 from app.routers.admin.payments import router as payments_router
+from app.routers.storage import router as storage_router
 
 
 all_routers = [
@@ -152,6 +157,8 @@ all_routers = [
     users_router,
     courses_router,
     payments_router,
+    # 스토리지 API
+    storage_router,
 ]
 
 for router in all_routers:
