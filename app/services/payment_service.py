@@ -34,12 +34,19 @@ from app.exceptions.base import (
     InvalidRefundStatusError,
     CancelNotAllowedError,
 )
+from app.services.toss_payment_client import TossPaymentClient, TossPaymentError
 
 class PaymentService:
     """결제 관련 비즈니스 로직"""
 
     def __init__(self, db: AsyncSession):
         self.db = db
+
+    # ==================== 헬퍼 메서드 ====================
+
+    def _safe_order_id(self, payment: Payment) -> str:
+        """기존 결제 데이터 호환을 위한 order_id 처리"""
+        return payment.order_id or f"LEGACY_{payment.id}"
 
     # ==================== 결제 생성 ====================
 
@@ -63,13 +70,13 @@ class PaymentService:
         if not course:
             raise CourseNotFoundError()
 
-        # 이미 결제했는지 확인 (환불된 결제는 제외)
+        # 이미 결제했는지 확인 (완료된 결제만 체크, PENDING은 재시도 가능)
         existing_payment = await self.db.execute(
             select(Payment).where(
                 and_(
                     Payment.user_id == user_id,
                     Payment.course_id == data.course_id,
-                    Payment.status.in_([PaymentStatus.PENDING.value, PaymentStatus.COMPLETED.value])
+                    Payment.status == PaymentStatus.COMPLETED.value
                 )
             )
         )
@@ -81,6 +88,9 @@ class PaymentService:
         discount_amount = 0
         final_amount = amount
 
+        # 주문 ID 생성 (고유한 값)
+        order_id = f"ORDER_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{user_id}_{data.course_id}"
+
         payment = Payment(
             user_id=user_id,
             course_id=data.course_id,
@@ -89,24 +99,17 @@ class PaymentService:
             discount_amount=discount_amount,
             final_amount=final_amount,
             payment_method=data.payment_method.value if isinstance(data.payment_method, PaymentMethod) else data.payment_method,
-            status=PaymentStatus.COMPLETED.value,  # 즉시 완료 상태로 설정
-            transaction_id=str(uuid.uuid4()),  # 임시 거래 ID 발급
-            paid_at=datetime.utcnow(),  # 결제 완료 시간 설정
+            status=PaymentStatus.PENDING.value,  # 대기 상태로 설정
+            order_id=order_id,
+            payment_key=None,
+            transaction_id=None,
+            paid_at=None,  # 결제 완료 전이므로 None
         )
 
         self.db.add(payment)
         await self.db.flush()
 
-        # enrollment 생성 (수강 등록)
-        # 수강 기간: 결제일로부터 2년
-        enrollment = Enrollment(
-            user_id=user_id,
-            course_id=payment.course_id,
-            is_active=True,
-            expires_at=datetime.utcnow() + timedelta(days=365*2),
-        )
-        self.db.add(enrollment)
-        await self.db.flush()
+        # enrollment는 결제 완료 후 confirm_payment에서 생성
 
         return PaymentResponse(
             id=payment.id,
@@ -118,6 +121,7 @@ class PaymentService:
             final_amount=payment.final_amount,
             payment_method=payment.payment_method,
             status=payment.status,
+            order_id=self._safe_order_id(payment),
             transaction_id=payment.transaction_id,
             receipt_url=payment.receipt_url,
             paid_at=payment.paid_at,
@@ -197,7 +201,8 @@ class PaymentService:
                 final_amount=payment.final_amount,
                 payment_method=payment.payment_method,
                 status=payment.status,
-                transaction_id=payment.transaction_id or "",
+                order_id=self._safe_order_id(payment),
+                transaction_id=payment.transaction_id,
                 receipt_url=payment.receipt_url,
                 paid_at=payment.paid_at,
                 created_at=payment.created_at,
@@ -262,7 +267,8 @@ class PaymentService:
             final_amount=payment.final_amount,
             payment_method=payment.payment_method,
             status=payment.status,
-            transaction_id=payment.transaction_id or "",
+            order_id=self._safe_order_id(payment),
+            transaction_id=payment.transaction_id,
             receipt_url=payment.receipt_url,
             paid_at=payment.paid_at,
             created_at=payment.created_at,
@@ -279,27 +285,67 @@ class PaymentService:
         data: PaymentConfirmRequest
     ) -> PaymentResponse:
         """
-        결제 확인
-        - 결제가 이미 완료되어 있으므로 transaction_id만 업데이트
-        - enrollment은 이미 생성됨
+        결제 확인 - 토스 페이먼츠 승인 API 호출
+        - PENDING 상태의 결제를 토스에 승인 요청
+        - 승인 성공 시 COMPLETED 상태로 변경하고 enrollment 생성
         """
         payment = await self.db.execute(
-            select(Payment).where(
-                and_(Payment.id == payment_id, Payment.user_id == user_id)
-            )
+            select(Payment)
+            .where(and_(Payment.id == payment_id, Payment.user_id == user_id))
+            .with_for_update()  # 동시성 제어: 이 행을 잠금
         )
         payment = payment.scalar_one_or_none()
 
         if not payment:
             raise PaymentNotFoundError()
 
-        if payment.status != PaymentStatus.COMPLETED.value:
-            raise PaymentConfirmFailedError("결제 상태가 올바르지 않습니다")
+        if payment.status != PaymentStatus.PENDING.value:
+            raise PaymentConfirmFailedError("이미 처리된 결제입니다")
 
-        # transaction_id 업데이트 (있는 경우)
-        if data.transaction_id:
-            payment.transaction_id = data.transaction_id
+        # orderId 검증
+        if payment.order_id != data.order_id:
+            raise PaymentConfirmFailedError("주문 ID가 일치하지 않습니다")
 
+        # 결제 금액 검증
+        if payment.final_amount != data.amount:
+            raise PaymentConfirmFailedError("결제 금액이 일치하지 않습니다")
+
+        # 토스 페이먼츠 승인 API 호출
+        toss_client = TossPaymentClient()
+        try:
+            toss_response = await toss_client.confirm_payment(
+                payment_key=data.payment_key,
+                order_id=data.order_id,
+                amount=data.amount
+            )
+        except TossPaymentError as e:
+            # 토스 API 에러 시 결제 상태를 FAILED로 변경
+            payment.status = PaymentStatus.FAILED.value
+            await self.db.flush()
+            raise PaymentConfirmFailedError(f"결제 승인 실패: {e.message}")
+        except Exception as e:
+            payment.status = PaymentStatus.FAILED.value
+            await self.db.flush()
+            raise PaymentConfirmFailedError(f"결제 승인 중 오류 발생: {str(e)}")
+
+        # 승인 성공 - 결제 정보 업데이트
+        payment.status = PaymentStatus.COMPLETED.value
+        payment.payment_key = data.payment_key
+        payment.transaction_id = toss_response.get("transactionKey")
+        payment.paid_at = datetime.utcnow()
+        payment.receipt_url = toss_response.get("receipt", {}).get("url")
+
+        await self.db.flush()
+
+        # enrollment 생성 (수강 등록)
+        # 수강 기간: 결제일로부터 2년
+        enrollment = Enrollment(
+            user_id=user_id,
+            course_id=payment.course_id,
+            is_active=True,
+            expires_at=datetime.utcnow() + timedelta(days=365*2),
+        )
+        self.db.add(enrollment)
         await self.db.flush()
 
         # 강의 정보 조회
@@ -318,6 +364,7 @@ class PaymentService:
             final_amount=payment.final_amount,
             payment_method=payment.payment_method,
             status=payment.status,
+            order_id=self._safe_order_id(payment),
             transaction_id=payment.transaction_id,
             receipt_url=payment.receipt_url,
             paid_at=payment.paid_at,
@@ -969,6 +1016,7 @@ class AdminPaymentService:
     ):
         """
         환불 상태 변경 (관리자용)
+        - 승인 시 토스 페이먼츠 API 호출하여 실제 환불 처리
         """
         refund = await self.db.execute(
             select(Refund).where(Refund.id == refund_id)
@@ -981,19 +1029,42 @@ class AdminPaymentService:
         if refund.status != RefundStatus.PENDING.value:
             raise RefundAlreadyProcessedError()
 
+        # 결제 정보 조회
+        payment = await self.db.execute(
+            select(Payment).where(Payment.id == refund.payment_id)
+        )
+        payment = payment.scalar_one_or_none()
+
+        if not payment:
+            raise PaymentNotFoundError()
+
+        # 환불이 승인되면 토스 API 호출
+        if data.status == RefundStatus.APPROVED:
+            # payment_key가 없으면 환불 불가 (기존 데이터)
+            if not payment.payment_key:
+                raise BadRequestError("토스 결제가 아니므로 자동 환불이 불가능합니다. 수동 처리가 필요합니다.")
+
+            toss_client = TossPaymentClient()
+            try:
+                # 토스 API 호출하여 실제 환불 처리
+                await toss_client.cancel_payment(
+                    payment_key=payment.payment_key,
+                    cancel_reason=refund.reason,
+                    cancel_amount=refund.amount
+                )
+            except TossPaymentError as e:
+                # 토스 API 실패 시 환불 상태를 APPROVED로 변경하지 않음
+                raise BadRequestError(f"토스 환불 처리 실패: {e.message}")
+            except Exception as e:
+                raise BadRequestError(f"환불 처리 중 오류 발생: {str(e)}")
+
+            # 토스 API 성공 시에만 DB 업데이트
+            payment.status = PaymentStatus.REFUNDED.value
+
         # 상태 업데이트
         refund.status = data.status.value if hasattr(data.status, 'value') else data.status
         refund.admin_note = data.admin_note
         refund.processed_at = datetime.utcnow()
-
-        # 환불이 승인되면 결제 상태를 REFUNDED로 업데이트
-        if refund.status == RefundStatus.APPROVED.value:
-            payment = await self.db.execute(
-                select(Payment).where(Payment.id == refund.payment_id)
-            )
-            payment = payment.scalar_one_or_none()
-            if payment:
-                payment.status = PaymentStatus.REFUNDED.value
 
         await self.db.flush()
 

@@ -43,6 +43,8 @@ class Payment(Base):
     # 결제 정보
     payment_method = Column(SQLEnum(PaymentMethod, values_callable=lambda x: [e.value for e in x]), nullable=False, comment="결제 방식")
     status = Column(SQLEnum(PaymentStatus, values_callable=lambda x: [e.value for e in x]), nullable=False, default=PaymentStatus.PENDING.value, comment="결제 상태")
+    order_id = Column(String(100), unique=True, nullable=True, index=True, comment="주문 ID (토스 연동용, 기존 데이터는 NULL)")
+    payment_key = Column(String(200), nullable=True, comment="토스 결제 키")
     transaction_id = Column(String(100), unique=True, nullable=True, index=True, comment="PG사 거래 ID")
     receipt_url = Column(String(500), nullable=True, comment="영수증 URL")
 
