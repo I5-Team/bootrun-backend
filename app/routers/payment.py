@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas.payment import (
     PaymentCreate, PaymentResponse, PaymentDetailResponse,
     PaymentPaginatedResponse, PaymentListParams, PaymentConfirmRequest,
-    RefundCreate, RefundResponse, RefundCheckResponse
+    RefundCreate, RefundResponse
 )
 from app.schemas.common import MessageResponse, SuccessResponse
 from app.exceptions.responses import (
@@ -32,7 +32,12 @@ router = APIRouter(prefix="/payments", tags=["결제 및 환불"])
     response_model=SuccessResponse[PaymentResponse],
     status_code=status.HTTP_201_CREATED,
     summary="결제 생성",
-    description="강의 결제를 생성합니다. PG사 결제 페이지로 리다이렉트할 정보를 반환합니다.",
+    description="""
+    토스페이먼츠 결제를 위한 주문을 생성합니다.
+
+    반환되는 order_id와 amount를 사용하여 토스 결제 프로세스를 진행하세요.
+    결제 상태는 'pending'이며, 결제 완료 후 confirm API를 호출해야 합니다.
+    """,
     responses={
         201: {"description": "결제 생성 성공"},
         **PAYMENT_CREATE_RESPONSES
@@ -93,10 +98,16 @@ async def get_payment(
 @router.post(
     "/{payment_id}/confirm",
     response_model=SuccessResponse[PaymentResponse],
-    summary="결제 확인",
-    description="PG사에서 결제 완료 후 최종 확인을 진행합니다.",
+    summary="결제 승인",
+    description="""
+    토스페이먼츠 결제 승인 처리를 수행합니다.
+
+    토스 결제창 완료 후 받은 payment_key, order_id, amount를 전달해야 합니다.
+    승인 성공 시 결제 상태가 'completed'로 변경되고 수강 등록이 자동 처리됩니다.
+    승인 실패 시 결제 상태가 'failed'로 변경됩니다.
+    """,
     responses={
-        200: {"description": "결제 확인 완료"},
+        200: {"description": "결제 승인 완료"},
         **PAYMENT_CONFIRM_RESPONSES
     }
 )
@@ -145,25 +156,6 @@ async def cancel_payment(
     result = await service.cancel_payment(payment_id, current_user.id)
     await db.commit()
     return MessageResponse(message=result["message"])
-
-@router.get(
-    "/{payment_id}/refund-check",
-    response_model=SuccessResponse[RefundCheckResponse],
-    summary="환불 가능 여부 확인",
-    description="결제의 환불 가능 여부와 사유를 확인합니다.",
-    responses={
-        200: {"description": "환불 가능 여부 확인 완료"},
-        **MODIFY_RESPONSES
-    }
-)
-async def check_refund_eligibility(
-    payment_id: int = Path(..., gt=0, description="결제 ID"),
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
-):
-    service = PaymentService(db)
-    refund_check = await service.check_refund_eligibility(payment_id, current_user.id)
-    return SuccessResponse(data=refund_check)
 
 @router.post(
     "/refunds",

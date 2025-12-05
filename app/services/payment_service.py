@@ -98,7 +98,7 @@ class PaymentService:
             amount=amount,
             discount_amount=discount_amount,
             final_amount=final_amount,
-            payment_method=data.payment_method.value if isinstance(data.payment_method, PaymentMethod) else data.payment_method,
+            payment_method=data.payment_method.value if hasattr(data.payment_method, 'value') else str(data.payment_method),
             status=PaymentStatus.PENDING.value,  # 대기 상태로 설정
             order_id=order_id,
             payment_key=None,
@@ -378,7 +378,8 @@ class PaymentService:
     ) -> dict:
         """
         결제 취소
-        - 완료된 결제 중 생성 후 1분 이내만 취소 가능
+        - PENDING 상태: 언제든 취소 가능
+        - COMPLETED 상태: 취소 불가 (환불 요청 필요)
         """
         payment = await self.db.execute(
             select(Payment).where(
@@ -393,56 +394,15 @@ class PaymentService:
         if payment.status == PaymentStatus.FAILED.value:
             raise BadRequestError("이미 취소된 결제입니다")
 
-        # 결제 취소 가능 여부 확인 (1분 이내만 가능)
-        if not payment.can_cancel():
-            await self._raise_cancel_timeout_error(payment)
+        # COMPLETED 결제는 취소 불가 (환불 요청 필요)
+        if payment.status == PaymentStatus.COMPLETED.value:
+            raise CancelNotAllowedError("완료된 결제는 취소할 수 없습니다. 환불 요청을 이용해주세요.")
 
+        # PENDING 상태는 언제든 취소 가능
         payment.status = PaymentStatus.FAILED.value
         await self.db.flush()
 
         return {"message": "결제가 취소되었습니다"}
-
-    async def _raise_cancel_timeout_error(self, payment: Payment) -> None:
-        """
-        결제 취소 시간 초과 에러 발생
-        Swagger에 정의된 형식으로 에러 발생
-        """
-        raise CancelNotAllowedError()
-
-    async def get_payment_cancel_status(
-        self,
-        payment_id: int,
-        user_id: int
-    ) -> dict:
-        """
-        결제 취소 가능 여부 및 시간 정보 조회
-        """
-        payment = await self.db.execute(
-            select(Payment).where(
-                and_(Payment.id == payment_id, Payment.user_id == user_id)
-            )
-        )
-        payment = payment.scalar_one_or_none()
-
-        if not payment:
-            raise PaymentNotFoundError()
-
-        elapsed_seconds = (datetime.utcnow() - payment.created_at).total_seconds()
-        remaining_seconds = max(0, 60 - int(elapsed_seconds))
-        can_cancel = payment.can_cancel()
-
-        return {
-            "payment_id": payment.id,
-            "can_cancel": can_cancel,
-            "elapsed_seconds": int(elapsed_seconds),
-            "remaining_seconds": remaining_seconds,
-            "status": payment.status,
-            "message": (
-                "취소 가능합니다" if can_cancel
-                else f"취소 불가능합니다. 남은 취소 가능 시간: {remaining_seconds}초" if remaining_seconds > 0
-                else "취소 시간이 만료되었습니다"
-            )
-        }
 
     # ==================== 환불 가능 여부 확인 ====================
 
@@ -846,7 +806,7 @@ class AdminPaymentService:
         if hasattr(params, 'status') and params.status:
             converted_status = self._convert_payment_status_filter(params.status)
             if converted_status:
-                query = query.where(Payment.status == converted_status)
+                query = query.where(Payment.status == converted_status.value)
 
         if hasattr(params, 'payment_method') and params.payment_method:
             query = query.where(Payment.payment_method == params.payment_method)
@@ -906,8 +866,8 @@ class AdminPaymentService:
                 "amount": payment.amount,
                 "discount_amount": payment.discount_amount,
                 "final_amount": payment.final_amount,
-                "payment_method": payment.payment_method.value,
-                "status": payment.status.value,
+                "payment_method": payment.payment_method.value if hasattr(payment.payment_method, 'value') else str(payment.payment_method),
+                "status": payment.status.value if hasattr(payment.status, 'value') else str(payment.status),
                 "paid_at": payment.paid_at,
                 "created_at": payment.created_at,
             })
@@ -944,7 +904,7 @@ class AdminPaymentService:
         if hasattr(params, 'status') and params.status:
             converted_status = self._convert_refund_status_filter(params.status)
             if converted_status:
-                query = query.where(Refund.status == converted_status)
+                query = query.where(Refund.status == converted_status.value)
 
         if hasattr(params, 'start_date') and params.start_date:
             query = query.where(Refund.requested_at >= params.start_date)

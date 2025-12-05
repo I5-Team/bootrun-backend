@@ -45,6 +45,7 @@ class PaymentResponse(BaseModel):
     payment_method: PaymentMethod
     status: PaymentStatus
     order_id: str
+    payment_key: Optional[str] = None
     transaction_id: Optional[str] = None
     receipt_url: Optional[str]
     paid_at: Optional[datetime]
@@ -74,6 +75,7 @@ class PaymentDetailResponse(BaseModel):
     payment_method: PaymentMethod
     status: PaymentStatus
     order_id: str
+    payment_key: Optional[str] = None
     transaction_id: Optional[str] = None
     receipt_url: Optional[str]
     paid_at: Optional[datetime]
