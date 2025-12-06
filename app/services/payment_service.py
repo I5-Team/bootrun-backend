@@ -2,114 +2,55 @@ from typing import List, Optional
 from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, or_
-from sqlalchemy.orm import selectinload
 import math
-import uuid
 
 from app.models.payment import Payment, Refund, PaymentStatus, PaymentMethod, RefundStatus
 from app.models.course import Course
 from app.models.progress import Enrollment, Progress
 from app.models.user import User
-from app.schemas.payment import (
-    PaymentCreate,
-    PaymentResponse,
-    PaymentDetailResponse,
-    PaymentPaginatedResponse,
-    PaymentListParams,
-    PaymentConfirmRequest,
-    RefundCreate,
-    RefundResponse,
-    RefundCheckResponse,
-)
-from app.exceptions.base import (
-    PaymentNotFoundError,
-    PaymentConfirmFailedError,
-    CourseNotFoundError,
-    AlreadyPaidError,
-    BadRequestError,
-    RefundNotAllowedError,
-    RefundNotFoundError,
-    InsufficientRefundPeriodError,
-    RefundAlreadyProcessedError,
-    InvalidRefundStatusError,
-    CancelNotAllowedError,
-)
+from app.schemas.payment import *
+from app.exceptions.base import *
 from app.services.toss_payment_client import TossPaymentClient, TossPaymentError
 
-class PaymentService:
-    """결제 관련 비즈니스 로직"""
 
+class PaymentService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    # ==================== 헬퍼 메서드 ====================
-
     def _safe_order_id(self, payment: Payment) -> str:
-        """기존 결제 데이터 호환을 위한 order_id 처리"""
         return payment.order_id or f"LEGACY_{payment.id}"
 
-    # ==================== 결제 생성 ====================
-
-    async def create_payment(
-        self,
-        user_id: int,
-        data: PaymentCreate,
-        current_user_id: int
-    ) -> PaymentResponse:
-        """
-        결제 생성
-        - 강의 존재 여부 확인
-        - 이미 결제한 강의인지 확인
-        - 결제 레코드 생성
-        """
-        # 강의 존재 여부 확인
-        course = await self.db.execute(
-            select(Course).where(Course.id == data.course_id)
-        )
+    async def create_payment(self, user_id: int, data: PaymentCreate, current_user_id: int) -> PaymentResponse:
+        course = await self.db.execute(select(Course).where(Course.id == data.course_id))
         course = course.scalar_one_or_none()
         if not course:
             raise CourseNotFoundError()
 
-        # 이미 결제했는지 확인 (완료된 결제만 체크, PENDING은 재시도 가능)
-        existing_payment = await self.db.execute(
+        existing = await self.db.execute(
             select(Payment).where(
-                and_(
-                    Payment.user_id == user_id,
-                    Payment.course_id == data.course_id,
-                    Payment.status == PaymentStatus.COMPLETED.value
-                )
+                Payment.user_id == user_id,
+                Payment.course_id == data.course_id,
+                Payment.status == PaymentStatus.COMPLETED.value
             )
         )
-        if existing_payment.scalar_one_or_none():
+        if existing.scalar_one_or_none():
             raise AlreadyPaidError()
 
-        # 결제 생성
-        amount = course.price
-        discount_amount = 0
-        final_amount = amount
-
-        # 주문 ID 생성 (고유한 값)
         order_id = f"ORDER_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{user_id}_{data.course_id}"
 
         payment = Payment(
             user_id=user_id,
             course_id=data.course_id,
-            coupon_id=None,
-            amount=amount,
-            discount_amount=discount_amount,
-            final_amount=final_amount,
+            amount=course.price,
+            discount_amount=0,
+            final_amount=course.price,
             payment_method=data.payment_method.value if hasattr(data.payment_method, 'value') else str(data.payment_method),
-            status=PaymentStatus.PENDING.value,  # 대기 상태로 설정
-            order_id=order_id,
-            payment_key=None,
-            transaction_id=None,
-            paid_at=None,  # 결제 완료 전이므로 None
+            status=PaymentStatus.PENDING.value,
+            order_id=order_id
         )
 
         self.db.add(payment)
         await self.db.flush()
-
-        # enrollment는 결제 완료 후 confirm_payment에서 생성
 
         return PaymentResponse(
             id=payment.id,
@@ -126,44 +67,23 @@ class PaymentService:
             transaction_id=payment.transaction_id,
             receipt_url=payment.receipt_url,
             paid_at=payment.paid_at,
-            created_at=payment.created_at,
+            created_at=payment.created_at
         )
 
-    # ==================== 결제 조회 ====================
-
-    async def get_payments(
-        self,
-        user_id: int,
-        params: PaymentListParams
-    ) -> PaymentPaginatedResponse:
-        """
-        사용자의 결제 내역 조회
-        - 필터링: 상태, 결제 방식, 날짜 범위
-        - 검색: 강의명
-        - 페이지네이션
-        """
+    async def get_payments(self, user_id: int, params: PaymentListParams) -> PaymentPaginatedResponse:
         query = select(Payment).where(Payment.user_id == user_id)
 
-        # 필터링
         if params.status:
             query = query.where(Payment.status == params.status)
-
         if params.payment_method:
             query = query.where(Payment.payment_method == params.payment_method)
-
         if params.start_date:
             query = query.where(Payment.created_at >= params.start_date)
-
         if params.end_date:
             query = query.where(Payment.created_at <= params.end_date)
-
-        # 검색
         if params.keyword:
-            query = query.join(Course).where(
-                Course.title.ilike(f"%{params.keyword}%")
-            )
+            query = query.join(Course).where(Course.title.ilike(f"%{params.keyword}%"))
 
-        # 전체 개수
         count_query = select(func.count(Payment.id)).where(Payment.user_id == user_id)
         if params.status:
             count_query = count_query.where(Payment.status == params.status)
@@ -174,15 +94,10 @@ class PaymentService:
         if params.end_date:
             count_query = count_query.where(Payment.created_at <= params.end_date)
 
-        total = await self.db.execute(count_query)
-        total = total.scalar()
-
-        # 페이지네이션
+        total = (await self.db.execute(count_query)).scalar()
         offset = (params.page - 1) * params.page_size
-        query = query.offset(offset).limit(params.page_size)
-        query = query.order_by(Payment.created_at.desc())
 
-        result = await self.db.execute(query)
+        result = await self.db.execute(query.offset(offset).limit(params.page_size).order_by(Payment.created_at.desc()))
         payments = result.scalars().all()
 
         items = []
@@ -240,22 +155,9 @@ class PaymentService:
         if not payment:
             raise PaymentNotFoundError()
 
-        # 사용자 정보 조회
-        user = await self.db.execute(
-            select(User).where(User.id == payment.user_id)
-        )
-        user = user.scalar_one()
-
-        # 강의 정보 조회
-        course = await self.db.execute(
-            select(Course).where(Course.id == payment.course_id)
-        )
-        course = course.scalar_one()
-
-        # 환불 가능 여부 판단
-        can_refund, refund_reason = await self._check_refund_eligibility(
-            payment_id, user_id
-        )
+        user = (await self.db.execute(select(User).where(User.id == payment.user_id))).scalar_one()
+        course = (await self.db.execute(select(Course).where(Course.id == payment.course_id))).scalar_one()
+        can_refund, refund_reason = await self._check_refund_eligibility(payment_id, user_id)
 
         return PaymentDetailResponse(
             id=payment.id,
@@ -279,19 +181,8 @@ class PaymentService:
             refund_reason=refund_reason,
         )
 
-    # ==================== 결제 확인 ====================
 
-    async def confirm_payment(
-        self,
-        payment_id: int,
-        user_id: int,
-        data: PaymentConfirmRequest
-    ) -> PaymentResponse:
-        """
-        결제 확인 - 토스 페이먼츠 승인 API 호출
-        - PENDING 상태의 결제를 토스에 승인 요청
-        - 승인 성공 시 COMPLETED 상태로 변경하고 enrollment 생성
-        """
+    async def confirm_payment(self, payment_id: int, user_id: int, data: PaymentConfirmRequest) -> PaymentResponse:
         payment = await self.db.execute(
             select(Payment)
             .where(and_(Payment.id == payment_id, Payment.user_id == user_id))
@@ -375,57 +266,25 @@ class PaymentService:
             created_at=payment.created_at,
         )
 
-    async def cancel_payment(
-        self,
-        payment_id: int,
-        user_id: int
-    ) -> dict:
-        """
-        결제 취소
-        - PENDING 상태: 언제든 취소 가능
-        - COMPLETED 상태: 취소 불가 (환불 요청 필요)
-        """
-        payment = await self.db.execute(
-            select(Payment).where(
-                and_(Payment.id == payment_id, Payment.user_id == user_id)
-            )
-        )
-        payment = payment.scalar_one_or_none()
+    async def cancel_payment(self, payment_id: int, user_id: int) -> dict:
+        payment = (await self.db.execute(
+            select(Payment).where(and_(Payment.id == payment_id, Payment.user_id == user_id))
+        )).scalar_one_or_none()
 
         if not payment:
             raise PaymentNotFoundError()
-
         if payment.status == PaymentStatus.FAILED.value:
             raise BadRequestError("이미 취소된 결제입니다")
-
-        # COMPLETED 결제는 취소 불가 (환불 요청 필요)
         if payment.status == PaymentStatus.COMPLETED.value:
             raise CancelNotAllowedError("완료된 결제는 취소할 수 없습니다. 환불 요청을 이용해주세요.")
 
-        # PENDING 상태는 언제든 취소 가능
         payment.status = PaymentStatus.FAILED.value
         await self.db.flush()
-
         return {"message": "결제가 취소되었습니다"}
 
-    # ==================== 환불 가능 여부 확인 ====================
-
-    async def check_refund_eligibility(
-        self,
-        payment_id: int,
-        user_id: int
-    ) -> RefundCheckResponse:
-        """
-        환불 가능 여부 확인
-        - 구매일 1주 이내
-        - 진도율 10% 미만
-        """
+    async def check_refund_eligibility(self, payment_id: int, user_id: int) -> RefundCheckResponse:
         can_refund, reason = await self._check_refund_eligibility(payment_id, user_id)
-
-        return RefundCheckResponse(
-            can_refund=can_refund,
-            message=reason or "환불 가능합니다"
-        )
+        return RefundCheckResponse(can_refund=can_refund, message=reason or "환불 가능합니다")
 
     async def _check_refund_eligibility(
         self,
@@ -577,7 +436,6 @@ class RefundService:
         self.db = db
         self.payment_service = PaymentService(db)
 
-    # ==================== 환불 요청 ====================
 
     async def create_refund(
         self,
@@ -626,7 +484,6 @@ class RefundService:
         # 응답 구성
         return await self._build_refund_response(refund)
 
-    # ==================== 환불 조회 ====================
 
     async def get_my_refunds(
         self,
@@ -672,7 +529,6 @@ class RefundService:
 
         return await self._build_refund_response(refund)
 
-    # ==================== 환불 취소 ====================
 
     async def cancel_refund(
         self,
@@ -704,7 +560,6 @@ class RefundService:
 
         return {"message": "환불 요청이 취소되었습니다"}
 
-    # ==================== 응답 구성 ====================
 
     async def _build_refund_response(self, refund: Refund) -> RefundResponse:
         """
@@ -757,7 +612,6 @@ class AdminPaymentService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    # ==================== 파라미터 변환 헬퍼 ====================
 
     def _convert_refund_status_filter(self, status_str: Optional[str]) -> Optional[RefundStatus]:
         """
@@ -795,7 +649,6 @@ class AdminPaymentService:
         # 매칭되는 값이 없으면 None 반환
         return None
 
-    # ==================== 결제 관리 ====================
 
     async def get_payments(self, params) -> dict:
         """
@@ -893,7 +746,6 @@ class AdminPaymentService:
         data = await self.get_payments(params)
         return data["items"]
 
-    # ==================== 환불 관리 ====================
 
     async def get_refunds(self, params) -> dict:
         """
