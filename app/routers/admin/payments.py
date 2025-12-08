@@ -4,182 +4,55 @@ from fastapi import APIRouter, Depends, Path
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.schemas.admin import (
-    PaymentManagementListParams, PaymentManagementPaginatedResponse,
-    RefundManagementListParams, RefundManagementPaginatedResponse
-)
+from app.schemas.admin import *
 from app.schemas.payment import RefundUpdate, RefundResponse
 from app.schemas.common import SuccessResponse
-from app.exceptions.responses import (
-    ADMIN_REFUND_LIST_RESPONSES,
-    ADMIN_REFUND_DETAIL_RESPONSES,
-    REFUND_UPDATE_RESPONSES,
-    ADMIN_RESPONSES,
-)
+from app.exceptions.responses import *
 from app.core.dependencies import get_current_admin, get_db
 from app.models.user import User
 from app.services.payment_service import AdminPaymentService
 
 router = APIRouter(prefix="/admin/payments", tags=["관리자 - 결제 및 환불 관리"])
 
-@router.get(
-    "",
-    response_model=PaymentManagementPaginatedResponse,
-    summary="결제 목록 조회",
-    description="전체 결제 내역을 조회합니다.",
-    operation_id="admin_get_payments",
-    responses={
-        200: {"description": "결제 목록 조회 성공"},
-        **ADMIN_RESPONSES
-    }
-)
-async def get_payments(
-    params: PaymentManagementListParams = Depends(),
-    current_admin: User = Depends(get_current_admin),
-    db: AsyncSession = Depends(get_db)
-):
-    service = AdminPaymentService(db)
-    result = await service.get_payments(params)
-    return PaymentManagementPaginatedResponse(
-        total=result["total"],
-        page=result["page"],
-        page_size=result["page_size"],
-        total_pages=result["total_pages"],
-        items=result["items"]
-    )
+@router.get("", response_model=PaymentManagementPaginatedResponse, summary="결제 목록 조회", operation_id="admin_get_payments", responses={200: {"description": "성공"}, **ADMIN_RESPONSES})
+async def get_payments(params: PaymentManagementListParams = Depends(), current_admin: User = Depends(get_current_admin), db: AsyncSession = Depends(get_db)):
+    result = await AdminPaymentService(db).get_payments(params)
+    return PaymentManagementPaginatedResponse(**result)
 
-@router.get(
-    "/export",
-    summary="결제 내역 내보내기",
-    description="결제 내역을 엑셀 파일로 내보냅니다.",
-    responses={
-        200: {
-            "description": "결제 내역 내보내기 완료",
-            "content": {
-                "text/csv": {
-                    "schema": {"type": "string"},
-                    "example": "id,transaction_id,user_id,user_nickname,user_email,course_id,course_title,amount,discount_amount,final_amount,payment_method,status,paid_at,created_at\n1,TXN001,1,홍길동,hong@example.com,1,Python 기초,50000,0,50000,card,completed,2025-01-15T10:30:00,2025-01-15T10:00:00"
-                }
-            }
-        },
-        **ADMIN_RESPONSES
-    }
-)
-async def export_payments(
-    params: PaymentManagementListParams = Depends(),
-    current_admin: User = Depends(get_current_admin),
-    db: AsyncSession = Depends(get_db)
-):
-    """
-    결제 내역 내보내기 (엑셀용)
-    """
-    service = AdminPaymentService(db)
-    items = await service.export_payments(params)
-
+@router.get("/export", summary="결제 내역 내보내기", responses={200: {"description": "성공"}, **ADMIN_RESPONSES})
+async def export_payments(params: PaymentManagementListParams = Depends(), current_admin: User = Depends(get_current_admin), db: AsyncSession = Depends(get_db)):
+    items = await AdminPaymentService(db).export_payments(params)
     output = io.StringIO()
     if items:
-        fieldnames = [
-            "id", "transaction_id", "user_id", "user_nickname", "user_email",
-            "course_id", "course_title", "amount", "discount_amount", "final_amount",
-            "payment_method", "status", "paid_at", "created_at"
-        ]
-        writer = csv.DictWriter(output, fieldnames=fieldnames)
+        fields = ["id", "transaction_id", "user_id", "user_nickname", "user_email", "course_id", "course_title", "amount", "discount_amount", "final_amount", "payment_method", "status", "paid_at", "created_at"]
+        writer = csv.DictWriter(output, fieldnames=fields)
         writer.writeheader()
-
         for item in items:
-            row = {field: item[field] for field in fieldnames}
-            for field in fieldnames:
-                if hasattr(row[field], 'isoformat'):
-                    row[field] = row[field].isoformat()
+            row = {f: item[f] for f in fields}
+            for f in fields:
+                if hasattr(row[f], 'isoformat'):
+                    row[f] = row[f].isoformat()
             writer.writerow(row)
-
     output.seek(0)
-    return StreamingResponse(
-        iter([output.getvalue()]),
-        media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=payments_export.csv"}
-    )
+    return StreamingResponse(iter([output.getvalue()]), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=payments_export.csv"})
 
-@router.get(
-    "/refunds",
-    response_model=RefundManagementPaginatedResponse,
-    summary="환불 목록 조회",
-    description="환불 요청 목록을 조회합니다.",
-    responses={
-        200: {"description": "환불 목록 조회 성공"},
-        **ADMIN_REFUND_LIST_RESPONSES
-    }
-)
-async def get_refunds(
-    params: RefundManagementListParams = Depends(),
-    current_admin: User = Depends(get_current_admin),
-    db: AsyncSession = Depends(get_db)
-):
-    service = AdminPaymentService(db)
-    result = await service.get_refunds(params)
-    return RefundManagementPaginatedResponse(
-        total=result["total"],
-        page=result["page"],
-        page_size=result["page_size"],
-        total_pages=result["total_pages"],
-        items=result["items"]
-    )
+@router.get("/refunds", response_model=RefundManagementPaginatedResponse, summary="환불 목록 조회", responses={200: {"description": "성공"}, **ADMIN_REFUND_LIST_RESPONSES})
+async def get_refunds(params: RefundManagementListParams = Depends(), current_admin: User = Depends(get_current_admin), db: AsyncSession = Depends(get_db)):
+    result = await AdminPaymentService(db).get_refunds(params)
+    return RefundManagementPaginatedResponse(**result)
 
-@router.get(
-    "/refunds/{refund_id}",
-    response_model=SuccessResponse[RefundResponse],
-    summary="환불 상세 조회",
-    description="환불 요청의 상세 정보를 조회합니다.",
-    operation_id="admin_get_refund",
-    responses={
-        200: {"description": "환불 상세 조회 성공"},
-        **ADMIN_REFUND_DETAIL_RESPONSES
-    }
-)
-async def get_refund(
-    refund_id: int = Path(..., gt=0, description="환불 ID"),
-    current_admin: User = Depends(get_current_admin),
-    db: AsyncSession = Depends(get_db)
-):
-    service = AdminPaymentService(db)
-    refund = await service.get_refund(refund_id)
+@router.get("/refunds/{refund_id}", response_model=SuccessResponse[RefundResponse], summary="환불 상세 조회", operation_id="admin_get_refund", responses={200: {"description": "성공"}, **ADMIN_REFUND_DETAIL_RESPONSES})
+async def get_refund(refund_id: int = Path(..., gt=0), current_admin: User = Depends(get_current_admin), db: AsyncSession = Depends(get_db)):
+    refund = await AdminPaymentService(db).get_refund(refund_id)
     return SuccessResponse(data=refund)
 
-@router.patch(
-    "/refunds/{refund_id}",
-    response_model=SuccessResponse[RefundResponse],
-    summary="환불 상태 변경",
-    description="환불 요청을 승인하거나 거절합니다.",
-    responses={
-        200: {"description": "환불 상태 변경 완료"},
-        **REFUND_UPDATE_RESPONSES
-    }
-)
-async def update_refund(
-    refund_id: int = Path(..., gt=0, description="환불 ID"),
-    data: RefundUpdate = ...,
-    current_admin: User = Depends(get_current_admin),
-    db: AsyncSession = Depends(get_db)
-):
-    service = AdminPaymentService(db)
-    refund = await service.update_refund(refund_id, data)
+@router.patch("/refunds/{refund_id}", response_model=SuccessResponse[RefundResponse], summary="환불 상태 변경", responses={200: {"description": "성공"}, **REFUND_UPDATE_RESPONSES})
+async def update_refund(refund_id: int = Path(..., gt=0), data: RefundUpdate = ..., current_admin: User = Depends(get_current_admin), db: AsyncSession = Depends(get_db)):
+    refund = await AdminPaymentService(db).update_refund(refund_id, data)
     await db.commit()
     return SuccessResponse(data=refund)
 
-@router.get(
-    "/refunds/export",
-    summary="환불 내역 내보내기",
-    description="환불 내역을 CSV 파일로 내보냅니다.",
-    responses={
-        200: {"description": "환불 내역 내보내기 완료"},
-        **ADMIN_RESPONSES
-    }
-)
-async def export_refunds(
-    params: RefundManagementListParams = Depends(),
-    current_admin: User = Depends(get_current_admin),
-    db: AsyncSession = Depends(get_db)
-):
-    service = AdminPaymentService(db)
-    items = await service.export_refunds(params)
+@router.get("/refunds/export", summary="환불 내역 내보내기", responses={200: {"description": "성공"}, **ADMIN_RESPONSES})
+async def export_refunds(params: RefundManagementListParams = Depends(), current_admin: User = Depends(get_current_admin), db: AsyncSession = Depends(get_db)):
+    items = await AdminPaymentService(db).export_refunds(params)
     return {"data": items}

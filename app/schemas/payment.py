@@ -44,7 +44,9 @@ class PaymentResponse(BaseModel):
     final_amount: int
     payment_method: PaymentMethod
     status: PaymentStatus
-    transaction_id: str
+    order_id: str
+    payment_key: Optional[str] = None
+    transaction_id: Optional[str] = None
     receipt_url: Optional[str]
     paid_at: Optional[datetime]
     created_at: datetime
@@ -72,7 +74,9 @@ class PaymentDetailResponse(BaseModel):
     final_amount: int
     payment_method: PaymentMethod
     status: PaymentStatus
-    transaction_id: str
+    order_id: str
+    payment_key: Optional[str] = None
+    transaction_id: Optional[str] = None
     receipt_url: Optional[str]
     paid_at: Optional[datetime]
     created_at: datetime
@@ -120,12 +124,25 @@ class PaymentListParams(BaseModel):
     page_size: int = Field(default=20, ge=1, le=100)
 
 class PaymentConfirmRequest(BaseModel):
-    transaction_id: str = Field(
-        ..., 
-        min_length=1, 
+    payment_key: str = Field(
+        ...,
+        min_length=1,
+        max_length=200,
+        description="토스 결제 키",
+        example="tgen_20250101000000ABCDE"
+    )
+    order_id: str = Field(
+        ...,
+        min_length=1,
         max_length=100,
-        description="PG사 거래 ID", 
-        example="toss_payment_123abc"
+        description="주문 ID",
+        example="ORDER_20250101_123456"
+    )
+    amount: int = Field(
+        ...,
+        ge=1,
+        description="결제 금액",
+        example=50000
     )
 
 # ============= 환불 =============
