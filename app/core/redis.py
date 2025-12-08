@@ -3,8 +3,9 @@ from typing import Optional
 import logging
 
 from app.core.config import settings
+from app.core.logging_config import configure_logging
 
-logger = logging.getLogger(__name__)
+logger = configure_logging()
 
 redis_client: Optional[aioredis.Redis] = None
 
