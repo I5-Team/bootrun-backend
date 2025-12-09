@@ -234,7 +234,7 @@ class EnrollmentService:
 
                 # watched_seconds는 누적 시청 시간 (분석용)
                 watched_seconds = progress.watched_seconds if progress else 0
-                # unique_watched_seconds는 유니크 시청 시간 (진행률 계산용)
+                # unique_watched_seconds는 최대 도달 위치 (진행률 계산용)
                 unique_watched_seconds = progress.unique_watched_seconds if progress else 0
                 last_position = progress.last_position if progress else 0
                 is_completed = progress.is_completed if progress else False
