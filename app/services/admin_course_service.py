@@ -711,8 +711,13 @@ class AdminCourseService:
         # 업데이트할 필드만 수정
         update_data = data.model_dump(exclude_unset=True)
 
-        # video_url 또는 video_type이 변경되고 duration_seconds가 명시되지 않은 경우 자동 계산
-        if ('video_url' in update_data or 'video_type' in update_data) and 'duration_seconds' not in update_data:
+        # video_url이 실제로 변경되었는지 확인
+        url_changed = 'video_url' in update_data and update_data['video_url'] != lecture.video_url
+        type_changed = 'video_type' in update_data and update_data['video_type'] != lecture.video_type
+
+        # video_url 또는 video_type이 실제로 변경된 경우 재생시간 자동 재계산
+        # (클라이언트가 duration_seconds를 보내더라도 무시하고 재계산)
+        if url_changed or type_changed:
             video_url = update_data.get('video_url', lecture.video_url)
             video_type = update_data.get('video_type', lecture.video_type)
 
