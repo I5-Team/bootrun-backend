@@ -39,7 +39,8 @@ class Progress(Base):
     lecture_id = Column(Integer, ForeignKey("lectures.id", ondelete="CASCADE"), nullable=False, index=True, comment="강의 ID")
 
     # 진행 정보
-    watched_seconds = Column(Integer, nullable=False, default=0, comment="총 시청 시간 (초)")
+    watched_seconds = Column(Integer, nullable=False, default=0, comment="총 시청 시간 (초) - 반복 재생 포함 누적")
+    unique_watched_seconds = Column(Integer, nullable=False, default=0, comment="최대 도달 위치 (초) - 진행률 계산용, 되감기 시에도 감소하지 않음")
     last_position = Column(Integer, nullable=False, default=0, comment="마지막 시청 위치 (초)")
     is_completed = Column(Boolean, nullable=False, default=False, comment="완료 여부")
 
