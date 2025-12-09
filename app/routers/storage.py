@@ -56,7 +56,7 @@ async def upload_file(
             file_path=file_path,
             content_type=file.content_type,
             metadata={
-                "original_filename": quote(file.filename, safe=''),  # URL 인코딩으로 한글 처리
+                "original_filename": quote(file.filename or "", safe=''),  # URL 인코딩으로 한글 처리
                 "uploaded_by": str(current_user.id),
                 "upload_date": datetime.now().isoformat()
             }
@@ -160,7 +160,7 @@ async def upload_video(
             content_type=file.content_type,
             metadata={
                 "type": "video",
-                "original_filename": quote(file.filename, safe=''),  # URL 인코딩으로 한글 처리
+                "original_filename": quote(file.filename or "", safe=''),  # URL 인코딩으로 한글 처리
                 "uploaded_by": str(current_user.id)
             }
         )
