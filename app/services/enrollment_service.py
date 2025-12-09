@@ -82,8 +82,8 @@ class EnrollmentService:
         # last_position을 duration_seconds 이하로 제한
         last_position = min(data.last_position, lecture.duration_seconds) if lecture.duration_seconds > 0 else 0
 
-        # unique_watched_seconds 계산 (진행률 계산용)
-        # last_position을 기준으로 유니크 시청 시간 계산
+        # 진행률 계산용 시청 시간 (최대 도달 위치 추적)
+        # 첫 생성 시 last_position을 초기값으로 설정
         unique_watched_seconds = last_position
 
         # 시청률이 95% 이상이면 자동으로 완료 처리
@@ -146,8 +146,8 @@ class EnrollmentService:
         # last_position을 duration_seconds 이하로 제한
         last_position = min(data.last_position, progress.lecture.duration_seconds) if progress.lecture.duration_seconds > 0 else 0
 
-        # unique_watched_seconds 계산 (진행률 계산용)
-        # last_position 값을 unique_watched_seconds로 사용
+        # 진행률 계산용 시청 시간 (최대 도달 위치 추적)
+        # 사용자가 되감기를 해도 이전 최대 위치를 유지하여 진행률이 감소하지 않도록 함
         unique_watched_seconds = max(progress.unique_watched_seconds or 0, last_position)
 
         # 업데이트
