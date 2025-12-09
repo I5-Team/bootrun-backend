@@ -23,12 +23,13 @@ def upgrade() -> None:
     # Add unique_watched_seconds column with default value 0
     op.add_column('progresses', sa.Column('unique_watched_seconds', sa.Integer(), nullable=False, server_default='0', comment='유니크 시청 시간 (초) - 진행률 계산용'))
 
-    # Update existing records: set unique_watched_seconds to min(watched_seconds, lecture.duration_seconds)
-    # For simplicity, we'll initially set it equal to watched_seconds
-    # The application logic will handle proper calculation on next update
+    # Update existing records: set unique_watched_seconds to min(last_position, lecture.duration_seconds)
     op.execute("""
-        UPDATE progresses
-        SET unique_watched_seconds = watched_seconds
+        UPDATE progresses p
+        SET unique_watched_seconds = LEAST(
+            p.last_position,
+            (SELECT l.duration_seconds FROM lectures l WHERE l.id = p.lecture_id)
+        )
     """)
 
 
