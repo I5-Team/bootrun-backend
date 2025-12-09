@@ -696,7 +696,7 @@ class AdminCourseService:
                     calculated_duration = await get_video_duration(
                         video_url,
                         video_type.value,
-                        settings.youtube_api_key if settings.youtube_api_key else None
+                        settings.youtube_api_key
                     )
                     if calculated_duration:
                         update_data['duration_seconds'] = calculated_duration
