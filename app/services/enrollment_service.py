@@ -144,7 +144,7 @@ class EnrollmentService:
             raise ProgressNotFoundError('학습 진행 기록을 찾을 수 없습니다')
 
         # last_position을 duration_seconds 이하로 제한
-        last_position = min(data.last_position, progress.lecture.duration_seconds) if progress.lecture.duration_seconds > 0 else data.last_position
+        last_position = min(data.last_position, progress.lecture.duration_seconds) if progress.lecture.duration_seconds > 0 else 0
 
         # unique_watched_seconds 계산 (진행률 계산용)
         # last_position 값을 unique_watched_seconds로 사용
