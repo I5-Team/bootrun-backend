@@ -80,7 +80,7 @@ class EnrollmentService:
         now = get_current_utc_datetime()
 
         # last_position을 duration_seconds 이하로 제한
-        last_position = min(data.last_position, lecture.duration_seconds) if lecture.duration_seconds > 0 else data.last_position
+        last_position = min(data.last_position, lecture.duration_seconds) if lecture.duration_seconds > 0 else 0
 
         # unique_watched_seconds 계산 (진행률 계산용)
         # last_position을 기준으로 유니크 시청 시간 계산
