@@ -147,7 +147,7 @@ class EnrollmentService:
         last_position = min(data.last_position, progress.lecture.duration_seconds) if progress.lecture.duration_seconds > 0 else data.last_position
 
         # unique_watched_seconds 계산 (진행률 계산용)
-        # last_position을 기준으로 유니크 시청 시간 계산
+        # last_position 값을 unique_watched_seconds로 사용
         unique_watched_seconds = last_position
 
         # 업데이트
