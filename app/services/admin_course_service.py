@@ -710,6 +710,32 @@ class AdminCourseService:
 
         # 업데이트할 필드만 수정
         update_data = data.model_dump(exclude_unset=True)
+
+        # video_url 또는 video_type이 변경되고 duration_seconds가 명시되지 않은 경우 자동 계산
+        if ('video_url' in update_data or 'video_type' in update_data) and 'duration_seconds' not in update_data:
+            video_url = update_data.get('video_url', lecture.video_url)
+            video_type = update_data.get('video_type', lecture.video_type)
+
+            # 빈 문자열이거나 공백만 있는 경우 0으로 설정
+            if not video_url or not video_url.strip():
+                logger.info(f"영상 URL이 비어있어 재생시간을 0으로 설정합니다.")
+                update_data['duration_seconds'] = 0
+            else:
+                logger.info(f"영상 정보가 변경되어 재생시간 자동 계산 시도: {video_url}")
+                try:
+                    calculated_duration = await get_video_duration(
+                        video_url,
+                        video_type.value,
+                        settings.youtube_api_key
+                    )
+                    if calculated_duration:
+                        update_data['duration_seconds'] = calculated_duration
+                        logger.info(f"재생시간 자동 계산 성공: {calculated_duration}초")
+                    else:
+                        logger.warning("재생시간 자동 계산 실패, 기존 값 유지")
+                except Exception as e:
+                    logger.error(f"재생시간 자동 계산 중 오류: {e}, 기존 값 유지")
+
         for field, value in update_data.items():
             setattr(lecture, field, value)
 
