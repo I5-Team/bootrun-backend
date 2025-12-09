@@ -79,12 +79,19 @@ class EnrollmentService:
         # 새로운 진행 기록 생성
         now = get_current_utc_datetime()
 
+        # last_position을 duration_seconds 이하로 제한
+        last_position = min(data.last_position, lecture.duration_seconds) if lecture.duration_seconds > 0 else data.last_position
+
+        # unique_watched_seconds 계산 (진행률 계산용)
+        # last_position을 기준으로 유니크 시청 시간 계산
+        unique_watched_seconds = last_position
+
         # 시청률이 95% 이상이면 자동으로 완료 처리
         is_completed = data.is_completed
         completed_at = None
 
         if lecture.duration_seconds > 0:
-            completion_rate = (data.watched_seconds / lecture.duration_seconds) * 100
+            completion_rate = (unique_watched_seconds / lecture.duration_seconds) * 100
             if completion_rate >= 95 or data.is_completed:
                 is_completed = True
                 completed_at = now
@@ -95,7 +102,8 @@ class EnrollmentService:
             user_id=user_id,
             lecture_id=data.lecture_id,
             watched_seconds=data.watched_seconds,
-            last_position=data.last_position,
+            unique_watched_seconds=unique_watched_seconds,
+            last_position=last_position,
             is_completed=is_completed,
             last_watched_at=now,
             completed_at=completed_at
@@ -135,14 +143,22 @@ class EnrollmentService:
         if not progress:
             raise ProgressNotFoundError('학습 진행 기록을 찾을 수 없습니다')
 
+        # last_position을 duration_seconds 이하로 제한
+        last_position = min(data.last_position, progress.lecture.duration_seconds) if progress.lecture.duration_seconds > 0 else data.last_position
+
+        # unique_watched_seconds 계산 (진행률 계산용)
+        # last_position을 기준으로 유니크 시청 시간 계산
+        unique_watched_seconds = last_position
+
         # 업데이트
         progress.watched_seconds = data.watched_seconds
-        progress.last_position = data.last_position
+        progress.unique_watched_seconds = unique_watched_seconds
+        progress.last_position = last_position
         progress.last_watched_at = get_current_utc_datetime()
 
         # 시청률이 95% 이상이면 자동으로 완료 처리
         if progress.lecture.duration_seconds > 0:
-            completion_rate = (data.watched_seconds / progress.lecture.duration_seconds) * 100
+            completion_rate = (unique_watched_seconds / progress.lecture.duration_seconds) * 100
             if completion_rate >= 95 or data.is_completed:
                 progress.is_completed = True
                 if progress.completed_at is None:
@@ -216,12 +232,18 @@ class EnrollmentService:
             for lecture in sorted(chapter.lectures, key=lambda l: l.order_number):
                 progress = progress_dict.get(lecture.id)
 
+                # watched_seconds는 누적 시청 시간 (분석용)
                 watched_seconds = progress.watched_seconds if progress else 0
+                # unique_watched_seconds는 유니크 시청 시간 (진행률 계산용)
+                unique_watched_seconds = progress.unique_watched_seconds if progress else 0
                 last_position = progress.last_position if progress else 0
                 is_completed = progress.is_completed if progress else False
                 lecture_last_watched = progress.last_watched_at if progress else None
 
-                completion_rate = (watched_seconds / lecture.duration_seconds * 100) if lecture.duration_seconds > 0 else 0
+                # unique_watched_seconds를 사용하여 completion_rate 계산
+                completion_rate = (unique_watched_seconds / lecture.duration_seconds * 100) if lecture.duration_seconds > 0 else 0
+                # 100% 초과 방지
+                completion_rate = min(completion_rate, 100.0)
 
                 lectures_data.append(LectureProgressSummary(
                     lecture_id=lecture.id,
@@ -234,7 +256,8 @@ class EnrollmentService:
                     last_watched_at=lecture_last_watched
                 ))
 
-                chapter_watched += watched_seconds
+                # 챕터 진행률 계산에는 unique_watched_seconds 사용
+                chapter_watched += unique_watched_seconds
                 chapter_duration += lecture.duration_seconds
                 if is_completed:
                     chapter_completed += 1
@@ -386,9 +409,13 @@ class EnrollmentService:
     ) -> ProgressResponse:
         """학습 진행 응답 생성"""
 
+        # unique_watched_seconds를 사용하여 completion_rate 계산
         completion_rate = (
-            progress.watched_seconds / lecture.duration_seconds * 100
+            progress.unique_watched_seconds / lecture.duration_seconds * 100
         ) if lecture.duration_seconds > 0 else 0
+
+        # 100% 초과 방지
+        completion_rate = min(completion_rate, 100.0)
 
         # 시청률이 95% 이상이면 완료로 간주
         is_completed = progress.is_completed
@@ -413,10 +440,10 @@ class EnrollmentService:
         user_id: int,
         course_id: int
     ) -> int:
-        """총 시청 시간 반환 (초)"""
+        """총 유니크 시청 시간 반환 (초) - 진행률 계산용"""
 
         result = await self.db.execute(
-            select(func.sum(Progress.watched_seconds))
+            select(func.sum(Progress.unique_watched_seconds))
             .join(Lecture, Progress.lecture_id == Lecture.id)
             .join(Chapter, Lecture.chapter_id == Chapter.id)
             .where(
