@@ -148,7 +148,7 @@ class EnrollmentService:
 
         # unique_watched_seconds 계산 (진행률 계산용)
         # last_position 값을 unique_watched_seconds로 사용
-        unique_watched_seconds = last_position
+        unique_watched_seconds = max(progress.unique_watched_seconds or 0, last_position)
 
         # 업데이트
         progress.watched_seconds = data.watched_seconds
