@@ -439,7 +439,7 @@ class EnrollmentService:
 
         # 수강 기간 만료 확인
         now = get_current_utc_datetime()
-        if enrollment.expires_at and enrollment.expires_at < now:
+        if enrollment.expires_at and enrollment.expires_at <= now:
             raise EnrollmentExpiredError(f'수강 기간이 만료되었습니다 (만료일: {enrollment.expires_at.strftime("%Y-%m-%d")})')
 
         return enrollment
