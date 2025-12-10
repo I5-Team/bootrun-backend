@@ -54,6 +54,10 @@ tags_metadata = [
         "name": "스토리지",
         "description": "Cloudflare R2 파일 스토리지 - 이미지/동영상/파일 업로드, 삭제, 목록 조회",
     },
+    {
+        "name": "⚠️ 테스트 전용",
+        "description": "⚠️ 개발/테스트 전용 엔드포인트 - 프로덕션 배포 전 삭제 필요",
+    },
 ]
 
 @asynccontextmanager
@@ -137,6 +141,9 @@ from app.routers.admin.courses import router as courses_router
 from app.routers.admin.payments import router as payments_router
 from app.routers.storage import router as storage_router
 
+# ⚠️ 테스트 라우터 import (프로덕션 배포 전 삭제)
+from app.routers._test_helpers import router as test_router
+
 
 all_routers = [
     # 인증 및 사용자 API
@@ -153,6 +160,8 @@ all_routers = [
     payments_router,
     # 스토리지 API
     storage_router,
+    # ⚠️ 테스트 API (프로덕션 배포 전 삭제)
+    test_router,
 ]
 
 for router in all_routers:
