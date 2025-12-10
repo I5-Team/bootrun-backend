@@ -28,6 +28,8 @@ from app.schemas.enrollment import (
 from app.exceptions.base import (
     CourseNotFoundError,
     EnrollmentNotFoundError,
+    EnrollmentRequiredError,
+    EnrollmentExpiredError,
     LectureNotFoundError,
     ProgressNotFoundError,
 )
@@ -58,6 +60,9 @@ class EnrollmentService:
 
         if not lecture:
             raise LectureNotFoundError(f'ID {data.lecture_id}인 강의 영상을 찾을 수 없습니다')
+
+        # 수강 등록 검증 (보안: 결제 우회 방지)
+        await self._verify_enrollment(user_id, lecture.chapter.course_id)
 
         # 이미 진행 기록이 있는지 확인
         existing_result = await self.db.execute(
@@ -142,6 +147,9 @@ class EnrollmentService:
 
         if not progress:
             raise ProgressNotFoundError('학습 진행 기록을 찾을 수 없습니다')
+
+        # 수강 등록 검증 (보안: 결제 우회 방지)
+        await self._verify_enrollment(user_id, progress.lecture.chapter.course_id)
 
         # last_position을 duration_seconds 이하로 제한
         last_position = min(data.last_position, progress.lecture.duration_seconds) if progress.lecture.duration_seconds > 0 else 0
@@ -401,6 +409,40 @@ class EnrollmentService:
         )
 
     # ==================== 헬퍼 메서드 ====================
+
+    async def _verify_enrollment(
+        self,
+        user_id: int,
+        course_id: int
+    ) -> Enrollment:
+        """
+        수강 등록 검증 (보안: 결제 우회 방지)
+
+        - 수강 등록 존재 여부 확인
+        - is_active 확인 (비활성화된 수강 등록 차단)
+        - expires_at 확인 (수강 기간 만료 차단)
+        """
+        # Enrollment 조회
+        result = await self.db.execute(
+            select(Enrollment).where(
+                Enrollment.user_id == user_id,
+                Enrollment.course_id == course_id
+            )
+        )
+        enrollment = result.scalar_one_or_none()
+
+        if not enrollment:
+            raise EnrollmentRequiredError('수강 등록이 필요합니다')
+
+        if not enrollment.is_active:
+            raise EnrollmentRequiredError('비활성화된 수강 등록입니다')
+
+        # 수강 기간 만료 확인
+        now = get_current_utc_datetime()
+        if enrollment.expires_at and enrollment.expires_at <= now:
+            raise EnrollmentExpiredError(f'수강 기간이 만료되었습니다 (만료일: {enrollment.expires_at.strftime("%Y-%m-%d")})')
+
+        return enrollment
 
     async def _build_progress_response(
         self,
@@ -807,7 +849,9 @@ class EnrollmentService:
                     last_position = progress.last_position
 
                     if lecture.duration_seconds > 0:
-                        completion_rate = (watched_seconds / lecture.duration_seconds) * 100
+                        # 진행률 계산은 unique_watched_seconds 기준 (watched_seconds는 반복 재생 포함)
+                        unique_watched_seconds = progress.unique_watched_seconds or 0
+                        completion_rate = (unique_watched_seconds / lecture.duration_seconds) * 100
                         is_completed = completion_rate >= 95 or progress.is_completed
                     else:
                         is_completed = progress.is_completed
