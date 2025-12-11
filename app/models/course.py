@@ -46,13 +46,13 @@ class Course(Base):
     course_type = Column(SQLEnum(CourseType, values_callable=lambda obj: [e.value for e in obj]), nullable=False, default=CourseType.VOD, comment="강의 유형")
     title = Column(String(200), nullable=False, index=True, comment="강의 제목")
     description = Column(Text, nullable=False, comment="강의 설명")
-    thumbnail_url = Column(String(1000), nullable=False, comment="썸네일 이미지 URL")
+    thumbnail_url = Column(String(1000), nullable=True, comment="썸네일 이미지 URL")
 
     # 강사 정보
     instructor_name = Column(String(100), nullable=False, comment="강사명")
     instructor_bio = Column(Text, nullable=False, comment="강사 소개")
     instructor_description = Column(Text, nullable=True, comment="강사 상세 설명")
-    instructor_image = Column(String(500), nullable=False, comment="강사 프로필 이미지 URL")
+    instructor_image = Column(String(500), nullable=True, comment="강사 프로필 이미지 URL")
 
     # 강의 속성
     difficulty = Column(SQLEnum(Difficulty, values_callable=lambda obj: [e.value for e in obj]), nullable=False, comment="난이도")
