@@ -1,7 +1,5 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-import os
 from app.core.redis import init_redis, close_redis
 from app.core.config import settings
 from contextlib import asynccontextmanager
@@ -168,17 +166,6 @@ for router in all_routers:
     app.include_router(router)
 
 logger.info(f"{len(all_routers)}개의 라우터가 등록되었습니다.")
-
-# ============= 정적 파일 서빙 =============
-
-# uploads 디렉토리가 없으면 생성
-uploads_dir = "/app/uploads"
-if not os.path.exists(uploads_dir):
-    os.makedirs(uploads_dir)
-    logger.info(f"'{uploads_dir}' 디렉토리를 생성했습니다.")
-
-app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
-logger.info(f"정적 파일 서빙이 '/uploads' 경로에 마운트되었습니다.")
 
 # ============= 기본 엔드포인트 =============
 
