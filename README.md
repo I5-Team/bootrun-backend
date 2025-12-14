@@ -20,9 +20,7 @@
   - ID: test@bootrun.com
   - PW: Test1234!@
 
-## 2. 프로젝트 개요 (Introduction)
-
-### 2-1. 프로젝트 컨셉 (Why We Built It)
+## 2. 프로젝트 컨셉 (Why We Built It)
 
 > "강사와 수강생이 함께 성장하는 실무 중심의 학습 플랫폼"
 
@@ -30,94 +28,10 @@
 
 특히 **구체적인 실무 역량**을 기를 수 있는 강의에 초점을 맞춘, 강사와 수강생이 **서로 공존할 수 있는 공간**을 만드는 것이 목표였습니다.
 
-### 2-2. 주요 기능 (What We Built)
-
-#### (핵심) 강의실
-
-영상 이어보기, 진행률 자동 저장, 강의 완료 처리, 커리큘럼 트래킹
-
-- **강의실 > 진행률 - Progress Bar**
-  <video src="./videos/강의실 > 진행률 - progress bar.mov" controls width="100%"></video>
-
-- **강의실 > 자료 다운로드 링크 이동**
-  <video src="./videos/강의실 > 자료 다운로드 링크 이동.mov" controls width="100%"></video>
-
-#### 강의
-
-강의 목록(필터링), 강의 상세, 수강 신청
-
-- **강의 > 강의 목록 필터링**
-  <video src="./videos/강의 > 강의 목록 필터링.mov" controls width="100%"></video>
-
-- **강의 > 강의 상세 조회**
-  <video src="./videos/강의 > 강의 상세 조회.mov" controls width="100%"></video>
-
-- **강의 > 수강 신청**
-  <video src="./videos/강의 > 수강 신청.mov" controls width="100%"></video>
-
-#### 인증
-
-회원가입(이메일 인증), 로그인(JWT)
-
-- **회원가입**
-  <video src="./videos/회원가입.mov" controls width="100%"></video>
-
-- **로그인 > 수강생, 관리자**
-  <video src="./videos/로그인 > 수강생, 관리자.mov" controls width="100%"></video>
-
-#### 마이페이지
-
-내 강의 목록, 프로필 수정(이미지 업로드/삭제), 계정 관리(비밀번호 변경/탈퇴)
-
-- **마이페이지 > 프로필 설정**
-  <video src="./videos/마이페이지 > 프로필 설정.mov" controls width="100%"></video>
-
-- **마이페이지 > 비밀번호 변경/탈퇴**
-  <video src="./videos/마이페이지 > 비밀변호 변경:탈퇴.mov" controls width="100%"></video>
-
-#### 관리자
-
-대시보드, 강의/사용자/결제 내역 관리
-
-- **관리자 > 대시보드**
-  <video src="./videos/관리자_대시보드.mov" controls width="100%"></video>
-
-- **관리자 > 강의 관리 > 강의 추가 및 조회**
-  <video src="./videos/관리자 > 강의 관리 > 강의 추가 및 조회.mov" controls width="100%"></video>
-
-- **관리자 > 강의 관리 > 수정 및 삭제, 공개 변경**
-  <video src="./videos/관리자 > 강의 관리 > 수정 및 삭제, 공개 변환.mov" controls width="100%"></video>
-
-- **관리자 > 결제 관리 > 결제 내역 엑셀 다운로드**
-  <video src="./videos/관리자 > 결제 관리 > 엑셀 다운로드.mov" controls width="100%"></video>
-
-- **관리자 > 사용자 관리 > 조회**
-  <video src="./videos/관리자 > 강의 관리 > 강의 추가 및 조회.mov" controls width="100%"></video>
-
-### 2-3. 백엔드 핵심 설계
-
-- **API 아키텍처**: 비동기 처리(AsyncIO + AsyncPG), Router-Service 계층 분리
-  - 고성능 비동기 데이터베이스 연결
-  - FastAPI Depends를 활용한 의존성 주입
-- **인증 및 보안**: JWT 토큰 기반 인증, 다중 보안 계층
-  - Access/Refresh Token 분리, 토큰 타입 검증’
-  - bcrypt 패스워드 암호화, Fernet 데이터 암호화
-  - Redis 기반 Rate Limiting (API 요청 제한)
-- **데이터 관리**: PostgreSQL + Redis 하이브리드 구조
-  - AsyncPG를 통한 비동기 DB 연결 풀링
-  - Redis 캐싱으로 반복 쿼리 성능 최적화
-- **로깅 시스템**: 구조화된 로깅 및 보안
-  - 민감정보 자동 감지 및 마스킹 (비밀번호, JWT, API 키, 카드번호 등)
-  - Request ID 기반 요청 추적
-  - 로테이션 파일 로깅 (크기/날짜 기반)
-- **배포 환경**: Docker 컨테이너화, HTTPS 적용
-  - AWS Lightsail 배포
-  - Let's Encrypt SSL 인증서, DuckDNS 동적 DNS
-  - Nginx 리버스 프록시
 
 ## 3. 기술 스택 (Technology Stack)
 
-### 3-1. 아키텍처 다이어그램
+### 3-1. 전체 아키텍처 다이어그램
 
 ```mermaid
 graph TD
@@ -143,10 +57,8 @@ graph TD
                 REDIS[(Redis Container<br/>Cache & Rate Limit)]
             end
             
-            UPLOADS["/uploads Volume<br/>Local File Storage"]
             NGINX --> API
             API --> REDIS
-            API --> UPLOADS
           end
 
         %% --- Lightsail Database ---
@@ -160,54 +72,34 @@ graph TD
     %% ===============================
     subgraph CICD["GitHub CI CD Pipeline"]
         GH[GitHub Push]
-        ACTIONS[GitHub Actions]
+        ACTIONS[GitHub Actions<br/>Frontend + Backend Auto Deploy]
         GH --> ACTIONS
     end
 
-    %% ===============================
-    %% Manual Deployment
-    %% ===============================
-    MANUAL[Deployment - SSH + docker-compose]
-    
-    
     %% ===============================
     %% External Services
     %% ===============================
     subgraph External["External Video Services"]
         VIDEO[YouTube / External Video URLs]
+        R2[Cloudflare R2<br/>Object Storage]
     end
 
-   
     %% ===============================
     %% API Request 흐름
     %% ===============================
     A -->|HTTPS API Request| NGINX
     API -->|DB Query| POSTGRES
-    API -->|File Upload or Read| UPLOADS
+    API -->|File Upload/Download| R2
     A -->|Stream Video| VIDEO
 
     %% ===============================
     %% Deploy Flow
     %% ===============================
     ACTIONS -->|Deploy Frontend| A
-    MANUAL -->|Deploy Backend| INSTANCE
+    ACTIONS -->|Deploy Backend| INSTANCE
 ```
 
-### 3-2. ERD 다이어그램
-
-![ERD 다이어그램](https://github.com/user-attachments/assets/5dca5055-e3e4-4264-a2b5-40deb6ad545b)
-
-### 3-3. Front-End
-
-| 구분        | 기술                  | 핵심 사유                                                                                          |
-| ----------- | --------------------- | -------------------------------------------------------------------------------------------------- |
-| **Core**    | `React`, `TypeScript` | 컴포넌트 기반 개발과 안정적인 타입 시스템을 위해 채택.                                             |
-| **State**   | `React Query`         | 서버 상태와 클라이언트 상태를 분리하고, 캐싱과 데이터 동기화(Optimistic Update)를 효율적으로 관리. |
-| **Styling** | `Styled-components`   | `theme` 기반의 일관된 디자인 시스템과 컴포넌트 격리 스타일을 적용.                                 |
-| **Routing** | `React Router DOM`    | SPA(Single Page Application)의 표준 라우팅 라이브러리.                                             |
-| **API**     | `Axios`               | `interceptors`를 활용해 JWT 토큰 자동 주입 및 401 에러(토큰 만료) 공통 처리 구현.                  |
-
-### 3-4. Back-End
+### 3-2. Back-End
 
 | 구분      | 기술                                                                         | 핵심 사유                                                                                                                                    |
 | --------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -216,94 +108,15 @@ graph TD
 | **Auth**  | `JWT (Python-Jose 3.5)`, `Bcrypt 5.0`, `Cryptography 46.0`                   | 상태 비저장 **토큰 인증** 방식 채택. Bcrypt로 안전한 **비밀번호 암호화** 및 Fernet으로 민감 데이터 보호.                                     |
 | **Cache** | `Redis 7.0`                                                                  | **인메모리 캐싱**을 통한 API 응답 속도 향상 및 레이트 제한 구현.                                                                             |
 
-### 3-5. Infra & CI/CD
+### 3-3. Infra & CI/CD
 
 | 구분                 | 기술                                                                         | 핵심 사유                                                                                                                                                              |
 | -------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Deploy(Back-End)** | `AWS (EC2, S3 RDS)`, `Uvicorn **0.38**`,`Gunicorn **23.0**`, `OpenTelemetry` | 업계 표준 **AWS 환경**에서 서버, 파일, DB를 분리하여 운영. `Uvicorn`/`Gunicorn`으로 **고성능 비동기** 서버 환경 구축 및 **`OpenTelemetry`**로 분산 추적 모니터링 구현. |
-| **CI/CD**            | `GitHub Actions`                                                             | `dev` 브랜치 `push` 시, 자동으로 테스트, 빌드, GitHub Pages 배포가 실행되도록 파이프라인 구축.                                                                         |
+| **Deploy(Back-End)** | `AWS Lightsail (Compute, Database)`, `Cloudflare R2`, `Uvicorn **0.38**` | **AWS Lightsail**에서 서버/DB 운영. **Cloudflare R2**로 파일 저장. `Uvicorn`으로 **고성능 비동기** 서버 환경 구축. |
+| **CI/CD**            | `GitHub Actions`                                                             | `dev` 브랜치 `push` 시, 자동으로 테스트, 빌드 및 프론트엔드(GitHub Pages) + 백엔드(Lightsail) 배포가 실행되도록 파이프라인 구축.                                                                         |
+
 
 ## 4. 폴더 구조
-
-### 4-1. frontend 폴더 구조
-
-: 프론트엔드는 **MVVM(Model-View-ViewModel)** 패턴을 React 환경에 맞게 적용하여 **관심사를 명확히 분리**했습니다.
-
-```mermaid
-graph TD
-
-    %% View
-    subgraph View["View"]
-        V[SignUpPage.tsx - JSX]
-    end
-
-    %% ViewModel
-    subgraph ViewModel["ViewModel"]
-        VM[useSignUpForm.ts - Custom Hook]
-    end
-
-    %% Model
-    subgraph Model["Model"]
-        M_Query[useAuthQueries.ts - React Query]
-        M_API[authApi.ts - Axios]
-    end
-
-    %% Server
-    SVR[(FastAPI Server)]
-
-    %% Flow
-    V -->|1. 회원가입 버튼 클릭 - handleSignUp 호출| VM
-    VM -->|2. 상태/핸들러 제공 - apiMessage, handleSignUp| V
-    VM -->|3. API 호출 - mutate| M_Query
-    M_Query -->|4. API 함수 실행 - mutationFn| M_API
-    M_API -->|5. 서버 요청| SVR
-    SVR -->|6. 응답 반환| M_API
-    M_API -->|7. 데이터 전달| M_Query
-    M_Query -->|8. 캐시 업데이트 및 훅 데이터 갱신| VM
-
-```
-
-- **View (View):** `pages/SignUpPage.tsx`
-  - UI 렌더링과 사용자 입력만 담당하는 "껍데기"입니다.
-- **ViewModel (뷰모델):** `hooks/useSignUpForm.ts`
-  - View가 필요로 하는 모든 상태(e.g., `email`, `passwordError`), 비즈니스 로직(e.g., `handleSignUp`), API 호출(`mutate`)을 담당합니다.
-- **Model (모델):** `api/authApi.ts`, `queries/useAuthQueries.ts`
-  - 실제 API 통신(`axios`)과 데이터 캐시(`React Query`)를 담당합니다.
-
-이 구조 덕분에 `SignUpPage` 컴포넌트는 UI 렌더링에만 집중할 수 있었고, 로직은 `useSignUpForm` 훅으로 분리되어 테스트와 유지보수가 용이해졌습니다.
-
-```
-## frontend 폴더구조
-bootrun-frontend
-src/
-├── api/          # (Model) Axios API 함수
-├── assets/       # 아이콘, 이미지, 로고
-├── components/   # (View) 재사용 가능한 공통 컴포넌트
-├── constants/    # (View) 상수
-├── hooks/        # (ViewModel) 공통 로직 훅
-├── layouts/      # (View) 페이지 레이아웃 컴포넌트
-├── pages/        # (View) 라우팅되는 페이지 컴포넌트
-│   ├── About/
-│   ├── Admin/
-│   ├── Auth/
-│   ├── Lecture/
-│   └── MyPage/           # 페이지 하위 폴더 구조
-│       ├── components/   # (View) 페이지 전용 컴포넌트
-│       ├── constants/    # (View) 페이지 전용 상수
-│       ├── hooks/        # (ViewModel)  페이지 전용 훅
-│       ├── pages/        # (View) 페이지 컴포넌트
-│       └── styles/       # 페이지 전용 스타일, 테마
-├── queries/      # (Model/ViewModel) React Query 훅
-├── router/       # 라우터 설정
-├── styles/       # 전역 스타일, 테마
-├── types/        # 전역 타입 정의
-├── utils/        # (Model) 순수 유틸 함수
-├── App.tsx       # 메인 App 컴포넌트
-├── index.css     # 전역 CSS Entry
-└── main.tsx      # React DOM 렌더링 Entry
-```
-
-### 4-2. Backend 폴더구조
 
 : 백엔드는 계층별 책임 분리를 통해 코드의 유지보수성과 테스트 가능성을 확보했습니다.
 
@@ -389,53 +202,43 @@ bootrun-backend/
 │   │   └── common.py           # 공통 응답 스키마 
 │   │
 │   ├── routers/                # API 엔드포인트
-│   │   ├── auth.py             # 인증 API 
-│   │   ├── user.py             # 사용자 API 
-│   │   ├── course.py           # 강의 조회 API 
+│   │   ├── auth.py             # 인증 API
+│   │   ├── user.py             # 사용자 API
+│   │   ├── course.py           # 강의 조회 API
 │   │   ├── enrollment.py       # 수강 등록 API
-│   │   ├── payment.py          # 결제 API 
+│   │   ├── payment.py          # 결제 API
+│   │   ├── storage.py          # Cloudflare R2 파일 스토리지 API
 │   │   └── admin/              # 관리자 API
 │   │       ├── dashboard.py    # 대시보드 통계 API
 │   │       ├── users.py        # 사용자 관리 API
-│   │       ├── courses.py      # 강의 관리 API 
-│   │       └── payments.py     # 결제 관리 API 
+│   │       ├── courses.py      # 강의 관리 API
+│   │       └── payments.py     # 결제 관리 API
 │   │
 │   ├── services/               # 비즈니스 로직 계층
 │   │   ├── user_service.py                 # 사용자 서비스
 │   │   ├── course_service.py               # 강의 조회 서비스
 │   │   ├── enrollment_service.py           # 수강 등록 서비스
 │   │   ├── payment_service.py              # 결제 서비스
+│   │   ├── r2_service.py                   # Cloudflare R2 스토리지 서비스
 │   │   ├── admin_dashboard_service.py      # 관리자 대시보드 서비스
 │   │   ├── admin_user_service.py           # 관리자 사용자 관리 서비스
 │   │   └── admin_course_service.py         # 관리자 강의 관리 서비스
 │   │
-│   ├── middleware/             # 미들웨어
-│   │   └── rate_limit.py       # API 요청 속도 제한
+│   ├── middleware/             # 미들웨어 (API 요청 속도 제한 등)
 │   │
-│   ├── exceptions/             # 커스텀 예외 처리
-│   │   └── responses.py        # 표준화된 에러 응답 
+│   ├── exceptions/             # 커스텀 예외 처리 (계층화된 예외 클래스, 표준화된 에러 응답, 전역 예외 핸들러)
 │   │
-│   └── utils/                  # 유틸리티 함수
-│       └── file_utils.py       # 파일 업로드/삭제 유틸   
+│   └── utils/                  # 유틸리티 (파일 업로드, Redis 캐싱, 이메일 발송, 헬퍼 함수 등)
 │
 ├── alembic/                    # 데이터베이스 마이그레이션
 │   ├── versions/               # 마이그레이션 버전 파일
 │   └── env.py                  # Alembic 환경 설정
 │
-├── scripts/                    # 운영 스크립트
-│   └── recalculate_progress_rates.py  # 진행률 재계산 스크립트
+├── scripts/                    # 운영 스크립트 (관리자 계정 생성, 테스트 계정 생성, 진행률 재계산 등)
 │
-├── docs/                       # 프로젝트 문서
-│   └── FOLDER_STRUCTURE.md            # 폴더 구조 문서
+├── docs/                       # 프로젝트 문서 (API 명명 규칙, 코딩 컨벤션, 기능 명세서, 리팩토링 가이드 등)
 │
-├── uploads/                    # 로컬 파일 저장 디렉토리
-│   ├── thumbnails/             # 강의 썸네일 이미지
-│   ├── instructors/            # 강사 프로필 이미지
-│   └── profiles/               # 사용자 프로필 이미지
-│
-├── logs/                       # 로그 파일
-│   ├── app.log                 # 애플리케이션 로그
-│   └── error.log               # 에러 전용 로그
+├── logs/                       # 로그 파일 (애플리케이션 로그, 에러 로그 등 자동 생성)
 │
 ├── docker-compose.yml          # Docker Compose 설정
 ├── Dockerfile                  # Docker 이미지 빌드 설정
@@ -450,31 +253,75 @@ bootrun-backend/
 └── README.md                  # 프로젝트 README
 ```
 
+
+## 5. 데이터베이스 설계
+
+
+## 6. ERD 다이어그램
+
+![ERD 다이어그램](https://github.com/user-attachments/assets/5dca5055-e3e4-4264-a2b5-40deb6ad545b)
+
+
+
+------ 수정중------------
+### 2-2. 주요 기능 (What We Built)
+
+#### 강의실
+영상 이어보기, 진행률 자동 저장, 강의 완료 처리, 커리큘럼 트래킹
+
+#### 강의
+강의 목록(필터링), 강의 상세, 수강 신청
+
+#### 인증
+회원가입(이메일 인증), 로그인(JWT)
+
+#### 마이페이지
+내 강의 목록, 프로필 수정(이미지 업로드/삭제), 계정 관리(비밀번호 변경/탈퇴)
+
+#### 관리자
+대시보드, 강의/사용자/결제 내역 관리
+
+
+### 2-3. 핵심 설계
+
+  - **API 아키텍처**: 비동기 처리(AsyncIO + AsyncPG), Router-Service 계층 분리        
+    - 고성능 비동기 데이터베이스 연결 풀링
+    - FastAPI Depends를 활용한 의존성 주입 및 권한 검증
+    - SubQuery 최적화로 N+1 쿼리 문제 해결
+
+  - **인증 및 보안**: JWT 토큰 기반 인증, 다중 보안 계층
+    - Access/Refresh Token 분리, 토큰 타입/발급자(iss) 검증
+    - bcrypt 패스워드 암호화, Fernet 데이터 암호화
+    - Redis 기반 브루트포스 방어 (로그인 시도 제한 5회/15분)
+    - 계층화된 권한 검증 (수강 여부, 수강 기간, 리소스 소유권)
+
+  - **데이터 관리**: PostgreSQL + Redis 하이브리드 구조
+    - AsyncPG를 통한 비동기 DB 연결 풀링 (pool_pre_ping, pool_recycle)
+    - Redis 캐싱으로 반복 쿼리 성능 최적화 (@cached 데코레이터)
+    - 패턴 기반 캐시 무효화로 데이터 일관성 보장
+    - Redis 기반 이메일 인증 및 비밀번호 재설정 토큰 관리
+
+  - **로깅 시스템**: 구조화된 로깅 및 보안
+    - 민감정보 자동 감지 및 마스킹 (비밀번호, JWT, API 키, 카드번호 등)
+    - Request ID 기반 요청 추적 (분산 환경 지원)
+    - 로테이션 파일 로깅 (크기/날짜 기반)
+    - 계층화된 예외 처리 (클래스명 → 에러 코드 자동 변환)
+
+  - **성능 최적화**: 다층 캐싱 및 쿼리 최적화
+    - Redis Rate Limiting (IP별 60요청/분, 분산 환경 지원)
+    - Eager Loading (selectinload, joinedload)으로 N+1 방지
+    - 진행률 계산 최적화 (unique_watched_seconds로 되감기 대응)
+
+  - **배포 환경**: Docker 컨테이너화, HTTPS 적용
+    - AWS Lightsail 배포
+    - Let's Encrypt SSL 인증서, DuckDNS 동적 DNS
+    - Nginx 리버스 프록시
+    - Graceful Degradation (Redis 장애 시에도 서비스 유지)
+
+
+-----------------------------------------
+
 ## 5. 실행 방법 (Getting Started)
-
-### 5-1. Front-End
-
-**사전 요구 사항:** `Node.js` (v20 이상 권장)
-
-```
-# 1. 저장소 클론
-git clone https://github.com/I5-Team/bootrun-frontend.git
-
-cd bootrun-frontend
-
-# 2. 의존성 설치
-npm install
-
-# 3. 환경 변수 설정
-.env.development 파일을 생성하고 환경 변수 설정
-VITE_API_BASE_URL="[백앤드 API 서버 주소]"
-
-# 4. 개발 서버 실행
-npm run dev
-
-```
-
-### 5-2. Back-End
 
 **사전 요구 사항:** `Docker`, `Docker Compose`
 
@@ -546,33 +393,26 @@ docker-compose ps
 
 프로젝트 진행 중 발생했던 주요 문제와 해결 과정입니다.
 
-1. **[HTTPS/HTTP 혼합 콘텐츠]**
-   - **문제:** GitHub Pages(`https://`) 배포 후, `http://` API 요청이 브라우저 보안 정책으로 차단됨.
-   - **해결:** 백엔드 팀과 협의, API 서버에 **Let's Encrypt** SSL 인증서를 적용하여 `https://` 엔드포인트로 변경.
-2. **[React Query 캐시 동기화]**
-   - **문제:** `ProfilePage`에서 닉네임을 변경해도 `Header` 컴포넌트의 닉네임이 바뀌지 않음.
-   - **해결:** `useProfile` 훅이 동일한 쿼리 키(`userKeys.me`)를 구독하게 하고, 수정(Mutation) `onSuccess`에서 `setQueryData` (즉각 반영) 및 `invalidateQueries` (백그라운드 동기화)를 호출하여 모든 구독 컴포넌트를 자동으로 갱신.
-3. **[Axios 401 무한 루프]**
-   - **문제:** 토큰 갱신(Refresh) API 요청이 실패(401)하자, 응답 인터셉터가 이를 다시 감지해 `refresh` API를 무한 호출함.
-   - **해결:** 인터셉터 예외 처리에 `refresh`, `logout` API 경로를 추가하여 무한 루프 방지.
+1. **[SQLAlchemy Enum 타입 매핑 오류]**
+   - **문제**: `SQLEnum(Gender)` 사용 시, 데이터베이스에 Enum의 `name`이 저장되어야 하는데 `value`가 저장되거나, Alembic 마이그레이션 시 Enum 타입이 제대로 인식되지 않는 오류 발생.
+   - **해결**: `values_callable=lambda obj: [e.value for e in obj]` 파라미터를 추가하여 Enum 객체의 실제 `value` 값을 명시적으로 데이터베이스에 저장하도록 설정. 이를 통해 Python Enum과 데이터베이스 간 데이터 타입 불일치 문제 해결.
+2. **[강의 수강 완료 날짜 미기록 문제]** 
+    - **문제**: `is_completed`가 `True`로 설정되어도 `completed_at` 필드가 `None`으로 남아있어, 완강 여부를 기반으로 한 다른 서비스 연동이 정상적으로 작동하지 않는 오류 발생.
+    - **해결**: 시청률 95% 이상 도달 시 자동으로 `is_completed`를 `True`로 설정하는 동시에 `completed_at`에 현재 시간(`now`)을 기록하도록 로직 수정.
+3. **[Certbot SSL 인증서 발급 문제 (통합)]** 
+    - **문제**: `docker-compose.yml`의 certbot 서비스에 `entrypoint: "certbot renew"`가 설정되어 있어, `certbot certonly` 명령어를 입력해도 무시되고 항상 갱신만 시도하여 새 인증서가 발급되지 않음.
+    - **해결**: certbot 서비스의 `entrypoint` 설정을 주석 처리하여 직접 입력하는 명령어가 실행되도록 수정. 인증서 발급 후 자동 갱신을 위해 다시 주석 해제.
+    - **문제**: `certbot/conf/` 디렉토리에 이전 실패한 시도의 `accounts/`, `renewal/` 데이터가 남아있어, certbot이 "이미 등록된 도메인"으로 인식하고 갱신만 시도하여 새 인증서 발급이 불가능.
+    - **해결**: `sudo rm -rf certbot/conf/* certbot/www/*`로 기존 certbot 데이터를 완전히 삭제한 후, 처음부터 새로 인증서 발급 시도하여 성공.
+    - **문제**: Let's Encrypt가 DuckDNS의 CAA 레코드를 조회할 때 타임아웃 발생. DuckDNS DNS 서버의 응답 지연 또는 DNS 전파 지연으로 인증서 발급 실패.
+    - **해결**: DuckDNS에서 IP 주소 재갱신 후 10-15분 대기하거나, certbot 데이터를 완전히 삭제하고 재시도하여 해결.
 4. **[transaction_id(거래 ID)의 빈값 발생]**
    - **문제**: 결제 생성 성공 데이터에 `transaction_id`를 빈 문자열(” ”)로 반환됨. (결제 확인 조회 시 `transaction_id` 필요)
    - **해결**: UUID 모듈 추가, 결제 생성 시 응답에서 `transaction_id`를 반환하도록 수정
 5. **[결제/환불 API 시간대(Timezone)]**
-   - **문제**: `datetime` 필드가 UTC(0시간)로 형식 반환되어 실제 한국 시간보다 다르게 표시됨
-   - **해결**: Pydantic `@field_serializer`로 모든 `datetime` 필드를 KST(UTC+9)로 변환
-6. **[동적 경로 비교 에러]**
-   - **문제**: 동적 경로 패턴(/lectures/:id/room)과 실제 URL(/lectures/1/room)을 문자열로 직접 비교하면 항상 false가 됨
-   - **해결**: const isLectureRoomPage = /^\/lectures\/\d+\/room/.test(location.pathname); 정규식을 사용한 패턴 매칭으로 해결
-7. **[강의 진도 저장 API 404 에러 처리]**
-   - **문제**: `PATCH /enrollments/progress/lectures/:id` 호출 시 간헐적으로 404가 발생하여, 프론트의 `progressExists` 상태와 서버 기록이 불일치하는 문제가 생김.
-   - **해결**: `enrollmentsApi.ts`에서 404 응답을 명시적으로 throw하도록 변경하고, `LectureRoomPage`에서 해당 예외를 `catch`한 뒤 `POST` API로 재시도하도록 처리하여 최초 진행률 데이터가 안전하게 생성되도록 함.
-8. **[SQLAlchemy Enum 타입 매핑 오류]**
-   - **문제**: `SQLEnum(Gender)` 사용 시, 데이터베이스에 Enum의 `name`이 저장되어야 하는데 `value`가 저장되거나, Alembic 마이그레이션 시 Enum 타입이 제대로 인식되지 않는 오류 발생.
-   - **해결**: `values_callable=lambda obj: [e.value for e in obj]` 파라미터를 추가하여 Enum 객체의 실제 `value` 값을 명시적으로 데이터베이스에 저장하도록 설정. 이를 통해 Python Enum과 데이터베이스 간 데이터 타입 불일치 문제 해결.
-9. **[결제 결과 페이지 깜빡임 현상]**
-   - **문제**: 결제 성공 시에도 초기 렌더링 단계에서 상태가 falsey로 설정되어 잠깐 결제 실패 화면이 노출됨.
-   - **해결**: 강제 로딩 시간(300ms)을 주어 API 응답 전까지 로딩 상태를 유지하도록 수정, 성공/실패 화면은 로딩 이후에 렌더링되도록 개선.
+    - **문제**: `datetime` 필드가 UTC(0시간)로 형식 반환되어 실제 한국 시간보다 다르게 표시됨
+    - **해결**: Pydantic `@field_serializer`로 모든 `datetime` 필드를 KST(UTC+9)로 변환
+
   
 
 # 8. 팀원
@@ -586,6 +426,7 @@ docker-compose ps
 # 9. 소감
 
 - ## 김규호
+  - 팀장으로서 프로젝트를 리딩하면서 새로운 관점에서의 업무를 수행해 보았고, 각 팀원들의 적극적인 태도와 협업이 있었기에 이러한 결과를 낼 수 있었다고 생각하고, 팀장의 기회를 주신 팀원들께 감사드립니다.
 - ## 김민주
   - 팀 프로젝트를 진행하며 초기 개발 환경 세팅과 코드 컨벤션 등 협업 기준을 직접 설정하고 관리하며 팀원들과 소통하고, 협업 효율과 프로젝트 일관성을 유지하는 방법을 배울 수 있었습니다. 또한, 백엔드와 프론트엔드를 동시에 개발하며 정리되지 않은 데이터를 처리하고 가공하는 경험을 통해 데이터 구조를 이해하고 안정적인 기능을 구현하는 능력을 키울 수 있었습니다.
 - ## 김채현
