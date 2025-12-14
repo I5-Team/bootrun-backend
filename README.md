@@ -29,7 +29,7 @@
 특히 **구체적인 실무 역량**을 기를 수 있는 강의에 초점을 맞춘, 강사와 수강생이 **서로 공존할 수 있는 공간**을 만드는 것이 목표였습니다.
 
 
-## 3. 기술 스택 (Technology Stack)
+## 3. 시스템 아키텍처
 
 ### 3-1. 전체 아키텍처 다이어그램
 
@@ -99,26 +99,9 @@ graph TD
     ACTIONS -->|Deploy Backend| INSTANCE
 ```
 
-### 3-2. Back-End
+### 3-2. 백엔드 아키텍처 다이어그램
 
-| 구분      | 기술                                                                         | 핵심 사유                                                                                                                                    |
-| --------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Core**  | `Python **3.x**`, `FastAPI **0.121**`, `Pydantic **2.12**`, `Loguru **0.7**` | **Python 기반 고성능 비동기** 웹 서버 구축. **Pydantic**으로 데이터 타입 안전성 및 자동 문서화 확보. **Loguru**로 구조화된 로깅 시스템 구현. |
-| **DB**    | `PostgreSQL`, `SQLAlchemy 2.0`, `Alembic 1.17`, `asyncpg 0.30`               | **ACID 트랜잭션** 및 JSON 지원 DB 사용. ORM을 통한 타입 안전성 및 **고성능 비동기** DB 드라이버로 효율적인 데이터 접근 구현.                 |
-| **Auth**  | `JWT (Python-Jose 3.5)`, `Bcrypt 5.0`, `Cryptography 46.0`                   | 상태 비저장 **토큰 인증** 방식 채택. Bcrypt로 안전한 **비밀번호 암호화** 및 Fernet으로 민감 데이터 보호.                                     |
-| **Cache** | `Redis 7.0`                                                                  | **인메모리 캐싱**을 통한 API 응답 속도 향상 및 레이트 제한 구현.                                                                             |
-
-### 3-3. Infra & CI/CD
-
-| 구분                 | 기술                                                                         | 핵심 사유                                                                                                                                                              |
-| -------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Deploy(Back-End)** | `AWS Lightsail (Compute, Database)`, `Cloudflare R2`, `Uvicorn **0.38**` | **AWS Lightsail**에서 서버/DB 운영. **Cloudflare R2**로 파일 저장. `Uvicorn`으로 **고성능 비동기** 서버 환경 구축. |
-| **CI/CD**            | `GitHub Actions`                                                             | `dev` 브랜치 `push` 시, 자동으로 테스트, 빌드 및 프론트엔드(GitHub Pages) + 백엔드(Lightsail) 배포가 실행되도록 파이프라인 구축.                                                                         |
-
-
-## 4. 폴더 구조
-
-: 백엔드는 계층별 책임 분리를 통해 코드의 유지보수성과 테스트 가능성을 확보했습니다.
+**설계:** Router-Service 계층 분리, 비동기 처리, 의존성 주입
 
 ```mermaid
 graph TD
@@ -126,24 +109,24 @@ graph TD
     subgraph Router["Router Layer - 라우터"]
         R[auth.py<br/>API 엔드포인트 정의]
     end
-    
+
     %% Service Layer
     subgraph Service["Service Layer - 서비스"]
         S[user_service.py<br/>비즈니스 로직 처리]
     end
-    
+
     %% Data Layer
     subgraph Data["Data Layer - 데이터"]
         Schema[schemas/user.py<br/>Pydantic 스키마]
         Model[models/user.py<br/>SQLAlchemy 모델]
     end
-    
+
     %% Database
     DB[(PostgreSQL)]
-    
+
     %% Flow
     Client[Client Request]
-    
+
     Client -->|1. POST /api/v1/auth/signup| R
     R -->|2. 요청 데이터 검증| Schema
     R -->|3. 비즈니스 로직 호출| S
@@ -155,22 +138,41 @@ graph TD
     S -->|9. 응답 생성| Schema
     Schema -->|10. JSON 응답| R
     R -->|11. HTTP Response| Client
- ```
+```
 
-- **Router (라우터):** `routers/auth.py`, `routers/admin/dashboard.py`
-  - HTTP 요청을 받아 적절한 서비스로 라우팅하는 "진입점" 역할을 합니다.
-  - 요청 검증(Pydantic Schemas)과 응답 포맷 담당을 담당합니다.
-- **Service (서비스):** `services/user_service.py`
-  - 모든 비즈니스 로직과 데이터 처리 로직이 집중된 계층입니다.
-  - 데이터베이스 쿼리, 캐시 조회, 외부 API 호출 등을 조율합니다.
-  - 재사용 가능한 로직을 제공하여 테스트가 용이합니다.
-- **Model & Schema (모델/스키마):** `models/user.py`, `schemas/user.py`
-  - **Model:** SQLAlchemy ORM 모델로 데이터베이스 테이블을 정의합니다.
-  - **Schema:** Pydantic으로 요청/응답 데이터 검증 및 직렬화를 합니다.
-- **Core (핵심 인프라):** `core/database.py`, `core/security.py`
-  - 데이터베이스 연결, JWT 인증, 캐시 관리 등 공통 기능을 제공합니다.
+**핵심 특징:**
+- **비동기 처리**: AsyncIO + AsyncPG로 고성능 비동기 데이터베이스 연결 풀링
+- **계층 분리**: Router-Service 계층 분리로 비즈니스 로직과 API 분리
+- **의존성 주입**: FastAPI Depends를 활용한 의존성 주입 및 권한 검증
+- **쿼리 최적화**: SubQuery 최적화로 N+1 쿼리 문제 해결
 
-이러한 구조로 라우터는 HTTP 처리에만 집중하고, 비즈니스 로직은 서비스에서 관리되어 **테스트 및 수정이 간편**합니다.
+**계층별 역할:**
+- **Router (라우터)**: HTTP 요청을 받아 적절한 서비스로 라우팅하는 진입점. 요청 검증(Pydantic Schemas)과 응답 포맷 담당
+- **Service (서비스)**: 비즈니스 로직과 데이터 처리 로직이 집중된 계층. 데이터베이스 쿼리, 캐시 조회, 외부 API 호출 등을 조율하며 재사용 가능한 로직 제공
+- **Model (모델)**: SQLAlchemy ORM 모델로 데이터베이스 테이블 정의
+- **Schema (스키마)**: Pydantic으로 요청/응답 데이터 검증 및 직렬화
+- **Core (핵심 인프라)**: 데이터베이스 연결, JWT 인증, 캐시 관리 등 공통 기능 제공
+
+## 4. 기술 스택
+
+### 4-1. Back-End
+
+| 구분      | 기술                                                                         | 핵심 사유                                                                                                                                    |
+| --------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Core**  | `Python **3.x**`, `FastAPI **0.121**`, `Pydantic **2.12**`, `Loguru **0.7**` | **Python 기반 고성능 비동기** 웹 서버 구축. **Pydantic**으로 데이터 타입 안전성 및 자동 문서화 확보. **Loguru**로 구조화된 로깅 시스템 구현 (민감정보 자동 마스킹, Request ID 추적). |
+| **DB**    | `PostgreSQL`, `SQLAlchemy 2.0`, `Alembic 1.17`, `asyncpg 0.30`               | **ACID 트랜잭션** 및 JSON 지원 DB 사용. ORM을 통한 타입 안전성 및 **고성능 비동기** 연결 풀링(pool_pre_ping, pool_recycle)으로 효율적인 데이터 접근. SubQuery 최적화 및 Eager Loading으로 N+1 쿼리 문제 해결.                 |
+| **Auth**  | `JWT (Python-Jose 3.5)`, `Bcrypt 5.0`, `Cryptography 46.0`                   | **Access/Refresh Token 분리** 및 토큰 타입/발급자(iss) 검증. Bcrypt로 안전한 **비밀번호 암호화** 및 Fernet으로 민감 데이터 보호. Redis 기반 **브루트포스 방어** (5회 시도 제한 / 15분).                                     |
+| **Cache** | `Redis 7.0`                                                                  | **인메모리 캐싱**을 통한 API 응답 속도 향상. 이메일 인증 코드(TTL 30분), 로그인 시도 제한, 비밀번호 재설정 토큰 관리. @cached 데코레이터 및 패턴 기반 캐시 무효화.                                                                             |
+
+### 4-2. Infra & CI/CD
+
+| 구분                 | 기술                                                                         | 핵심 사유                                                                                                                                                              |
+| -------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Deploy(Back-End)** | `AWS Lightsail (Compute, Database)`, `Cloudflare R2`, `Uvicorn **0.38**`, `Docker`, `Nginx` | **Docker + Docker Compose**로 일관된 컨테이너 환경 구축. **AWS Lightsail**에서 서버/DB 운영. **Cloudflare R2**로 파일 저장. **Nginx** 리버스 프록시 및 **Let's Encrypt SSL**(DuckDNS). `Uvicorn`으로 **고성능 비동기** 서버 환경 구축. **Graceful Degradation** (Redis 장애 시에도 서비스 유지). |
+| **CI/CD**            | `GitHub Actions`                                                             | `dev` 브랜치 `push` 시, 자동으로 테스트, 빌드 및 프론트엔드(GitHub Pages) + 백엔드(Lightsail) 배포가 실행되도록 파이프라인 구축.                                                                         |
+
+
+## 5. 폴더 구조
 
 ```
 ## backend 폴더구조
@@ -224,11 +226,20 @@ bootrun-backend/
 │   │   ├── admin_user_service.py           # 관리자 사용자 관리 서비스
 │   │   └── admin_course_service.py         # 관리자 강의 관리 서비스
 │   │
-│   ├── middleware/             # 미들웨어 (API 요청 속도 제한 등)
+│   ├── middleware/             # 미들웨어
+│   │   └── rate_limit.py       # API 요청 속도 제한
 │   │
-│   ├── exceptions/             # 커스텀 예외 처리 (계층화된 예외 클래스, 표준화된 에러 응답, 전역 예외 핸들러)
+│   ├── exceptions/             # 커스텀 예외 처리
+│   │   ├── base.py             # 계층화된 예외 클래스
+│   │   ├── handlers.py         # 전역 예외 핸들러
+│   │   └── responses.py        # 표준화된 에러 응답
 │   │
-│   └── utils/                  # 유틸리티 (파일 업로드, Redis 캐싱, 이메일 발송, 헬퍼 함수 등)
+│   └── utils/                  # 유틸리티 함수
+│       ├── cache.py            # Redis 캐싱 (@cached 데코레이터, 패턴 기반 무효화)
+│       ├── constants.py        # 상수 정의 (캐시 TTL, 에러 메시지 등)
+│       ├── email_service.py    # 이메일 발송 (인증 코드)
+│       ├── helpers.py          # 헬퍼 함수 (시간대 변환, 페이지네이션 등)
+│       └── video_duration.py   # 영상 길이 파싱
 │
 ├── alembic/                    # 데이터베이스 마이그레이션
 │   ├── versions/               # 마이그레이션 버전 파일
@@ -238,7 +249,9 @@ bootrun-backend/
 │
 ├── docs/                       # 프로젝트 문서 (API 명명 규칙, 코딩 컨벤션, 기능 명세서, 리팩토링 가이드 등)
 │
-├── logs/                       # 로그 파일 (애플리케이션 로그, 에러 로그 등 자동 생성)
+├── logs/                       # 로그 파일
+│   ├── app.log                 # 애플리케이션 로그
+│   └── error.log               # 에러 전용 로그
 │
 ├── docker-compose.yml          # Docker Compose 설정
 ├── Dockerfile                  # Docker 이미지 빌드 설정
@@ -256,70 +269,81 @@ bootrun-backend/
 
 ## 5. 데이터베이스 설계
 
+**총 8개 테이블**
+
+```
+Users (사용자)
+├─ Enrollments (수강 등록)
+├─ Progresses (학습 진행률)
+└─ Payments (결제)
+   └─ Refunds (환불)
+
+Courses (강의)
+└─ Chapters (챕터)
+   └─ Lectures (강의 영상)
+```
 
 ## 6. ERD 다이어그램
 
 ![ERD 다이어그램](https://github.com/user-attachments/assets/5dca5055-e3e4-4264-a2b5-40deb6ad545b)
 
 
-
------- 수정중------------
-### 2-2. 주요 기능 (What We Built)
+## 7. 주요 기능
 
 #### 강의실
-영상 이어보기, 진행률 자동 저장, 강의 완료 처리, 커리큘럼 트래킹
+**기능:** 영상 이어보기, 진행률 자동 저장, 강의 완료 처리, 커리큘럼 트래킹
+
+- **성능 최적화**: `unique_watched_seconds`로 되감기 시에도 진행률 유지, 95% 이상 자동 완료 처리
+- **API 아키텍처**: 비동기 진행률 업데이트, Service Layer에서 강의 전체 진행률 자동 계산
+- **데이터 관리**: Redis 캐싱으로 강의 데이터 빠른 조회
 
 #### 강의
-강의 목록(필터링), 강의 상세, 수강 신청
+**기능:** 강의 목록(필터링), 강의 상세, 수강 신청
+
+- **성능 최적화**: SubQuery로 수강 인원, 완강률 한 번에 조회 (N+1 문제 해결)
+- **API 아키텍처**: Eager Loading (selectinload, joinedload)으로 챕터/강의 영상 효율적 조회
+- **데이터 관리**: Redis 캐싱으로 강의 목록 응답 속도 향상
 
 #### 인증
-회원가입(이메일 인증), 로그인(JWT)
+**기능:** 회원가입(이메일 인증), 로그인(JWT)
+
+- **인증 및 보안**: JWT Access/Refresh Token 분리, 토큰 타입/발급자(iss) 검증
+- **보안**: bcrypt 비밀번호 암호화, Redis 기반 브루트포스 방어 (5회 시도 제한)
+- **데이터 관리**: Redis 기반 이메일 인증 코드 관리 (TTL 30분)
 
 #### 마이페이지
-내 강의 목록, 프로필 수정(이미지 업로드/삭제), 계정 관리(비밀번호 변경/탈퇴)
+**기능:** 내 강의 목록, 프로필 수정(이미지 업로드/삭제), 계정 관리(비밀번호 변경/탈퇴)
+
+- **배포 환경**: Cloudflare R2로 프로필 이미지 저장 및 관리
+- **인증 및 보안**: 리소스 소유권 검증 (본인만 수정 가능)
+- **데이터 관리**: Redis 캐싱으로 내 강의 목록 빠른 조회
 
 #### 관리자
-대시보드, 강의/사용자/결제 내역 관리
+**기능:** 대시보드, 강의/사용자/결제 내역 관리
+
+- **인증 및 보안**: 역할 기반 권한 검증 (ADMIN만 접근)
+- **성능 최적화**: SubQuery + Eager Loading으로 대시보드 통계 빠른 조회
+- **로깅 시스템**: Request ID 기반 관리자 행동 추적
 
 
-### 2-3. 핵심 설계
+#### 배포
+**환경:** Docker 컨테이너화, AWS Lightsail, Cloudflare R2, HTTPS
 
-  - **API 아키텍처**: 비동기 처리(AsyncIO + AsyncPG), Router-Service 계층 분리        
-    - 고성능 비동기 데이터베이스 연결 풀링
-    - FastAPI Depends를 활용한 의존성 주입 및 권한 검증
-    - SubQuery 최적화로 N+1 쿼리 문제 해결
+- **컨테이너화**: Docker + Docker Compose로 일관된 배포 환경
+- **서버**: AWS Lightsail (Compute, Database)
+- **파일 저장소**: Cloudflare R2로 프로필 이미지, 강의 썸네일 저장
+- **HTTPS**: Let's Encrypt SSL 인증서, DuckDNS 동적 DNS
+- **프록시**: Nginx 리버스 프록시
+- **안정성**: Graceful Degradation (Redis 장애 시에도 서비스 유지)
 
-  - **인증 및 보안**: JWT 토큰 기반 인증, 다중 보안 계층
-    - Access/Refresh Token 분리, 토큰 타입/발급자(iss) 검증
-    - bcrypt 패스워드 암호화, Fernet 데이터 암호화
-    - Redis 기반 브루트포스 방어 (로그인 시도 제한 5회/15분)
-    - 계층화된 권한 검증 (수강 여부, 수강 기간, 리소스 소유권)
+#### 로깅 및 모니터링
+**시스템:** 구조화된 로깅, 민감정보 마스킹, Request ID 추적
 
-  - **데이터 관리**: PostgreSQL + Redis 하이브리드 구조
-    - AsyncPG를 통한 비동기 DB 연결 풀링 (pool_pre_ping, pool_recycle)
-    - Redis 캐싱으로 반복 쿼리 성능 최적화 (@cached 데코레이터)
-    - 패턴 기반 캐시 무효화로 데이터 일관성 보장
-    - Redis 기반 이메일 인증 및 비밀번호 재설정 토큰 관리
+- **민감정보 보호**: 비밀번호, JWT, API 키, 카드번호 자동 감지 및 마스킹
+- **요청 추적**: Request ID 기반 요청 추적 (분산 환경 지원)
+- **로그 관리**: 크기/날짜 기반 로테이션 파일 로깅
+- **예외 처리**: 계층화된 예외 처리 (클래스명 → 에러 코드 자동 변환)
 
-  - **로깅 시스템**: 구조화된 로깅 및 보안
-    - 민감정보 자동 감지 및 마스킹 (비밀번호, JWT, API 키, 카드번호 등)
-    - Request ID 기반 요청 추적 (분산 환경 지원)
-    - 로테이션 파일 로깅 (크기/날짜 기반)
-    - 계층화된 예외 처리 (클래스명 → 에러 코드 자동 변환)
-
-  - **성능 최적화**: 다층 캐싱 및 쿼리 최적화
-    - Redis Rate Limiting (IP별 60요청/분, 분산 환경 지원)
-    - Eager Loading (selectinload, joinedload)으로 N+1 방지
-    - 진행률 계산 최적화 (unique_watched_seconds로 되감기 대응)
-
-  - **배포 환경**: Docker 컨테이너화, HTTPS 적용
-    - AWS Lightsail 배포
-    - Let's Encrypt SSL 인증서, DuckDNS 동적 DNS
-    - Nginx 리버스 프록시
-    - Graceful Degradation (Redis 장애 시에도 서비스 유지)
-
-
------------------------------------------
 
 ## 5. 실행 방법 (Getting Started)
 
