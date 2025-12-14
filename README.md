@@ -217,14 +217,14 @@ bootrun-backend/
 │   │       └── payments.py     # 결제 관리 API
 │   │
 │   ├── services/               # 비즈니스 로직 계층
-│   │   ├── user_service.py                 # 사용자 서비스
-│   │   ├── course_service.py               # 강의 조회 서비스
-│   │   ├── enrollment_service.py           # 수강 등록 서비스
-│   │   ├── payment_service.py              # 결제 서비스
-│   │   ├── r2_service.py                   # Cloudflare R2 스토리지 서비스
-│   │   ├── admin_dashboard_service.py      # 관리자 대시보드 서비스
-│   │   ├── admin_user_service.py           # 관리자 사용자 관리 서비스
-│   │   └── admin_course_service.py         # 관리자 강의 관리 서비스
+│   │   ├── user_service.py               # 사용자 서비스
+│   │   ├── course_service.py             # 강의 조회 서비스
+│   │   ├── enrollment_service.py         # 수강 등록 서비스
+│   │   ├── payment_service.py            # 결제 서비스
+│   │   ├── r2_service.py                 # Cloudflare R2 스토리지 서비스
+│   │   ├── admin_dashboard_service.py    # 관리자 대시보드 서비스
+│   │   ├── admin_user_service.py         # 관리자 사용자 관리 서비스
+│   │   └── admin_course_service.py       # 관리자 강의 관리 서비스
 │   │
 │   ├── middleware/             # 미들웨어
 │   │   └── rate_limit.py       # API 요청 속도 제한
@@ -235,9 +235,9 @@ bootrun-backend/
 │   │   └── responses.py        # 표준화된 에러 응답
 │   │
 │   └── utils/                  # 유틸리티 함수
-│       ├── cache.py            # Redis 캐싱 (@cached 데코레이터, 패턴 기반 무효화)
-│       ├── constants.py        # 상수 정의 (캐시 TTL, 에러 메시지 등)
-│       ├── email_service.py    # 이메일 발송 (인증 코드)
+│       ├── cache.py            # Redis 캐싱 
+│       ├── constants.py        # 상수 정의 
+│       ├── email_service.py    # 이메일 발송 
 │       ├── helpers.py          # 헬퍼 함수 (시간대 변환, 페이지네이션 등)
 │       └── video_duration.py   # 영상 길이 파싱
 │
@@ -245,9 +245,9 @@ bootrun-backend/
 │   ├── versions/               # 마이그레이션 버전 파일
 │   └── env.py                  # Alembic 환경 설정
 │
-├── scripts/                    # 운영 스크립트 (관리자 계정 생성, 테스트 계정 생성, 진행률 재계산 등)
+├── scripts/                    # 운영 스크립트 
 │
-├── docs/                       # 프로젝트 문서 (API 명명 규칙, 코딩 컨벤션, 기능 명세서, 리팩토링 가이드 등)
+├── docs/                       # 프로젝트 문서 
 │
 ├── logs/                       # 로그 파일
 │   ├── app.log                 # 애플리케이션 로그
@@ -290,35 +290,35 @@ Courses (강의)
 
 ## 7. 주요 기능
 
-#### 강의실
+#### 7-1. 강의실
 **기능:** 영상 이어보기, 진행률 자동 저장, 강의 완료 처리, 커리큘럼 트래킹
 
 - **성능 최적화**: `unique_watched_seconds`로 되감기 시에도 진행률 유지, 95% 이상 자동 완료 처리
 - **API 아키텍처**: 비동기 진행률 업데이트, Service Layer에서 강의 전체 진행률 자동 계산
 - **데이터 관리**: Redis 캐싱으로 강의 데이터 빠른 조회
 
-#### 강의
+#### 7-2. 강의
 **기능:** 강의 목록(필터링), 강의 상세, 수강 신청
 
 - **성능 최적화**: SubQuery로 수강 인원, 완강률 한 번에 조회 (N+1 문제 해결)
 - **API 아키텍처**: Eager Loading (selectinload, joinedload)으로 챕터/강의 영상 효율적 조회
 - **데이터 관리**: Redis 캐싱으로 강의 목록 응답 속도 향상
 
-#### 인증
+#### 7-3. 인증
 **기능:** 회원가입(이메일 인증), 로그인(JWT)
 
 - **인증 및 보안**: JWT Access/Refresh Token 분리, 토큰 타입/발급자(iss) 검증
 - **보안**: bcrypt 비밀번호 암호화, Redis 기반 브루트포스 방어 (5회 시도 제한)
 - **데이터 관리**: Redis 기반 이메일 인증 코드 관리 (TTL 30분)
 
-#### 마이페이지
+#### 7-4. 마이페이지
 **기능:** 내 강의 목록, 프로필 수정(이미지 업로드/삭제), 계정 관리(비밀번호 변경/탈퇴)
 
 - **배포 환경**: Cloudflare R2로 프로필 이미지 저장 및 관리
 - **인증 및 보안**: 리소스 소유권 검증 (본인만 수정 가능)
 - **데이터 관리**: Redis 캐싱으로 내 강의 목록 빠른 조회
 
-#### 관리자
+#### 7-5. 관리자
 **기능:** 대시보드, 강의/사용자/결제 내역 관리
 
 - **인증 및 보안**: 역할 기반 권한 검증 (ADMIN만 접근)
@@ -326,7 +326,7 @@ Courses (강의)
 - **로깅 시스템**: Request ID 기반 관리자 행동 추적
 
 
-#### 배포
+#### 7-6. 배포
 **환경:** Docker 컨테이너화, AWS Lightsail, Cloudflare R2, HTTPS
 
 - **컨테이너화**: Docker + Docker Compose로 일관된 배포 환경
@@ -336,7 +336,7 @@ Courses (강의)
 - **프록시**: Nginx 리버스 프록시
 - **안정성**: Graceful Degradation (Redis 장애 시에도 서비스 유지)
 
-#### 로깅 및 모니터링
+#### 7-7. 로깅 및 모니터링
 **시스템:** 구조화된 로깅, 민감정보 마스킹, Request ID 추적
 
 - **민감정보 보호**: 비밀번호, JWT, API 키, 카드번호 자동 감지 및 마스킹
@@ -345,7 +345,7 @@ Courses (강의)
 - **예외 처리**: 계층화된 예외 처리 (클래스명 → 에러 코드 자동 변환)
 
 
-## 5. 실행 방법 (Getting Started)
+## 8. 실행 방법 (Getting Started)
 
 **사전 요구 사항:** `Docker`, `Docker Compose`
 
@@ -368,16 +368,16 @@ docker-compose up -d --build
 docker-compose ps
 ```
 
-## 6. 협업 규칙 (Collaboration Rules)
+## 9. 협업 규칙 (Collaboration Rules)
 
-### 6-1. Git 브랜치 전략 (Git-flow)
+### 9-1. Git 브랜치 전략 (Git-flow)
 
 - **`main`**: 최종 배포 버전
 - **`dev`**: 개발 서버 (CI/CD 자동 배포)
 - **`feat/{작업이름}`**: 기능 개발 (e.g., `feat/lecture-room`)
 - **규칙:** `main`과 `dev` 브랜치에는 절대 직접 `push`하지 않습니다. 모든 작업은 `feat` 브랜치에서 진행 후, `dev`로 **Pull Request(PR)**를 생성하여 코드 리뷰를 거칩니다.
 
-### 6-2. 커밋 메시지 (Commit Message)
+### 9-2. 커밋 메시지 (Commit Message)
 
 | Gitmoji | **커밋 type** | 설명                                               |
 | ------- | ------------- | -------------------------------------------------- |
@@ -398,7 +398,7 @@ docker-compose ps
 | 🚀      | deploy        | 배포 관련                                          |
 | 📝      | docs          | 코드 외 문서 관련 / 오타 수정                      |
 
-### 6-3. 그라운드 룰 (Ground Rules)
+### 9-3. 그라운드 룰 (Ground Rules)
 
 1. **회의:** 오전 10시 30분, 오후 3시 30분 (ZEP C3 열정 방)
 2. 칭찬 감옥(월, 수, 금 오후 회의 이후)
@@ -413,7 +413,7 @@ docker-compose ps
 8. 개발 규칙 : 코딩 컨벤션 통일
 9. 답변은 가능하면 빠르게 하기
 
-## 7. 핵심 트러블슈팅 (Troubleshooting)
+## 10. 핵심 트러블슈팅 (Troubleshooting)
 
 프로젝트 진행 중 발생했던 주요 문제와 해결 과정입니다.
 
@@ -439,7 +439,7 @@ docker-compose ps
 
   
 
-# 8. 팀원
+# 11. 팀원
 
 - **김규호 (Front-End, 팀장):** 프로젝트 총괄, 인증(로그인/회원가입), 마이페이지 개발, CI/CD 구축 및 관리
 - **김민주 (Front-End):** 강의 목록, 강의 상세 페이지, UI/UX 디자인 시스템, SEO 및 웹 접근성 구축, 사용자 결제 관리
@@ -447,7 +447,7 @@ docker-compose ps
 - **신가람 (Back-End):** DB 설계, 인증/사용자/강의/학습 진행/관리자(강의) API 개발, 서버 배포   
 - **장민경 (Back-End):** 환경 설정(env/config), 결제/관리자(사용자·결제·대시보드) API 개발, 로컬 서버 구축  
 
-# 9. 소감
+# 12. 소감
 
 - ## 김규호
   - 팀장으로서 프로젝트를 리딩하면서 새로운 관점에서의 업무를 수행해 보았고, 각 팀원들의 적극적인 태도와 협업이 있었기에 이러한 결과를 낼 수 있었다고 생각하고, 팀장의 기회를 주신 팀원들께 감사드립니다.
