@@ -11,12 +11,19 @@ until pg_isready -h "$DATABASE_HOST" -p "$DATABASE_PORT" -U "$DATABASE_USER"; do
 done
 echo "PostgreSQL is ready!"
 
-# Wait for Redis to be ready
+# Wait for Redis to be ready (비밀번호 추가!)
 echo "Waiting for Redis..."
-until redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" ping > /dev/null 2>&1; do
-  echo "Redis is unavailable - sleeping"
-  sleep 2
-done
+if [ -n "$REDIS_PASSWORD" ]; then
+  until redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" -a "$REDIS_PASSWORD" ping > /dev/null 2>&1; do
+    echo "Redis is unavailable - sleeping"
+    sleep 2
+  done
+else
+  until redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" ping > /dev/null 2>&1; do
+    echo "Redis is unavailable - sleeping"
+    sleep 2
+  done
+fi
 echo "Redis is ready!"
 
 # Run database migrations

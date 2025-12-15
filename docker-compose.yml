@@ -37,7 +37,12 @@ services:
       - ./logs:/app/logs
       - uploads_data:/app/uploads
     restart: unless-stopped
-
+    healthcheck:  # 추가!
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 volumes:
   redis_data:
     driver: local

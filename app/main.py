@@ -1,9 +1,10 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.redis import init_redis, close_redis
 from app.core.config import settings
 from contextlib import asynccontextmanager
 from app.core.logging_config import configure_logging
+from app.core.database import check_db_connection, check_redis_connection
 
 logger = configure_logging()
 
@@ -14,11 +15,11 @@ logger = configure_logging()
 tags_metadata = [
     {
         "name": "인증",
-        "description": "회원가입, 로그인, 소셜 로그인, 이메일 인증, 비밀번호 재설정 등 인증 관련 API",
+        "description": "회원가입, 로그인, 이메일 인증 등 인증 관련 API",
     },
     {
         "name": "사용자",
-        "description": "프로필 조회/수정, 비밀번호 변경, 이메일 변경, 회원 탈퇴, 알림 등 사용자 관련 API",
+        "description": "프로필 조회/수정, 비밀번호 변경, 회원 탈퇴 등 사용자 관련 API",
     },
     {
         "name": "강의",
@@ -51,10 +52,6 @@ tags_metadata = [
     {
         "name": "스토리지",
         "description": "Cloudflare R2 파일 스토리지 - 이미지/동영상/파일 업로드, 삭제, 목록 조회",
-    },
-    {
-        "name": "⚠️ 테스트 전용",
-        "description": "⚠️ 개발/테스트 전용 엔드포인트 - 프로덕션 배포 전 삭제 필요",
     },
 ]
 
@@ -184,13 +181,26 @@ async def root():
         "redoc": "/redoc",
     }
 
-@app.get("/health", tags=["기본"])
+@app.get("/health")
 async def health_check():
-    return {
-        "status": "healthy",
-        "service": "BootRun API",
-        "version": "1.0.0",
-    }
+    """컨테이너 헬스체크 엔드포인트"""
+    db_ok = await check_db_connection()
+    redis_ok = await check_redis_connection()
+    
+    if db_ok and redis_ok:
+        return {
+            "status": "healthy",
+            "database": "connected",
+            "redis": "connected"
+        }
+    elif db_ok:
+        return {
+            "status": "degraded",
+            "database": "connected",
+            "redis": "disconnected"
+        }
+    else:
+        raise HTTPException(status_code=503, detail="Service unavailable")
 
 # ============= 메인 실행 =============
 
